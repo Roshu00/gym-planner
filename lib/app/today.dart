@@ -4,6 +4,7 @@ import '../domain/models.dart';
 import '../domain/rules.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
+import 'plan_finder.dart';
 import 'plan_screen.dart';
 import 'shell.dart';
 import 'workout_session.dart';
@@ -23,14 +24,20 @@ class TodayScreen extends StatelessWidget {
     final stats = ClStatBar(
       stats: [
         ClStat(label: 'Niz', value: '${store.streak}', unit: 'ned.'),
-        ClStat(label: 'Ova nedelja', value: '${store.thisWeek}/${store.weeklyGoal}', highlight: true),
+        ClStat(
+          label: 'Ova nedelja',
+          value: store.weeklyGoal == 0 ? '${store.thisWeek}' : '${store.thisWeek}/${store.weeklyGoal}',
+          highlight: true,
+        ),
         ClStat(
           label: 'Trajanje',
           value: next == null ? '—' : '${next.estimatedMinutes}',
           unit: next == null ? null : 'min',
         ),
       ],
-      segments: ClSegmentBar(total: store.weeklyGoal, done: store.thisWeek.clamp(0, store.weeklyGoal)),
+      segments: store.weeklyGoal == 0
+          ? null
+          : ClSegmentBar(total: store.weeklyGoal, done: store.thisWeek.clamp(0, store.weeklyGoal)),
     );
 
     if (plan == null || next == null) {
@@ -50,9 +57,18 @@ class TodayScreen extends StatelessWidget {
           stats,
           gap,
           ClButton(
-            label: 'Otkrij trenere',
+            label: 'Pronađi plan',
+            icon: ClIcons.find,
             expand: true,
-            onPressed: () => HomeShell.goTo(context, AppTab.discover),
+            onPressed: () => pushScreen(context, const PlanFinderScreen()),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ClButton(
+              label: 'Ili otkrij trenere',
+              variant: ClButtonVariant.text,
+              onPressed: () => HomeShell.goTo(context, AppTab.discover),
+            ),
           ),
         ],
       );

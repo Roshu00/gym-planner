@@ -6,18 +6,21 @@ import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'exercise_detail.dart';
 import 'program_detail.dart';
-import 'shell.dart';
 import 'workout_detail.dart';
 
-/// Programs, workouts and exercises from followed creators. Dark theme.
-class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key});
+/// Programs, workouts and exercises from followed creators. Shown as the
+/// "Biblioteka" tab of Otkrij.
+class LibraryContent extends StatefulWidget {
+  const LibraryContent({super.key, required this.onDiscover});
+
+  /// Switches to the "Otkrij" tab.
+  final VoidCallback onDiscover;
 
   @override
-  State<LibraryScreen> createState() => _LibraryScreenState();
+  State<LibraryContent> createState() => _LibraryContentState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen> {
+class _LibraryContentState extends State<LibraryContent> {
   int _tab = 0;
 
   @override
@@ -77,32 +80,34 @@ class _LibraryScreenState extends State<LibraryScreen> {
     };
     final counts = [programs.length, workouts.length, exercises.length];
 
-    return AppScreen(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: ClSpace.s4),
-        ClScreenTitle(
-          label: creators.isEmpty
-              ? 'Od trenera koje pratiš'
-              : '${countLabel(creators.length, 'trener', 'trenera', 'trenera')} · ${countLabel(exercises.length, 'vežba', 'vežbe', 'vežbi')}',
-          title: 'Biblioteka',
-        ),
-        gapS,
         if (creators.isEmpty)
           ClEmptyState(
             title: 'Prazna polica.',
             message: 'Zaprati trenera ili se pretplati i ovde su njegovi programi, treninzi i vežbe.',
-            action: ClButton(
-              label: 'Otkrij trenere',
-              expand: true,
-              onPressed: () => HomeShell.goTo(context, AppTab.discover),
-            ),
+            action: ClButton(label: 'Otkrij trenere', expand: true, onPressed: widget.onDiscover),
           )
         else ...[
-          ClTabs(
-            tabs: ['Programi ${counts[0]}', 'Treninzi ${counts[1]}', 'Vežbe ${counts[2]}'],
-            selected: _tab,
-            onChanged: (i) => setState(() => _tab = i),
+          Text(
+            '${countLabel(creators.length, 'trener', 'trenera', 'trenera')} koje pratiš'.toUpperCase(),
+            style: context.clText.label,
           ),
+          const SizedBox(height: ClSpace.s2),
+          Wrap(
+            spacing: ClSpace.s2,
+            children: [
+              for (final (i, name) in ['Programi', 'Treninzi', 'Vežbe'].indexed)
+                ClFilter(
+                  label: '$name ${counts[i]}',
+                  selected: _tab == i,
+                  onChanged: (_) => setState(() => _tab = i),
+                ),
+            ],
+          ),
+          const SizedBox(height: ClSpace.s2),
+          const ClDivider(),
           ...rows,
         ],
       ],

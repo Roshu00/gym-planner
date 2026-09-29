@@ -5,7 +5,7 @@ import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 
-/// Goal, experience, where and how often the user trains. Dark theme.
+/// Name, goal, experience, where the user trains and their equipment. Dark theme.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, this.invitedBy});
 
@@ -17,14 +17,13 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  static const _steps = 6;
+  static const _steps = 5;
   int _step = 0;
   final _name = TextEditingController();
   Goal? _goal;
   Experience? _experience;
   Place? _place;
   Set<Equipment> _equipment = {};
-  int? _days;
 
   @override
   void dispose() {
@@ -37,8 +36,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     1 => _goal != null,
     2 => _experience != null,
     3 => _place != null,
-    4 => true,
-    _ => _days != null,
+    _ => true,
   };
 
   void _next() {
@@ -53,7 +51,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         goal: _goal!,
         experience: _experience!,
         place: _place!,
-        daysPerWeek: _days!,
+        // How often to train comes from the plan the user picks.
+        daysPerWeek: 3,
         equipment: _equipment,
       ),
     );
@@ -115,26 +114,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ],
         ),
       ),
-      4 => ('Tvoja oprema.', _equipmentStep(cl)),
-      _ => (
-        'Koliko dana?',
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Nedeljni cilj. Dan odmora ne prekida niz, a plan te čeka bez obzira na datum.',
-              style: cl.text.body.copyWith(color: cl.colors.inkMuted),
-            ),
-            gapS,
-            for (final d in [2, 3, 4, 5, 6])
-              ClOptionRow(
-                title: '$d ${plural(d, 'dan', 'dana', 'dana')} nedeljno',
-                selected: _days == d,
-                onPressed: () => setState(() => _days = d),
-              ),
-          ],
-        ),
-      ),
+      _ => ('Tvoja oprema.', _equipmentStep(cl)),
     };
 
     return AppScreen(

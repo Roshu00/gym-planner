@@ -53,6 +53,7 @@ final _components = [
   GallerySection('StatBar', 'Brojevi, segmenti, linija napretka', (_) => const StatBarPage()),
   GallerySection('SetTable', 'Unos setova, stanja, PR', (_) => const SetTablePage()),
   GallerySection('RestTimer', 'Odbrojavanje odmora', (_) => const RestTimerPage()),
+  GallerySection('Kalendar', 'Urađeno, planirano, odmor', (_) => const CalendarPage()),
   GallerySection('ProgramCard', 'Program i kreator', (_) => const ProgramCardPage()),
   GallerySection('Liste i tabovi', 'ListRow, ExerciseRow, CreatorRow, Tabs', (_) => const ListsPage()),
   GallerySection('Polja za unos', 'TextField, NumberField', (_) => const InputsPage()),

@@ -5,9 +5,10 @@ import 'package:chalkline/app/creator_mode.dart';
 import 'package:chalkline/app/creator_profile.dart';
 import 'package:chalkline/app/discover.dart';
 import 'package:chalkline/app/exercise_detail.dart';
-import 'package:chalkline/app/library.dart';
 import 'package:chalkline/app/onboarding.dart';
+import 'package:chalkline/app/plan_finder.dart';
 import 'package:chalkline/app/plan_screen.dart';
+import 'package:chalkline/app/plan_tab.dart';
 import 'package:chalkline/app/profile.dart';
 import 'package:chalkline/app/program_detail.dart';
 import 'package:chalkline/app/progress.dart';
@@ -98,6 +99,21 @@ Future<void> pump(WidgetTester tester, AppStore store, Widget screen, ClTheme th
   await tester.pump(const Duration(milliseconds: 300));
 }
 
+/// Scrolls until [text] is on screen, then taps it.
+Future<void> tapVisible(WidgetTester tester, String text) async {
+  final target = find.text(text).hitTestable();
+  for (var i = 0; i < 20 && target.evaluate().isEmpty; i++) {
+    await tester.drag(
+      find.byType(Scrollable).hitTestable().first,
+      const Offset(0, -200),
+      warnIfMissed: false,
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  await tester.tap(target.first);
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
 Future<void> scrollThrough(WidgetTester tester) async {
   final scrollables = find.byType(Scrollable);
   for (var i = 0; i < 15 && scrollables.evaluate().isNotEmpty; i++) {
@@ -109,10 +125,11 @@ Future<void> scrollThrough(WidgetTester tester) async {
 void main() {
   final screens = <String, (Widget Function(AppStore), ClTheme)>{
     'today': ((_) => const TodayScreen(), ClTheme.dark),
-    'library': ((_) => const LibraryScreen(), ClTheme.dark),
+    'plan tab': ((_) => const PlanTabScreen(), ClTheme.dark),
+    'plan finder': ((_) => const PlanFinderScreen(), ClTheme.dark),
     'discover': ((_) => const DiscoverScreen(), ClTheme.dark),
-    'progress': ((_) => const ProgressScreen(), ClTheme.light),
-    'profile': ((_) => const ProfileScreen(), ClTheme.light),
+    'progress': ((_) => const ProgressScreen(), ClTheme.dark),
+    'profile': ((_) => const ProfileScreen(), ClTheme.dark),
     'plan': ((_) => const PlanScreen(), ClTheme.dark),
     'plan workout': ((_) => const PlanWorkoutScreen(index: 1), ClTheme.dark),
     'summary': ((s) => SummaryScreen(sessionId: s.sessions.last.id, justFinished: true), ClTheme.light),
@@ -144,7 +161,8 @@ void main() {
 
   for (final (name, screen) in [
     ('today', const TodayScreen()),
-    ('library', const LibraryScreen()),
+    ('plan tab', const PlanTabScreen()),
+    ('discover', const DiscoverScreen()),
     ('progress', const ProgressScreen()),
     ('plan', const PlanScreen()),
     ('creator mode', const CreatorModeScreen()),
@@ -203,8 +221,6 @@ void main() {
     await tapText('DALJE');
     await tapText('Kod kuće');
     await tapText('DALJE');
-    await tapText('DALJE');
-    await tapText('3 dana nedeljno');
     await tapText('POČNI');
 
     // The creator link opens the creator's profile.
@@ -234,5 +250,41 @@ void main() {
     expect(creatorHandleFromUri(Uri.parse('https://chalkline.app/c/marko.lifts')), 'marko.lifts');
     expect(creatorHandleFromUri(Uri.parse('https://x.app/#/c/jelena.moves')), 'jelena.moves');
     expect(creatorHandleFromUri(Uri.parse('https://x.app/')), isNull);
+  });
+
+  testWidgets('Plan tab: today is selected, a rest day and training days', (tester) async {
+    final store = await seasonedStore();
+    _clock = DateTime(2026, 9, 30, 18); // Wednesday
+    store.setTrainingDays({1, 3, 5});
+    await pump(tester, store, const PlanTabScreen(), ClTheme.dark);
+    expect(find.text('SEPTEMBAR 2026'), findsOneWidget);
+    expect(find.textContaining('· DANAS'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^30\. 9\., sreda, danas')), findsOneWidget);
+
+    // Thursday is a rest day now.
+    await tester.tap(find.bySemanticsLabel('Sledeći mesec'));
+    await tester.pump();
+    expect(find.text('OKTOBAR 2026'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel(RegExp(r'^1\. 10\., četvrtak')));
+    await tester.pump();
+    expect(find.text('ODMOR.'), findsOneWidget);
+
+    // Making Thursday a training day plans a workout on it.
+    await tapVisible(tester, 'ČET');
+    await tester.pump();
+    expect(store.plan!.trainingDays, {1, 3, 4, 5});
+    expect(find.text('ODMOR.'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Plan tab without a plan offers the plan finder', (tester) async {
+    await pump(tester, await freshStore(), const PlanTabScreen(), ClTheme.dark);
+    await tapVisible(tester, 'PRONAĐI PLAN');
+    await tester.pumpAndSettle();
+    expect(find.text('PLAN ZA TEBE.'), findsOneWidget);
+    await tester.tap(find.text('PRONAĐI'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('NAJBOLJE SE UKLAPA'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

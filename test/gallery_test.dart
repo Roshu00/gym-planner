@@ -17,6 +17,7 @@ final pages = <String, Widget Function()>{
   'statbar': () => const StatBarPage(),
   'settable': () => const SetTablePage(),
   'resttimer': () => const RestTimerPage(),
+  'calendar': () => const CalendarPage(),
   'programcard': () => const ProgramCardPage(),
   'lists': () => const ListsPage(),
   'inputs': () => const InputsPage(),

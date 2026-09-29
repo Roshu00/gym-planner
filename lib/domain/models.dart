@@ -406,6 +406,7 @@ class UserPlan {
     this.swaps = const {},
     this.nextIndex = 0,
     this.completed = 0,
+    this.trainingDays = const {},
   });
 
   final String id;
@@ -426,24 +427,30 @@ class UserPlan {
   /// Workouts finished within this plan.
   final int completed;
 
+  /// Weekdays the user plans to train (1 = Monday … 7 = Sunday). Planned days
+  /// are a forecast: a missed day just moves the next workout forward.
+  final Set<int> trainingDays;
+
   String get nextWorkoutId => workoutIds[nextIndex % workoutIds.length];
 
   /// 1-based program week, capped at [weeks].
   int get currentWeek => (completed ~/ daysPerWeek + 1).clamp(1, weeks);
 
-  UserPlan copyWith({Map<String, String>? swaps, int? nextIndex, int? completed}) => UserPlan(
-    id: id,
-    programId: programId,
-    creatorId: creatorId,
-    name: name,
-    workoutIds: workoutIds,
-    weeks: weeks,
-    daysPerWeek: daysPerWeek,
-    startedAt: startedAt,
-    swaps: swaps ?? this.swaps,
-    nextIndex: nextIndex ?? this.nextIndex,
-    completed: completed ?? this.completed,
-  );
+  UserPlan copyWith({Map<String, String>? swaps, int? nextIndex, int? completed, Set<int>? trainingDays}) =>
+      UserPlan(
+        id: id,
+        programId: programId,
+        creatorId: creatorId,
+        name: name,
+        workoutIds: workoutIds,
+        weeks: weeks,
+        daysPerWeek: daysPerWeek,
+        startedAt: startedAt,
+        swaps: swaps ?? this.swaps,
+        nextIndex: nextIndex ?? this.nextIndex,
+        completed: completed ?? this.completed,
+        trainingDays: trainingDays ?? this.trainingDays,
+      );
 
   Map<String, Object?> toJson() => {
     'id': id,
@@ -457,6 +464,7 @@ class UserPlan {
     'swaps': swaps,
     'nextIndex': nextIndex,
     'completed': completed,
+    'trainingDays': (trainingDays.toList()..sort()),
   };
 
   factory UserPlan.fromJson(Map<String, Object?> j) => UserPlan(
@@ -471,6 +479,7 @@ class UserPlan {
     swaps: {for (final e in ((j['swaps'] as Map?) ?? const {}).entries) e.key as String: e.value as String},
     nextIndex: j['nextIndex'] as int? ?? 0,
     completed: j['completed'] as int? ?? 0,
+    trainingDays: {for (final d in (j['trainingDays'] as List? ?? const [])) d as int},
   );
 }
 
@@ -680,3 +689,14 @@ class Session {
     finishMessage: j['finishMessage'] as String? ?? '',
   );
 }
+
+/// A sensible weekly pattern for [daysPerWeek], with rest days spread out.
+Set<int> defaultTrainingDays(int daysPerWeek) => switch (daysPerWeek) {
+  <= 1 => {1},
+  2 => {1, 4},
+  3 => {1, 3, 5},
+  4 => {1, 2, 4, 5},
+  5 => {1, 2, 3, 4, 5},
+  6 => {1, 2, 3, 4, 5, 6},
+  _ => {1, 2, 3, 4, 5, 6, 7},
+};

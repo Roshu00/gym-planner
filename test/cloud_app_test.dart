@@ -101,8 +101,6 @@ void main() {
     await tapText(tester, 'DALJE');
     await tapText(tester, 'Teretana');
     await tapText(tester, 'DALJE');
-    await tapText(tester, 'DALJE');
-    await tapText(tester, '3 dana nedeljno');
     await tapText(tester, 'POČNI');
     expect(remote.tables['profiles']!.single['name'], 'Gost');
 
@@ -146,8 +144,6 @@ void main() {
     await tapText(tester, 'DALJE');
     await tapText(tester, 'Teretana');
     await tapText(tester, 'DALJE');
-    await tapText(tester, 'DALJE');
-    await tapText(tester, '3 dana nedeljno');
     await tapText(tester, 'POČNI');
     expect(find.text('Nije sačuvano na serveru. Proveri internet.'), findsOneWidget);
     remote.offline = false;

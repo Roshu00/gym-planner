@@ -157,6 +157,11 @@ select pg_temp.check(
 select pg_temp.check(
   pg_temp.fails($$update public.profiles set days_per_week = 9$$) = '23514',
   'days per week between 1 and 7');
+update public.plans set training_days = '{1,3,5}';
+select pg_temp.check((select training_days from public.plans) = '{1,3,5}', 'training days are stored');
+select pg_temp.check(
+  pg_temp.fails($$update public.plans set training_days = '{1,8}'$$) = '23514',
+  'training days are weekdays 1 to 7');
 
 -- ── Deleting the account removes the user's data.
 reset role;

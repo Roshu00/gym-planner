@@ -1223,3 +1223,54 @@ class _StructurePageState extends State<StructurePage> {
     );
   }
 }
+
+class CalendarPage extends StatefulWidget {
+  const CalendarPage({super.key});
+
+  @override
+  State<CalendarPage> createState() => _CalendarPageState();
+}
+
+class _CalendarPageState extends State<CalendarPage> {
+  static final _today = DateTime(2026, 9, 30);
+  DateTime _selected = _today;
+  DateTime _month = DateTime(2026, 9);
+
+  ClDayMark _mark(DateTime d) {
+    final training = {1, 3, 5}.contains(d.weekday);
+    if (d.isBefore(DateTime(2026, 9, 7))) return ClDayMark.none;
+    if (d.isBefore(_today)) return training ? ClDayMark.done : ClDayMark.rest;
+    return training ? ClDayMark.planned : ClDayMark.rest;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GalleryPage(
+      title: 'Kalendar',
+      rules: const [
+        'Danas je unapred izabran i ima okvir. Izabran dan je pun ink.',
+        'Urađen trening ima kvačicu u signal-text, planiran šipku, odmor mesec. Propušten dan je samo odmor.',
+      ],
+      children: [
+        Specimen(
+          label: 'ClCalendar · ${_selected.day}. ${_selected.month}. · ${_mark(_selected).name}',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClCalendar(
+                month: _month,
+                selected: _selected,
+                today: _today,
+                markFor: _mark,
+                onSelect: (d) => setState(() => _selected = d),
+                onMonthChanged: (m) => setState(() => _month = m),
+              ),
+              const SizedBox(height: ClSpace.s3),
+              const ClCalendarLegend(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}

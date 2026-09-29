@@ -137,6 +137,7 @@ Row planRow(UserPlan p, String userId) => {
   'swaps': p.swaps,
   'next_index': p.nextIndex,
   'completed': p.completed,
+  'training_days': (p.trainingDays.toList()..sort()),
 };
 
 UserPlan planFromRow(Row r) => UserPlan(
@@ -151,6 +152,7 @@ UserPlan planFromRow(Row r) => UserPlan(
   swaps: {for (final e in ((r['swaps'] as Map?) ?? const {}).entries) e.key as String: e.value as String},
   nextIndex: (r['next_index'] as num?)?.toInt() ?? 0,
   completed: (r['completed'] as num?)?.toInt() ?? 0,
+  trainingDays: {for (final d in _list(r['training_days'])) (d as num).toInt()},
 );
 
 Row sessionRow(Session s, String userId) => {

@@ -4,15 +4,14 @@ import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'creator_profile.dart';
 import 'discover.dart';
-import 'library.dart';
+import 'plan_tab.dart';
 import 'profile.dart';
 import 'progress.dart';
 import 'today.dart';
 
-enum AppTab { today, library, discover, progress, profile }
+enum AppTab { today, plan, discover, progress, profile }
 
-/// Bottom-nav shell. Each tab renders in its DESIGN.md theme: Today, Library
-/// and Discover dark; Progress and Profile light, like a magazine page.
+/// Bottom-nav shell. All tabs use the dark theme.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, this.openCreatorId});
 
@@ -33,8 +32,6 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int get _index => HomeShell.tab.value.index;
-
-  static final _themes = [ClTheme.dark, ClTheme.dark, ClTheme.dark, ClTheme.light, ClTheme.light];
 
   void _select(int i) => HomeShell.tab.value = AppTab.values[i];
 
@@ -61,9 +58,9 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    const tabs = [TodayScreen(), LibraryScreen(), DiscoverScreen(), ProgressScreen(), ProfileScreen()];
+    const tabs = [TodayScreen(), PlanTabScreen(), DiscoverScreen(), ProgressScreen(), ProfileScreen()];
     return ClThemeScope(
-      theme: _themes[_index],
+      theme: ClTheme.dark,
       child: Scaffold(
         body: Column(
           children: [
@@ -73,7 +70,7 @@ class _HomeShellState extends State<HomeShell> {
                 children: [
                   for (var i = 0; i < tabs.length; i++)
                     ClThemeScope(
-                      theme: _themes[i],
+                      theme: ClTheme.dark,
                       child: TickerMode(enabled: i == _index, child: tabs[i]),
                     ),
                 ],

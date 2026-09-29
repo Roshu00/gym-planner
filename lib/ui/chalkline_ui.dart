@@ -2,6 +2,7 @@
 library;
 
 export 'components/button.dart';
+export 'components/calendar.dart';
 export 'components/hero.dart';
 export 'components/icons.dart';
 export 'components/inputs.dart';

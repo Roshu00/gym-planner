@@ -39,7 +39,7 @@ Domain model and scope come from `training_planner_mvp_plan.md` (Exercise → Wo
 
 ## 3. Tokens
 
-The dark theme is the default (Today, Workout, Discover). The light theme is used for Summary, History and Profile, where it reads like a magazine page.
+The dark theme is the default and is used on every tab (Today, Plan, Discover, Progress, Profile). The light theme is kept for the workout Summary, the creator profile and creator mode, where it reads like a magazine page.
 
 ### 3.1 Color
 
@@ -199,6 +199,12 @@ Build these first and compose every screen from them. Names match the Design Sys
 - Circle, the only round element. 28px in lists, 56px on the profile.
 - No story rings and no colored outlines.
 
+### Calendar
+- Month grid, Monday first, month name in condensed UPPERCASE with previous/next buttons.
+- Day cells are 56px; today has a 2px `ink` outline and is selected on open; the selected day is filled with `ink`.
+- One icon per day: done = check in `signal-text` (progress), planned = barbell in `ink`, rest = moon in `ink-muted`. A missed planned day is shown as rest, never as a failure.
+- A legend under the grid explains the icons.
+
 ### Icons
 - Thin outline, 1.5px stroke, square caps, 24px grid, `currentColor` (Lucide or Phosphor Light).
 - Use sparingly: prefer a text label over an icon.
@@ -212,13 +218,15 @@ Build these first and compose every screen from them. Names match the Design Sys
 | **Today** | dark | WorkoutHero (next workout, creator photo) → StatBar (Niz · Ova nedelja · Trajanje) + segment bar → exercise list preview → Button `block` "POČNI TRENING" |
 | **Workout session** | dark | Exercise title (`display-m`) + prescription `label` → SetTable → rest timer (big `metric-l` countdown, thin progress line) → Button `block` "ZAVRŠI SET" |
 | **Workout summary** | light | Summary: label → "POJAVIO SI SE." → volume / PR grid → exercise list with PR tags → creator message |
-| **Discover** | dark | Filters row → ProgramCards / creator rows (avatar, name, followers) |
+| **Plan** | dark | StatBar (Ova nedelja · Niz · Ovaj mesec) → Calendar (today selected) → selected day: done workouts, planned workout with exercises (today: Button `block` "POČNI TRENING") or rest → training days chips |
+| **Discover** | dark | Tabs Otkrij / Biblioteka → Button `secondary` "PRONAĐI PLAN ZA SEBE" (goal, level, place, days per week → ranked programs) → Filters → creator rows → ProgramCards |
 | **Creator profile** | light | Full-bleed photo header with name in `display-l` → StatBar (Pratioci · Programi · Vežbe) → Button `ink` "PRETPLATI SE" (+ `secondary` "ZAPRATI") → programs as ProgramCards |
-| **Library** | dark | Tabs as `label` text with 2px underline for active → list rows (name, meta, tags) separated by `border` |
-| **Progress** | light | StatBar → charts: 2px `ink` lines, `signal` only for the current or best value, no fills or gradients |
+| **Library** | dark | Tab inside Discover: filters Programi / Treninzi / Vežbe → list rows (name, meta, tags) separated by `border` |
+| **Progress** | dark | StatBar → charts: 2px `ink` lines, `signal` only for the current or best value, no fills or gradients |
+| **Profile** | dark | StatBar (Treninzi · Niz · Pretplate) → equipment filters → plan → subscriptions → creator mode → account |
 | **Creator mode** | light | Same system, denser tables. Numbers first, no decoration |
 
-Bottom navigation: 5 items (Today, Library, Discover, Progress, Profile) with `label` text and thin icons. The active item uses `ink` and inactive items use `ink-muted`. Never use signal color in navigation.
+Bottom navigation: 5 items (Danas, Plan, Otkrij, Napredak, Profil) with `label` text and thin icons. The active item uses `ink` and inactive items use `ink-muted`. Never use signal color in navigation.
 
 ---
 

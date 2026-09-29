@@ -4,6 +4,8 @@ import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'creator_profile.dart';
+import 'library.dart';
+import 'plan_finder.dart';
 import 'program_detail.dart';
 
 /// Creators and their programs. Filters combine across groups. Dark theme.
@@ -16,6 +18,7 @@ class DiscoverScreen extends StatefulWidget {
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
   Set<String> _filters = {};
+  int _section = 0;
 
   static final _groups = <List<(String, bool Function(Program))>>[
     [for (final p in Place.values) (p.label, (x) => x.place == p)],
@@ -41,11 +44,39 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     final creators = store.creators.where((c) => creatorIds.contains(c.id)).toList()
       ..sort((a, b) => b.followers.compareTo(a.followers));
 
+    final header = [
+      const SizedBox(height: ClSpace.s4),
+      const ClScreenTitle(label: 'Treneri i programi', title: 'Otkrij'),
+      gapS,
+      ClTabs(
+        tabs: const ['Otkrij', 'Biblioteka'],
+        selected: _section,
+        onChanged: (i) => setState(() => _section = i),
+      ),
+      gapS,
+    ];
+    if (_section == 1) {
+      return AppScreen(
+        children: [
+          ...header,
+          LibraryContent(onDiscover: () => setState(() => _section = 0)),
+        ],
+      );
+    }
+
     return AppScreen(
       children: [
-        const SizedBox(height: ClSpace.s4),
-        const ClScreenTitle(label: 'Treneri i programi', title: 'Otkrij'),
-        gapS,
+        ...header,
+        ClButton(
+          label: 'Pronađi plan za sebe',
+          variant: ClButtonVariant.secondary,
+          icon: ClIcons.find,
+          expand: true,
+          onPressed: () => pushScreen(context, const PlanFinderScreen()),
+        ),
+        gap,
+        Text('FILTERI', style: context.clText.label),
+        const SizedBox(height: ClSpace.s1),
         Wrap(
           spacing: ClSpace.s2,
           children: [

@@ -423,7 +423,7 @@ class AppStore extends ChangeNotifier {
 
   /// Copies [programId] into the user's plan and pre-swaps exercises their
   /// equipment can't cover. Replaces any current plan; history is untouched.
-  UserPlan startProgram(String programId) {
+  UserPlan startProgram(String programId, {Set<int>? trainingDays}) {
     final p = programsById[programId]!;
     final swaps = <String, String>{};
     for (final w in p.workoutIds.map((id) => workoutsById[id]).nonNulls) {
@@ -450,6 +450,7 @@ class AppStore extends ChangeNotifier {
       daysPerWeek: p.daysPerWeek,
       startedAt: now,
       swaps: swaps,
+      trainingDays: trainingDays ?? defaultTrainingDays(p.daysPerWeek),
     );
     _follow(p.creatorId);
     _savePlan();
@@ -477,6 +478,12 @@ class AppStore extends ChangeNotifier {
       swaps[originalId] = replacementId;
     }
     plan = current.copyWith(swaps: swaps);
+    _savePlan();
+  }
+
+  void setTrainingDays(Set<int> days) {
+    if (plan == null || days.isEmpty) return;
+    plan = plan!.copyWith(trainingDays: days);
     _savePlan();
   }
 
@@ -659,7 +666,10 @@ class AppStore extends ChangeNotifier {
 
   int get streak => streakWeeks(sessions, now);
   int get thisWeek => sessionsThisWeek(sessions, now);
-  int get weeklyGoal => profile?.daysPerWeek ?? 3;
+
+  /// Planned training days per week; 0 without a plan.
+  int get weeklyGoal =>
+      plan == null ? 0 : (plan!.trainingDays.isEmpty ? plan!.daysPerWeek : plan!.trainingDays.length);
 
   // ───────────────────────── Creator mode
 

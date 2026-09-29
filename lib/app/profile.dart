@@ -10,8 +10,7 @@ import 'creator_mode.dart';
 import 'creator_profile.dart';
 import 'plan_screen.dart';
 
-/// The user: weekly goal, equipment, subscriptions, plan, creator mode.
-/// Light theme.
+/// The user: equipment, subscriptions, plan, creator mode, account. Dark theme.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -36,19 +35,6 @@ class ProfileScreen extends StatelessWidget {
             ClStat(label: 'Treninzi', value: '${store.sessions.length}'),
             ClStat(label: 'Niz', value: '${store.streak}', unit: 'ned.', highlight: true),
             ClStat(label: 'Pretplate', value: '${subs.length}'),
-          ],
-        ),
-        gap,
-        ClSectionHeader(label: 'Nedeljni cilj · ${store.thisWeek}/${profile.daysPerWeek} ove nedelje'),
-        Wrap(
-          spacing: ClSpace.s2,
-          children: [
-            for (final d in [2, 3, 4, 5, 6])
-              ClFilter(
-                label: '$d× nedeljno',
-                selected: profile.daysPerWeek == d,
-                onChanged: (_) => context.readStore.updateProfile(profile.copyWith(daysPerWeek: d)),
-              ),
           ],
         ),
         gap,

@@ -12,6 +12,9 @@ abstract final class ClIcons {
   static const IconData discover = IconData(0xe1c8, fontFamily: _light);
   static const IconData progress = IconData(0xe156, fontFamily: _light);
   static const IconData profile = IconData(0xe4c2, fontFamily: _light);
+  static const IconData plan = IconData(0xe10a, fontFamily: _light);
+  static const IconData rest = IconData(0xe330, fontFamily: _light);
+  static const IconData find = IconData(0xe434, fontFamily: _light);
 
   /// Bold so the set-done check stays legible on a small signal square.
   static const IconData check = IconData(0xe182, fontFamily: _bold);
@@ -36,6 +39,9 @@ abstract final class ClIcons {
     'discover': discover,
     'progress': progress,
     'profile': profile,
+    'plan': plan,
+    'rest': rest,
+    'find': find,
     'check': check,
     'close': close,
     'add': add,

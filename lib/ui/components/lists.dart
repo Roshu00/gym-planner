@@ -228,7 +228,7 @@ class ClNavItem {
 
 const clNavItems = [
   ClNavItem(label: 'Danas', icon: ClIcons.today),
-  ClNavItem(label: 'Biblioteka', icon: ClIcons.library),
+  ClNavItem(label: 'Plan', icon: ClIcons.plan),
   ClNavItem(label: 'Otkrij', icon: ClIcons.discover),
   ClNavItem(label: 'Napredak', icon: ClIcons.progress),
   ClNavItem(label: 'Profil', icon: ClIcons.profile),

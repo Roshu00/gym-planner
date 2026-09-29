@@ -202,4 +202,77 @@ void main() {
     expect(plural(3, 'trening', 'treninga', 'treninga'), 'treninga');
     expect(plural(1, 'trening', 'treninga', 'treninga'), 'trening');
   });
+
+  group('projectSchedule', () {
+    final plan = UserPlan(
+      id: 'p',
+      programId: 'x',
+      creatorId: 'c',
+      name: 'N',
+      workoutIds: const ['A', 'B', 'C'],
+      weeks: 8,
+      daysPerWeek: 3,
+      startedAt: DateTime(2026, 9, 1),
+      nextIndex: 1,
+      trainingDays: const {1, 3, 5},
+    );
+
+    test('puts the next workouts on training days, starting today', () {
+      // Wednesday 30. 9. is a training day.
+      final s = projectSchedule(plan, const [], now, DateTime(2026, 10, 6));
+      expect(s, {DateTime(2026, 9, 30): 'B', DateTime(2026, 10, 2): 'C', DateTime(2026, 10, 5): 'A'});
+    });
+
+    test('a workout done today moves the forecast to the next training day', () {
+      final s = projectSchedule(plan, [session(DateTime(2026, 9, 30, 8))], now, DateTime(2026, 10, 5));
+      expect(s.keys.first, DateTime(2026, 10, 2));
+      expect(s.values.first, 'B');
+    });
+
+    test('no training days, no forecast', () {
+      expect(
+        projectSchedule(plan.copyWith(trainingDays: {}), const [], now, DateTime(2026, 10, 30)),
+        isEmpty,
+      );
+    });
+
+    test('sessionsOn matches the calendar day', () {
+      final h = [session(DateTime(2026, 9, 29, 23, 30)), session(DateTime(2026, 9, 30, 0, 10))];
+      expect(sessionsOn(h, DateTime(2026, 9, 29)), hasLength(1));
+    });
+
+    test('default training days spread rest', () {
+      expect(defaultTrainingDays(3), {1, 3, 5});
+      expect(defaultTrainingDays(4), {1, 2, 4, 5});
+    });
+  });
+
+  test('matchProgram ranks the closest program first', () {
+    const criteria = (goal: Goal.strength, level: Experience.beginner, place: Place.gym, daysPerWeek: 3);
+    const exact = Program(
+      id: 'a',
+      creatorId: 'c',
+      name: 'A',
+      workoutIds: ['w'],
+      goal: Goal.strength,
+      level: Experience.beginner,
+      place: Place.gym,
+      daysPerWeek: 3,
+    );
+    const home = Program(
+      id: 'b',
+      creatorId: 'c',
+      name: 'B',
+      workoutIds: ['w'],
+      goal: Goal.general,
+      level: Experience.beginner,
+      place: Place.home,
+      daysPerWeek: 3,
+    );
+    final a = matchProgram(exact, criteria, (doable: 4, total: 4));
+    final b = matchProgram(home, criteria, (doable: 2, total: 4));
+    expect(a.score, 100);
+    expect(a.reasons, containsAll(['Snaga', 'Početnik', 'Teretana', '3× nedeljno', 'Imaš svu opremu']));
+    expect(b.score, lessThan(a.score));
+  });
 }

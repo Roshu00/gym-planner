@@ -167,3 +167,72 @@ SetLog? topSet(SessionExercise e) {
   }
   return top;
 }
+
+DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// Finished sessions on [day], oldest first.
+List<Session> sessionsOn(Iterable<Session> sessions, DateTime day) {
+  final d = dateOnly(day);
+  return finished(sessions).where((s) => dateOnly(s.finishedAt!) == d).toList()
+    ..sort((a, b) => a.finishedAt!.compareTo(b.finishedAt!));
+}
+
+/// Forecast of the plan's next workouts on its training days, from [from]
+/// through [until]. Today counts unless a workout was already done today.
+/// Not a promise: a missed day simply moves everything forward.
+Map<DateTime, String> projectSchedule(
+  UserPlan plan,
+  Iterable<Session> sessions,
+  DateTime from,
+  DateTime until,
+) {
+  final result = <DateTime, String>{};
+  if (plan.workoutIds.isEmpty || plan.trainingDays.isEmpty) return result;
+  var day = dateOnly(from);
+  if (sessionsOn(sessions, day).isNotEmpty) day = DateTime(day.year, day.month, day.day + 1);
+  final end = dateOnly(until);
+  var k = 0;
+  while (!day.isAfter(end)) {
+    if (plan.trainingDays.contains(day.weekday)) {
+      result[day] = plan.workoutIds[(plan.nextIndex + k) % plan.workoutIds.length];
+      k++;
+    }
+    day = DateTime(day.year, day.month, day.day + 1);
+  }
+  return result;
+}
+
+/// What the user is looking for in "Pronađi plan".
+typedef PlanCriteria = ({Goal goal, Experience level, Place place, int daysPerWeek});
+
+/// How well [p] matches [c], 0–100, with the reasons that count.
+({int score, List<String> reasons}) matchProgram(Program p, PlanCriteria c, ({int doable, int total}) fit) {
+  var score = 0;
+  final reasons = <String>[];
+  if (p.goal == c.goal) {
+    score += 30;
+    reasons.add(p.goal.label);
+  }
+  final levelGap = (p.level.index - c.level.index).abs();
+  if (levelGap == 0) {
+    score += 20;
+    reasons.add(p.level.label);
+  } else if (levelGap == 1) {
+    score += 8;
+  }
+  if (p.place == c.place) {
+    score += 20;
+    reasons.add(p.place.label);
+  }
+  final dayGap = (p.daysPerWeek - c.daysPerWeek).abs();
+  if (dayGap == 0) {
+    score += 15;
+    reasons.add('${p.daysPerWeek}× nedeljno');
+  } else if (dayGap == 1) {
+    score += 7;
+  }
+  final ratio = fit.total == 0 ? 1.0 : fit.doable / fit.total;
+  score += (15 * ratio).round();
+  if (ratio == 1) reasons.add('Imaš svu opremu');
+  return (score: score, reasons: reasons);
+}
