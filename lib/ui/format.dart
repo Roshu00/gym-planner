@@ -46,3 +46,26 @@ String formatClock(Duration d) {
 
 /// Parses weight/rep input; accepts a decimal comma or dot: `82,5` → 82.5.
 double? parseDecimal(String input) => double.tryParse(input.trim().replaceAll(',', '.'));
+
+/// Serbian plural: `plural(1, 'nedelja', 'nedelje', 'nedelja')` → nedelja,
+/// 3 → nedelje, 5 → nedelja, 21 → nedelja, 22 → nedelje.
+String plural(int n, String one, String few, String many) {
+  final d = n.abs() % 10;
+  final h = n.abs() % 100;
+  if (d == 1 && h != 11) return one;
+  if (d >= 2 && d <= 4 && (h < 12 || h > 14)) return few;
+  return many;
+}
+
+/// `29. 9.` and, outside the current year, `29. 9. 2025.`
+String formatDate(DateTime d, {DateTime? now}) {
+  final sameYear = d.year == (now ?? DateTime.now()).year;
+  return sameYear ? '${d.day}. ${d.month}.' : '${d.day}. ${d.month}. ${d.year}.';
+}
+
+const _weekdays = ['Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota', 'Nedelja'];
+
+String weekdayName(DateTime d) => _weekdays[d.weekday - 1];
+
+/// `4,99 €`
+String formatPrice(double eur) => '${eur.toStringAsFixed(2).replaceAll('.', ',')} €';

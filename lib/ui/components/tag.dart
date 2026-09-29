@@ -102,13 +102,15 @@ class ClFilter extends StatelessWidget {
           curve: ClMotion.curve,
           height: 32,
           padding: const EdgeInsets.symmetric(horizontal: ClSpace.s3),
-          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected ? c.ink : (pressed ? c.surfaceRaised : Colors.transparent),
             borderRadius: BorderRadius.circular(ClRadius.sm),
             border: Border.all(color: selected ? c.ink : c.borderStrong),
           ),
-          child: Text(label.toUpperCase(), style: cl.text.filter.copyWith(color: selected ? c.bg : c.ink)),
+          child: Center(
+            widthFactor: 1,
+            child: Text(label.toUpperCase(), style: cl.text.filter.copyWith(color: selected ? c.bg : c.ink)),
+          ),
         ),
       ),
     );

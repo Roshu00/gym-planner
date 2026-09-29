@@ -19,6 +19,9 @@ enum ClButtonVariant {
 
   /// Full width, 56px, signal fill. Pinned to the bottom of the screen.
   block,
+
+  /// Destructive: 1px danger outline, danger label.
+  danger,
 }
 
 /// 1–2 words, verb first: `POČNI TRENING`, `ZAVRŠI SET`.
@@ -78,6 +81,7 @@ class ClButton extends StatelessWidget {
       _ when !enabled => (c.border, c.inkMuted, null),
       ClButtonVariant.primary || ClButtonVariant.block => (c.signal, c.onSignal, null),
       ClButtonVariant.ink => (c.ink, c.bg, null),
+      ClButtonVariant.danger => (Colors.transparent, c.danger, c.danger),
       _ => (Colors.transparent, c.ink, c.borderStrong),
     };
 

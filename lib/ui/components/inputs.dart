@@ -42,7 +42,11 @@ class ClTextField extends StatelessWidget {
     this.keyboardType,
     this.obscure = false,
     this.enabled = true,
+    this.maxLines = 1,
   });
+
+  /// More than 1 for creator notes and messages.
+  final int maxLines;
 
   final String? label;
   final String? hint;
@@ -74,7 +78,9 @@ class ClTextField extends StatelessWidget {
             onChanged: onChanged,
             enabled: enabled,
             obscureText: obscure,
-            keyboardType: keyboardType,
+            keyboardType: maxLines > 1 ? TextInputType.multiline : keyboardType,
+            minLines: 1,
+            maxLines: maxLines,
             style: cl.text.body,
             cursorColor: cl.colors.ink,
             decoration: _decoration(

@@ -59,6 +59,7 @@ final _components = [
   GallerySection('Summary', 'Rezime treninga', (_) => const SummaryPage()),
   GallerySection('Grafikon', 'Napredak kroz vreme', (_) => const ChartPage()),
   GallerySection('Navigacija', 'Donja navigacija', (_) => const NavPage()),
+  GallerySection('Struktura', 'TopBar, OptionRow, Stepper, EmptyState, panel', (_) => const StructurePage()),
 ];
 
 final _examples = [

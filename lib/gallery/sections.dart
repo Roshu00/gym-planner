@@ -351,6 +351,13 @@ class _ButtonsPageState extends State<ButtonsPage> {
           ),
         ),
         Specimen(
+          label: 'danger',
+          child: pair(
+            ClButton(label: 'Prekini trening', variant: ClButtonVariant.danger, onPressed: _tap),
+            const ClButton(label: 'Obriši', variant: ClButtonVariant.danger, onPressed: null),
+          ),
+        ),
+        Specimen(
           label: 'block · 56px, na dnu ekrana',
           child: Column(
             children: [
@@ -1069,6 +1076,148 @@ class _NavPageState extends State<NavPage> {
           label: 'ClBottomNav · ${clNavItems[_index].label}',
           bleed: true,
           child: ClBottomNav(selected: _index, onChanged: (i) => setState(() => _index = i)),
+        ),
+      ],
+    );
+  }
+}
+
+class StructurePage extends StatefulWidget {
+  const StructurePage({super.key});
+
+  @override
+  State<StructurePage> createState() => _StructurePageState();
+}
+
+class _StructurePageState extends State<StructurePage> {
+  String _goal = 'Snaga';
+  int _sets = 4;
+  int _rest = 90;
+  String? _result;
+
+  @override
+  Widget build(BuildContext context) {
+    return GalleryPage(
+      title: 'Struktura',
+      rules: const [
+        'Gornja traka: nazad, label, najviše dve radnje.',
+        'Potvrda je deo stranice (donji panel), nikad sistemski dijalog.',
+      ],
+      children: [
+        Specimen(
+          label: 'ClTopBar',
+          bleed: true,
+          child: ClTopBar(
+            label: 'Push day · Vežba 1 / 5',
+            onBack: () {},
+            actions: [
+              ClIconButton(icon: ClIcons.swap, semanticLabel: 'Zameni vežbu', onPressed: () {}),
+              ClIconButton(icon: ClIcons.more, semanticLabel: 'Opcije', onPressed: () {}),
+            ],
+          ),
+        ),
+        Specimen(
+          label: 'ClOptionRow · $_goal',
+          child: Column(
+            children: [
+              for (final (g, meta) in [
+                ('Snaga', null),
+                ('Mišićna masa', null),
+                ('Početnik', 'Manje od 6 meseci redovnog treninga'),
+              ])
+                ClOptionRow(
+                  title: g,
+                  meta: meta,
+                  selected: _goal == g,
+                  onPressed: () => setState(() => _goal = g),
+                ),
+            ],
+          ),
+        ),
+        Specimen(
+          label: 'ClStepper',
+          child: Column(
+            children: [
+              ClStepper(
+                label: 'Setovi',
+                value: _sets,
+                min: 1,
+                max: 10,
+                onChanged: (v) => setState(() => _sets = v),
+              ),
+              ClStepper(
+                label: 'Odmor',
+                value: _rest,
+                min: 15,
+                max: 300,
+                step: 15,
+                format: (s) => formatClock(Duration(seconds: s)),
+                onChanged: (v) => setState(() => _rest = v),
+              ),
+            ],
+          ),
+        ),
+        const Specimen(
+          label: 'ClNotice',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClNotice('Plan ne zavisi od datuma. Sledeći trening te čeka dok ga ne uradiš.'),
+              SizedBox(height: ClSpace.s2),
+              ClNotice('Upiši težinu za set 2.', danger: true),
+            ],
+          ),
+        ),
+        Specimen(
+          label: 'ClEmptyState',
+          child: ClEmptyState(
+            label: 'Tvoji brojevi',
+            title: 'Prvi trening.',
+            message: 'Posle prvog treninga ovde su volumen, rekordi i sva istorija.',
+            action: ClButton(label: 'Otkrij trenere', variant: ClButtonVariant.secondary, onPressed: () {}),
+          ),
+        ),
+        Specimen(
+          label: 'Panel i potvrda${_result == null ? '' : ' · $_result'}',
+          child: Wrap(
+            spacing: ClSpace.s3,
+            runSpacing: ClSpace.s3,
+            children: [
+              ClButton(
+                label: 'Otvori panel',
+                variant: ClButtonVariant.secondary,
+                onPressed: () => showClSheet<void>(
+                  context,
+                  title: 'Zameni vežbu',
+                  label: 'Bench press · Grudi',
+                  builder: (context) => Column(
+                    children: [
+                      for (final n in ['Kosi potisak bučicama', 'Sklekovi', 'Propadanja'])
+                        ClListRow(
+                          title: n,
+                          meta: 'Marko Petrović',
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              ClButton(
+                label: 'Obriši',
+                variant: ClButtonVariant.danger,
+                onPressed: () async {
+                  final ok = await confirmClSheet(
+                    context,
+                    title: 'Obriši?',
+                    message: 'Vežba se uklanja iz biblioteke. Pratioci zadržavaju istoriju.',
+                    confirmLabel: 'Obriši',
+                    danger: true,
+                  );
+                  setState(() => _result = ok ? 'potvrđeno' : 'odustao');
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );

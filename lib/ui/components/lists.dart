@@ -34,22 +34,19 @@ class ClListRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
-    return ClPressable(
-      onPressed: onPressed,
-      radius: 0,
-      semanticLabel: meta == null ? title : '$title, $meta',
-      builder: (context, pressed) => AnimatedContainer(
-        duration: context.motion(ClMotion.fast),
-        constraints: const BoxConstraints(minHeight: ClSize.targetWorkout),
-        padding: const EdgeInsets.symmetric(vertical: ClSpace.s3),
-        decoration: BoxDecoration(
-          color: pressed ? c.surfaceRaised : c.bg,
-          border: divider ? Border(bottom: BorderSide(color: c.border)) : null,
-        ),
-        child: Row(
-          children: [
-            if (leading != null) ...[leading!, const SizedBox(width: ClSpace.s3)],
-            Expanded(
+    Widget row(bool pressed) => AnimatedContainer(
+      duration: context.motion(ClMotion.fast),
+      constraints: const BoxConstraints(minHeight: ClSize.targetWorkout),
+      padding: const EdgeInsets.symmetric(vertical: ClSpace.s3),
+      decoration: BoxDecoration(
+        color: pressed ? c.surfaceRaised : c.bg,
+        border: divider ? Border(bottom: BorderSide(color: c.border)) : null,
+      ),
+      child: Row(
+        children: [
+          if (leading != null) ...[leading!, const SizedBox(width: ClSpace.s3)],
+          Expanded(
+            child: MergeSemantics(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -68,13 +65,22 @@ class ClListRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailing != null)
-              trailing!
-            else if (onPressed != null)
-              Icon(ClIcons.chevron, size: 20, color: c.inkMuted),
-          ],
-        ),
+          ),
+          if (trailing != null)
+            trailing!
+          else if (onPressed != null)
+            ExcludeSemantics(child: Icon(ClIcons.chevron, size: 20, color: c.inkMuted)),
+        ],
       ),
+    );
+
+    // Information rows are not buttons; their trailing controls stay reachable.
+    if (onPressed == null) return row(false);
+    return ClPressable(
+      onPressed: onPressed,
+      radius: 0,
+      semanticLabel: meta == null ? title : '$title, $meta',
+      builder: (context, pressed) => row(pressed),
     );
   }
 }
@@ -173,35 +179,41 @@ class ClTabs extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: c.border)),
       ),
-      child: Row(
-        children: [
-          for (var i = 0; i < tabs.length; i++) ...[
-            ClPressable(
-              selected: i == selected,
-              semanticLabel: tabs[i],
-              radius: 0,
-              onPressed: () => onChanged(i),
-              builder: (context, pressed) => AnimatedContainer(
-                duration: context.motion(ClMotion.fast),
-                height: ClSize.target,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: i == selected ? c.ink : Colors.transparent, width: ClSize.rule),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (var i = 0; i < tabs.length; i++) ...[
+              ClPressable(
+                selected: i == selected,
+                semanticLabel: tabs[i],
+                radius: 0,
+                onPressed: () => onChanged(i),
+                builder: (context, pressed) => AnimatedContainer(
+                  duration: context.motion(ClMotion.fast),
+                  height: ClSize.target,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: i == selected ? c.ink : Colors.transparent,
+                        width: ClSize.rule,
+                      ),
+                    ),
                   ),
-                ),
-                child: Text(
-                  tabs[i].toUpperCase(),
-                  style: cl.text.label.copyWith(
-                    fontSize: 12,
-                    color: i == selected || pressed ? c.ink : c.inkMuted,
+                  child: Text(
+                    tabs[i].toUpperCase(),
+                    style: cl.text.label.copyWith(
+                      fontSize: 12,
+                      color: i == selected || pressed ? c.ink : c.inkMuted,
+                    ),
                   ),
                 ),
               ),
-            ),
-            if (i < tabs.length - 1) const SizedBox(width: ClSpace.s6),
+              if (i < tabs.length - 1) const SizedBox(width: ClSpace.s6),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

@@ -16,6 +16,8 @@ class ClSetData {
   const ClSetData({
     this.previousKg,
     this.previousReps,
+    this.hintKg,
+    this.hintReps,
     this.kg = '',
     this.reps = '',
     this.rir = '',
@@ -23,8 +25,13 @@ class ClSetData {
     this.isPr = false,
   });
 
+  /// Last time's result, shown in the "Prethodno" column.
   final double? previousKg;
   final int? previousReps;
+
+  /// Placeholder in empty inputs; defaults to last time's result.
+  final double? hintKg;
+  final int? hintReps;
 
   /// Raw input text as typed (may contain a decimal comma).
   final String kg;
@@ -38,6 +45,8 @@ class ClSetData {
   ClSetData copyWith({String? kg, String? reps, String? rir, ClSetState? state, bool? isPr}) => ClSetData(
     previousKg: previousKg,
     previousReps: previousReps,
+    hintKg: hintKg,
+    hintReps: hintReps,
     kg: kg ?? this.kg,
     reps: reps ?? this.reps,
     rir: rir ?? this.rir,
@@ -130,7 +139,9 @@ class ClSetRow extends StatelessWidget {
     final c = cl.colors;
     final done = data.isDone;
     final prev = data.previousKg != null && data.previousReps != null
-        ? formatSet(data.previousKg!, data.previousReps!)
+        ? (data.previousKg! > 0
+              ? formatSet(data.previousKg!, data.previousReps!)
+              : '${data.previousReps} pon.')
         : '—';
 
     Widget cell(int flex, Widget child) => Expanded(
@@ -185,7 +196,9 @@ class ClSetRow extends StatelessWidget {
               ClNumberField(
                 value: data.kg,
                 decimal: true,
-                hint: data.previousKg == null ? null : formatNumber(data.previousKg!),
+                hint: (data.hintKg ?? data.previousKg) == null
+                    ? null
+                    : formatNumber(data.hintKg ?? data.previousKg!),
                 semanticLabel: 'Set $number, kilogrami',
                 onChanged: (v) => onChanged(data.copyWith(kg: v)),
               ),
@@ -194,7 +207,7 @@ class ClSetRow extends StatelessWidget {
               _flexReps,
               ClNumberField(
                 value: data.reps,
-                hint: data.previousReps?.toString(),
+                hint: (data.hintReps ?? data.previousReps)?.toString(),
                 semanticLabel: 'Set $number, ponavljanja',
                 onChanged: (v) => onChanged(data.copyWith(reps: v)),
               ),

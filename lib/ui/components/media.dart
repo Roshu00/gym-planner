@@ -25,7 +25,7 @@ class ClPhoto extends StatelessWidget {
     final empty = ColoredBox(
       color: c.photoEmpty,
       child: Align(
-        alignment: Alignment.topLeft,
+        alignment: Alignment.topRight,
         child: Padding(
           padding: const EdgeInsets.all(ClSpace.s4),
           child: Text(

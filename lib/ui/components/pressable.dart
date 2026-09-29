@@ -41,11 +41,16 @@ class _ClPressableState extends State<ClPressable> {
   @override
   Widget build(BuildContext context) {
     final c = context.clColors;
-    return Semantics(
+    // One node per control: the label (or the child's text) plus the tap
+    // action, so screen readers announce each button once.
+    final node = Semantics(
+      container: true,
       button: widget.button,
       enabled: _enabled,
       selected: widget.selected,
       label: widget.semanticLabel,
+      excludeSemantics: widget.semanticLabel != null,
+      onTap: widget.onPressed,
       child: FocusableActionDetector(
         enabled: _enabled,
         mouseCursor: _enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
@@ -68,6 +73,7 @@ class _ClPressableState extends State<ClPressable> {
           onTapUp: _enabled ? (_) => _setPressed(false) : null,
           onTapCancel: _enabled ? () => _setPressed(false) : null,
           onTap: widget.onPressed,
+          excludeFromSemantics: true,
           child: Container(
             foregroundDecoration: _focused
                 ? BoxDecoration(
@@ -84,5 +90,6 @@ class _ClPressableState extends State<ClPressable> {
         ),
       ),
     );
+    return widget.semanticLabel == null ? MergeSemantics(child: node) : node;
   }
 }

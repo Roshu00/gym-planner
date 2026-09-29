@@ -23,6 +23,7 @@ final pages = <String, Widget Function()>{
   'summary': () => const SummaryPage(),
   'chart': () => const ChartPage(),
   'nav': () => const NavPage(),
+  'structure': () => const StructurePage(),
   'today': () => const TodayExample(),
   'workout': () => const WorkoutExample(),
   'summary example': () => const SummaryExample(),

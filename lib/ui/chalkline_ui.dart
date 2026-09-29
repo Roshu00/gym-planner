@@ -13,6 +13,7 @@ export 'components/rest_timer.dart';
 export 'components/rule.dart';
 export 'components/set_table.dart';
 export 'components/stat_bar.dart';
+export 'components/structure.dart';
 export 'components/summary.dart';
 export 'components/tag.dart';
 export 'format.dart';
