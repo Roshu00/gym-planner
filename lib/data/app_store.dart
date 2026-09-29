@@ -6,25 +6,67 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/models.dart';
 import '../domain/rules.dart';
+import 'auth.dart';
+import 'rows.dart';
 import 'seed.dart';
 import 'storage.dart';
+import 'sync.dart';
 
 enum ConfirmSetResult { done, undone, needsWeight, needsReps }
 
-/// Single source of app state. Persists everything the user owns; the demo
-/// catalog comes from [SeedCatalog].
+/// Single source of app state.
+///
+/// Local mode (no [remote]): the catalog is [SeedCatalog] plus the user's own
+/// creator content, and everything is kept on the device.
+///
+/// Cloud mode: the catalog and the user's data come from [remote]. Every change
+/// is applied here first, cached on the device and queued as a [Mutation];
+/// the queue survives restarts and is sent in order, so training works offline.
 class AppStore extends ChangeNotifier {
-  AppStore({required this.storage, DateTime Function()? clock, math.Random? random})
-    : _clock = clock ?? DateTime.now,
-      _random = random ?? math.Random();
+  AppStore({
+    required this.storage,
+    this.remote,
+    this.auth,
+    this.account,
+    DateTime Function()? clock,
+    math.Random? random,
+  }) : _clock = clock ?? DateTime.now,
+       _random = random ?? math.Random();
 
   static const storageKey = 'chalkline.state.v1';
 
   final KeyValueStore storage;
+  final Remote? remote;
+  final AuthService? auth;
+
+  /// Signed-in account in cloud mode. Updated when a guest saves their account.
+  AuthUser? account;
   final DateTime Function() _clock;
   final math.Random _random;
 
   DateTime get now => _clock();
+
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  // Loads and syncs finish asynchronously, possibly after sign-out.
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
+  void updateAccount(AuthUser user) {
+    account = user;
+    notifyListeners();
+  }
+
+  bool get isCloud => remote != null;
+  String get _key => remote == null ? storageKey : '$storageKey.${remote!.userId}';
 
   bool loaded = false;
   UserProfile? profile;
@@ -38,16 +80,49 @@ class AppStore extends ChangeNotifier {
   List<Session> sessions = [];
   Session? active;
 
+  // Catalog from other creators: the seed locally, the server in cloud mode.
+  List<Creator> _baseCreators = SeedCatalog.creators;
+  List<Exercise> _baseExercises = SeedCatalog.exercises;
+  List<Workout> _baseWorkouts = SeedCatalog.workouts;
+  List<Program> _basePrograms = SeedCatalog.programs;
+
+  final Outbox _outbox = Outbox();
+  bool _flushing = false;
+  bool _catalogStale = false;
+
+  /// Last sync problem, in Serbian, or null when everything was sent.
+  String? syncError;
+  bool _syncErrorRetryable = true;
+
+  void dismissSyncError() {
+    syncError = null;
+    notifyListeners();
+  }
+
+  /// Changes not yet confirmed by the server.
+  int get pendingChanges => _outbox.length;
+
   // ───────────────────────── Persistence
 
   /// Storage can be unavailable (private browsing, blocked site data); the
   /// app then works for this visit without remembering anything.
+  ///
+  /// In cloud mode a cached state shows immediately and refreshes in the
+  /// background; without a cache (new device) it waits for the server so a
+  /// returning user is not sent through onboarding again.
   Future<void> load() async {
     try {
-      final raw = await storage.read(storageKey);
+      final raw = await storage.read(_key);
       if (raw != null) _fromJson(jsonDecode(raw) as Map<String, Object?>);
     } on Object catch (e) {
       debugPrint('Starting fresh, saved state unavailable: $e');
+    }
+    if (remote != null) {
+      if (profile == null) {
+        await refresh();
+      } else {
+        unawaited(refresh());
+      }
     }
     loaded = true;
     notifyListeners();
@@ -55,9 +130,117 @@ class AppStore extends ChangeNotifier {
 
   void _commit() {
     notifyListeners();
-    unawaited(
-      storage.write(storageKey, jsonEncode(_toJson())).catchError((Object e) => debugPrint('Not saved: $e')),
-    );
+    _persist();
+    if (remote != null) unawaited(_flush());
+  }
+
+  void _persist() => unawaited(
+    storage.write(_key, jsonEncode(_toJson())).catchError((Object e) => debugPrint('Not saved: $e')),
+  );
+
+  void _send(Mutation m) {
+    if (remote != null) _outbox.add(m);
+  }
+
+  String get _uid => remote!.userId;
+
+  /// Sends pending changes, then reloads everything from the server.
+  /// Pending changes always go first so the server never overwrites them.
+  Future<void> refresh() async {
+    final r = remote;
+    if (r == null) return;
+    await _flush();
+    if (_outbox.isNotEmpty) return;
+    try {
+      final (catalog, user) = await (r.fetchCatalog(), r.fetchUser()).wait;
+      if (_outbox.isNotEmpty) return;
+      _applyCatalog(catalog);
+      profile = user.profile;
+      follows = user.follows;
+      subscriptions = user.subscriptions;
+      plan = user.plan;
+      sessions = user.sessions;
+      active = user.active;
+      if (_syncErrorRetryable) syncError = null;
+      notifyListeners();
+      _persist();
+    } on ParallelWaitError<(Catalog?, UserData?), (AsyncError?, AsyncError?)> catch (e) {
+      _reportSync(e.errors.$1?.error ?? e.errors.$2?.error);
+    } on RemoteError catch (e) {
+      _reportSync(e);
+    }
+  }
+
+  void _reportSync(Object? error) {
+    syncError = error is RemoteError ? error.message : 'Nije sačuvano na serveru. Proveri internet.';
+    _syncErrorRetryable = error is! RemoteError || error.retryable;
+    notifyListeners();
+  }
+
+  void _applyCatalog(Catalog c) {
+    final mine = c.creators.where((x) => x.isMine).firstOrNull;
+    bool isMine(String creatorId) => creatorId == mine?.id;
+    myCreator = mine;
+    myExercises = c.exercises.where((x) => isMine(x.creatorId)).toList();
+    myWorkouts = c.workouts.where((x) => isMine(x.creatorId)).toList();
+    myPrograms = c.programs.where((x) => isMine(x.creatorId)).toList();
+    _baseCreators = c.creators.where((x) => !x.isMine).toList();
+    _baseExercises = c.exercises.where((x) => !isMine(x.creatorId)).toList();
+    _baseWorkouts = c.workouts.where((x) => !isMine(x.creatorId)).toList();
+    _basePrograms = c.programs.where((x) => !isMine(x.creatorId)).toList();
+    _catalogStale = false;
+  }
+
+  Future<void> _refreshCatalog() async {
+    try {
+      _applyCatalog(await remote!.fetchCatalog());
+      notifyListeners();
+      _persist();
+    } on RemoteError catch (e) {
+      _catalogStale = true;
+      _reportSync(e);
+    }
+  }
+
+  /// Sends queued mutations in order. Stops at the first retryable failure;
+  /// drops a mutation the server rejects and reports why.
+  Future<void> _flush() async {
+    final r = remote;
+    if (r == null || _flushing) return;
+    _flushing = true;
+    try {
+      while (_outbox.isNotEmpty) {
+        final m = _outbox.first;
+        try {
+          await r.apply(m);
+          _outbox.remove(m);
+          if (m.table == 'subscriptions') _catalogStale = true;
+          // A rejection stays visible; a connection problem is over.
+          if (_syncErrorRetryable) syncError = null;
+        } on RemoteError catch (e) {
+          syncError = e.message;
+          _syncErrorRetryable = e.retryable;
+          if (e.retryable) break;
+          _outbox.remove(m);
+        }
+        _persist();
+        notifyListeners();
+      }
+    } finally {
+      _flushing = false;
+    }
+    // A subscription change unlocks or locks content: reload what RLS allows.
+    if (_outbox.isEmpty && _catalogStale) await _refreshCatalog();
+  }
+
+  /// Retries sending after a failure (e.g. back online).
+  Future<void> retrySync() => refresh();
+
+  /// Handles are unique across creators; asks the server in cloud mode.
+  Future<bool> isHandleAvailable(String handle) async {
+    final taken = creatorByHandle(handle);
+    if (taken != null && !taken.isMine) return false;
+    return await remote?.isHandleAvailable(handle) ?? true;
   }
 
   Map<String, Object?> _toJson() => {
@@ -71,6 +254,15 @@ class AppStore extends ChangeNotifier {
     'plan': plan?.toJson(),
     'sessions': sessions.map((s) => s.toJson()).toList(),
     'active': active?.toJson(),
+    if (remote != null) ...{
+      'outbox': _outbox.toJson(),
+      'catalog': {
+        'creators': _baseCreators.map((e) => e.toJson()).toList(),
+        'exercises': _baseExercises.map((e) => e.toJson()).toList(),
+        'workouts': _baseWorkouts.map((e) => e.toJson()).toList(),
+        'programs': _basePrograms.map((e) => e.toJson()).toList(),
+      },
+    },
   };
 
   void _fromJson(Map<String, Object?> j) {
@@ -86,9 +278,29 @@ class AppStore extends ChangeNotifier {
     plan = j['plan'] == null ? null : UserPlan.fromJson(m(j['plan']));
     sessions = [for (final e in l(j['sessions'])) Session.fromJson(m(e))];
     active = j['active'] == null ? null : Session.fromJson(m(j['active']));
+    if (remote != null) {
+      _outbox
+        ..clear()
+        ..addAll(Outbox.fromJson(j['outbox'] as List?).pending);
+      final c = j['catalog'] as Map<String, Object?>?;
+      if (c != null) {
+        _baseCreators = [for (final e in l(c['creators'])) Creator.fromJson(m(e))];
+        _baseExercises = [for (final e in l(c['exercises'])) Exercise.fromJson(m(e))];
+        _baseWorkouts = [for (final e in l(c['workouts'])) Workout.fromJson(m(e))];
+        _basePrograms = [for (final e in l(c['programs'])) Program.fromJson(m(e))];
+      }
+    }
   }
 
+  /// Deletes the user's data: on the device, and on the server in cloud mode.
+  /// (Deleting the account itself needs the service role; see README.)
   Future<void> resetAll() async {
+    if (remote != null) {
+      for (final table in ['sessions', 'plans', 'follows', 'subscriptions', 'profiles']) {
+        _send(Mutation.delete(table, {'user_id': _uid}));
+      }
+      if (myCreator != null) _send(Mutation.delete('creators', {'id': myCreator!.id}));
+    }
     profile = null;
     myCreator = null;
     myExercises = [];
@@ -100,8 +312,22 @@ class AppStore extends ChangeNotifier {
     sessions = [];
     active = null;
     notifyListeners();
+    if (remote != null) {
+      _persist();
+      await _flush();
+      return;
+    }
     try {
-      await storage.delete(storageKey);
+      await storage.delete(_key);
+    } on Object catch (e) {
+      debugPrint('Not deleted: $e');
+    }
+  }
+
+  /// Forgets this account's cache on the device (sign-out).
+  Future<void> clearDeviceCache() async {
+    try {
+      await storage.delete(_key);
     } on Object catch (e) {
       debugPrint('Not deleted: $e');
     }
@@ -112,10 +338,10 @@ class AppStore extends ChangeNotifier {
 
   // ───────────────────────── Catalog
 
-  List<Creator> get creators => [...SeedCatalog.creators, ?myCreator];
-  List<Exercise> get allExercises => [...SeedCatalog.exercises, ...myExercises];
-  List<Workout> get allWorkouts => [...SeedCatalog.workouts, ...myWorkouts];
-  List<Program> get allPrograms => [...SeedCatalog.programs, ...myPrograms];
+  List<Creator> get creators => [..._baseCreators, ?myCreator];
+  List<Exercise> get allExercises => [..._baseExercises, ...myExercises];
+  List<Workout> get allWorkouts => [..._baseWorkouts, ...myWorkouts];
+  List<Program> get allPrograms => [..._basePrograms, ...myPrograms];
 
   Map<String, Exercise> get exercisesById => {for (final e in allExercises) e.id: e};
   Map<String, Workout> get workoutsById => {for (final w in allWorkouts) w.id: w};
@@ -154,29 +380,42 @@ class AppStore extends ChangeNotifier {
 
   // ───────────────────────── Profile & creators
 
-  void completeOnboarding(UserProfile p) {
-    profile = p;
-    _commit();
-  }
+  void completeOnboarding(UserProfile p) => updateProfile(p);
 
   void updateProfile(UserProfile p) {
     profile = p;
+    if (isCloud) _send(Mutation.upsert('profiles', profileRow(p, _uid)));
     _commit();
+  }
+
+  Row _link(String creatorId) => {'user_id': _uid, 'creator_id': creatorId};
+
+  void _follow(String creatorId) {
+    if (follows.contains(creatorId)) return;
+    follows = {...follows, creatorId};
+    if (isCloud) _send(Mutation.upsert('follows', _link(creatorId), ignoreDuplicates: true));
   }
 
   void subscribe(String creatorId) {
     subscriptions = {...subscriptions, creatorId};
-    follows = {...follows, creatorId};
+    _follow(creatorId);
+    if (isCloud) _send(Mutation.upsert('subscriptions', _link(creatorId), ignoreDuplicates: true));
     _commit();
   }
 
   void unsubscribe(String creatorId) {
     subscriptions = {...subscriptions}..remove(creatorId);
+    if (isCloud) _send(Mutation.delete('subscriptions', _link(creatorId)));
     _commit();
   }
 
   void toggleFollow(String creatorId) {
-    follows = follows.contains(creatorId) ? ({...follows}..remove(creatorId)) : {...follows, creatorId};
+    if (follows.contains(creatorId)) {
+      follows = {...follows}..remove(creatorId);
+      if (isCloud) _send(Mutation.delete('follows', _link(creatorId)));
+    } else {
+      _follow(creatorId);
+    }
     _commit();
   }
 
@@ -212,13 +451,19 @@ class AppStore extends ChangeNotifier {
       startedAt: now,
       swaps: swaps,
     );
-    follows = {...follows, p.creatorId};
-    _commit();
+    _follow(p.creatorId);
+    _savePlan();
     return plan!;
+  }
+
+  void _savePlan() {
+    if (isCloud) _send(Mutation.upsert('plans', planRow(plan!, _uid), onConflict: 'user_id'));
+    _commit();
   }
 
   void leavePlan() {
     plan = null;
+    if (isCloud) _send(Mutation.delete('plans', {'user_id': _uid}));
     _commit();
   }
 
@@ -232,13 +477,13 @@ class AppStore extends ChangeNotifier {
       swaps[originalId] = replacementId;
     }
     plan = current.copyWith(swaps: swaps);
-    _commit();
+    _savePlan();
   }
 
   void setNextWorkout(int index) {
     if (plan == null) return;
     plan = plan!.copyWith(nextIndex: index);
-    _commit();
+    _savePlan();
   }
 
   Workout? get nextWorkout => plan == null ? null : workoutsById[plan!.nextWorkoutId];
@@ -279,8 +524,13 @@ class AppStore extends ChangeNotifier {
             ),
       ],
     );
-    _commit();
+    _saveActive();
     return active!;
+  }
+
+  void _saveActive() {
+    if (isCloud && active != null) _send(Mutation.upsert('sessions', sessionRow(active!, _uid)));
+    _commit();
   }
 
   SessionExercise _sessionExercise(WorkoutExercise we, Exercise e, {String? swappedFrom}) => SessionExercise(
@@ -305,7 +555,7 @@ class AppStore extends ChangeNotifier {
     final list = [...s.exercises];
     list[exIndex] = f(list[exIndex]);
     active = s.copyWith(exercises: list);
-    _commit();
+    _saveActive();
   }
 
   void updateSet(int exIndex, int setIndex, SetLog log) =>
@@ -385,18 +635,23 @@ class AppStore extends ChangeNotifier {
     );
     sessions = [...sessions, done];
     active = null;
+    if (isCloud) _send(Mutation.upsert('sessions', sessionRow(done, _uid)));
     if (plan != null && done.planId == plan!.id) {
       plan = plan!.copyWith(
         nextIndex: (plan!.nextIndex + 1) % plan!.workoutIds.length,
         completed: plan!.completed + 1,
       );
+      _savePlan();
+    } else {
+      _commit();
     }
-    _commit();
     return done;
   }
 
   void discardSession() {
+    final s = active;
     active = null;
+    if (isCloud && s != null) _send(Mutation.delete('sessions', {'id': s.id}));
     _commit();
   }
 
@@ -416,8 +671,16 @@ class AppStore extends ChangeNotifier {
   }) {
     myCreator =
         (myCreator ??
-                Creator(id: 'c_me', name: name, handle: handle, tagline: tagline, bio: bio, isMine: true))
+                Creator(
+                  id: isCloud ? _id('c') : 'c_me',
+                  name: name,
+                  handle: handle,
+                  tagline: tagline,
+                  bio: bio,
+                  isMine: true,
+                ))
             .copyWith(name: name, handle: handle, tagline: tagline, bio: bio);
+    if (isCloud) _send(Mutation.upsert('creators', creatorRow(myCreator!, userId: _uid)));
     _commit();
     return myCreator!;
   }
@@ -426,20 +689,27 @@ class AppStore extends ChangeNotifier {
 
   void saveExercise(Exercise e) {
     myExercises = _upsert(myExercises, e, (x) => x.id);
+    if (isCloud) _send(Mutation.upsert('exercises', exerciseRow(e)));
     _commit();
   }
 
   void saveWorkout(Workout w) {
     myWorkouts = _upsert(myWorkouts, w, (x) => x.id);
+    if (isCloud) _send(Mutation.upsert('workouts', workoutRow(w)));
     _commit();
   }
 
   void saveProgram(Program p) {
     myPrograms = _upsert(myPrograms, p, (x) => x.id);
+    if (isCloud) _send(Mutation.upsert('programs', programRow(p)));
     _commit();
   }
 
   void deleteExercise(String id) {
+    final changed = myWorkouts
+        .where((w) => w.exercises.any((we) => we.exerciseId == id))
+        .map((w) => w.id)
+        .toSet();
     myExercises = myExercises.where((e) => e.id != id).toList();
     myWorkouts = [
       for (final w in myWorkouts)
@@ -452,10 +722,17 @@ class AppStore extends ChangeNotifier {
           exercises: w.exercises.where((we) => we.exerciseId != id).toList(),
         ),
     ];
+    if (isCloud) {
+      for (final w in myWorkouts.where((w) => changed.contains(w.id))) {
+        _send(Mutation.upsert('workouts', workoutRow(w)));
+      }
+      _send(Mutation.delete('exercises', {'id': id}));
+    }
     _commit();
   }
 
   void deleteWorkout(String id) {
+    final changed = myPrograms.where((p) => p.workoutIds.contains(id)).map((p) => p.id).toSet();
     myWorkouts = myWorkouts.where((w) => w.id != id).toList();
     myPrograms = [
       for (final p in myPrograms)
@@ -473,11 +750,18 @@ class AppStore extends ChangeNotifier {
           workoutIds: p.workoutIds.where((w) => w != id).toList(),
         ),
     ];
+    if (isCloud) {
+      for (final p in myPrograms.where((p) => changed.contains(p.id))) {
+        _send(Mutation.upsert('programs', programRow(p)));
+      }
+      _send(Mutation.delete('workouts', {'id': id}));
+    }
     _commit();
   }
 
   void deleteProgram(String id) {
     myPrograms = myPrograms.where((p) => p.id != id).toList();
+    if (isCloud) _send(Mutation.delete('programs', {'id': id}));
     _commit();
   }
 

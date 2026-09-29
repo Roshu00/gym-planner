@@ -77,6 +77,35 @@ class _CreatorProfileEditorState extends State<CreatorProfileEditor> {
 
   static final _handlePattern = RegExp(r'^[a-z0-9._]{3,30}$');
 
+  bool _checking = false;
+  String? _takenOnServer;
+
+  Future<void> _save() async {
+    final store = context.readStore;
+    final handle = _cleanHandle;
+    setState(() => _checking = true);
+    var available = true;
+    try {
+      available = await store.isHandleAvailable(handle);
+    } on Object {
+      // Offline: save now; the server rejects a taken handle and says so.
+    }
+    if (!mounted) return;
+    setState(() {
+      _checking = false;
+      _takenOnServer = available ? null : handle;
+    });
+    if (!available) return;
+    final wasNew = _me == null;
+    store.saveMyCreator(
+      name: _name.text.trim(),
+      handle: handle,
+      tagline: _tagline.text.trim(),
+      bio: _bio.text.trim(),
+    );
+    if (!wasNew) Navigator.of(context).pop();
+  }
+
   @override
   void dispose() {
     for (final c in [_name, _handle, _tagline, _bio]) {
@@ -93,7 +122,7 @@ class _CreatorProfileEditorState extends State<CreatorProfileEditor> {
       return 'Od 3 do 30 znakova: slova, brojevi, tačka i donja crta.';
     }
     final taken = context.readStore.creatorByHandle(_cleanHandle);
-    if (taken != null && !taken.isMine) return 'Ovo ime je zauzeto.';
+    if ((taken != null && !taken.isMine) || _takenOnServer == _cleanHandle) return 'Ovo ime je zauzeto.';
     return null;
   }
 
@@ -104,18 +133,7 @@ class _CreatorProfileEditorState extends State<CreatorProfileEditor> {
       topBar: const ClTopBar(label: 'Profil trenera'),
       bottom: ClButton.block(
         label: _me == null ? 'Napravi profil' : 'Sačuvaj',
-        onPressed: valid
-            ? () {
-                final wasNew = _me == null;
-                context.readStore.saveMyCreator(
-                  name: _name.text.trim(),
-                  handle: _cleanHandle,
-                  tagline: _tagline.text.trim(),
-                  bio: _bio.text.trim(),
-                );
-                if (!wasNew) Navigator.of(context).pop();
-              }
-            : null,
+        onPressed: valid && !_checking ? _save : null,
       ),
       children: [
         ClScreenTitle(label: 'Režim kreatora', title: _me == null ? 'Tvoj profil.' : 'Uredi profil.'),

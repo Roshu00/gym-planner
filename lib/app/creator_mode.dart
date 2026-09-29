@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../ui/chalkline_ui.dart';
+import 'auth_screen.dart';
 import 'common.dart';
 import 'creator_editors.dart';
 import 'creator_profile.dart';
@@ -23,6 +24,22 @@ class _CreatorModeScreenState extends State<CreatorModeScreen> {
   Widget build(BuildContext context) {
     final store = context.store;
     final me = store.myCreator;
+    if (store.account?.isGuest ?? false) {
+      return AppScreen(
+        topBar: const ClTopBar(label: 'Režim kreatora'),
+        children: [
+          ClEmptyState(
+            title: 'Sačuvaj nalog.',
+            message: 'Objavljivanje traži nalog sa emailom, da bi pratioci mogli da te nađu i da tvoj sadržaj ostane tvoj.',
+            action: ClButton(
+              label: 'Sačuvaj nalog',
+              expand: true,
+              onPressed: () => pushScreen(context, AuthScreen(auth: store.auth!, saveAccount: true)),
+            ),
+          ),
+        ],
+      );
+    }
     if (me == null) return const CreatorProfileEditor();
     final cl = context.cl;
     final link = 'chalkline.app/c/${me.handle}';

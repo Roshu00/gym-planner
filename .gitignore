@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Supabase project settings (copy supabase.example.json)
+supabase.json
+supabase/.temp/

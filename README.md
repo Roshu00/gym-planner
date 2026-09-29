@@ -9,10 +9,12 @@ Flutter aplikacija u kojoj fitnes kreatori objavljuju svoj sistem treninga, a pr
 
 ```bash
 flutter pub get
-flutter run -d chrome                           # aplikacija u browseru
-flutter run                                     # na telefonu ili emulatoru
-flutter run -d chrome -t lib/main_gallery.dart  # galerija komponenti
+flutter run -d chrome                                            # lokalni demo, bez servera
+flutter run -d chrome --dart-define-from-file=supabase.json      # sa Supabase nalozima
+flutter run -d chrome -t lib/main_gallery.dart                   # galerija komponenti
 ```
+
+Bez `supabase.json` aplikacija radi u lokalnom demo režimu: bez naloga, podaci ostaju na uređaju, demo treneri su u kodu.
 
 Link trenera `/c/<korisnicko.ime>` (npr. `/c/jelena.moves`) otvara profil tog trenera posle onboardinga.
 
@@ -35,12 +37,45 @@ Link trenera `/c/<korisnicko.ime>` (npr. `/c/jelena.moves`) otvara profil tog tr
 - Vežbe (mišićna grupa, oprema, napomena), treninzi (setovi, ponavljanja, odmor, poruka posle treninga), programi (nedelje, rotacija treninga, nivo, cilj, mesto).
 - Svaki sadržaj je javan ili samo za pretplatnike.
 
+## Supabase
+
+### Šta radi
+
+- **Prijava:** email i kod od 6 cifara (bez lozinke i bez linkova koji se lome na telefonu), ili „Probaj bez naloga” (anonimni gost). Gost kasnije čuva nalog emailom i zadržava sve podatke.
+- **Pristup (Row Level Security):** katalog trenera i stranice programa vide svi. Vežbe i treninzi „za pretplatnike” vide se samo uz pretplatu ili kao vlasnik. Profil, plan, treninzi, praćenja i pretplate vidi i menja samo vlasnik. Profil trenera može da napravi samo nalog sa emailom, ne gost.
+- **Rad bez interneta:** svaka izmena se prvo primenjuje i čuva na uređaju, pa ide u red za slanje (`lib/data/sync.dart`). Red preživljava restart, šalje se po redu, a uzastopne izmene istog reda se spajaju. Trening radi i u teretani bez signala. Ako server odbije izmenu, ona se izbacuje iz reda i korisnik dobija poruku.
+- **Istorija:** treninzi čuvaju snimak imena i propisa i nemaju strane ključeve ka sadržaju trenera, pa ostaju tačni i kad trener nešto izmeni ili obriše.
+
+### Podešavanje projekta
+
+1. Napravi projekat na [supabase.com](https://supabase.com).
+2. Primeni šemu, demo sadržaj i podešavanja prijave (Supabase CLI):
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <ref-projekta>
+   npx supabase db push --include-seed   # supabase/migrations + supabase/seed.sql
+   npx supabase config push              # uključuje gost prijavu i email šablone sa kodom
+   ```
+   Bez CLI-ja: u SQL editoru pokreni `supabase/migrations/*.sql`, pa `supabase/seed.sql`. U *Authentication → Sign In / Providers* uključi *Anonymous sign-ins*. U *Authentication → Email Templates* stavi sadržaj `supabase/templates/code.html` u *Magic Link* i *Confirm signup*, a `email_change.html` u *Change Email Address*. Šabloni moraju sadržati `{{ .Token }}`.
+3. Kopiraj `supabase.example.json` u `supabase.json` (ne ide u git) i upiši *Project URL* i *Publishable key* iz *Project Settings → API Keys*.
+4. Za produkciju podesi sopstveni SMTP (*Authentication → SMTP Settings*). Ugrađeni Supabase mejler šalje samo nekoliko poruka na sat.
+
+### Provera baze
+
+`tool/test_db.sh` pravi praznu Postgres bazu sa minimalnom zamenom za Supabase `auth` šemu, primenjuje migracije i seed, i pokreće `supabase/tests/rls_test.sql`. Ta skripta kao pravi korisnici proverava sva pravila pristupa, ograničenja i tačne upite koje šalje klijent.
+
+```bash
+PGHOST=... PGPORT=... PGUSER=postgres tool/test_db.sh
+```
+
+Demo sadržaj ima jedan izvor, `lib/data/seed.dart`. Posle izmene pokreni `dart run tool/gen_seed.dart`; test pada ako `supabase/seed.sql` zaostaje.
+
 ## Šta još nije tu
 
-- **Backend i nalozi.** Podaci se čuvaju na uređaju (`shared_preferences`). `KeyValueStore` u `lib/data/storage.dart` je mesto gde se kači server.
-- **Plaćanje.** Pretplata se aktivira bez naplate, a ekran to jasno kaže.
+- **Plaćanje.** Pretplata se aktivira bez naplate, a ekran to jasno kaže. Korisnik sam upisuje red u `subscriptions`; to pravilo je u migraciji označeno kao privremeno i treba ga zameniti webhookom plaćanja sa service role ključem.
+- **Brisanje naloga.** „Obriši moje podatke” briše sve redove korisnika. Sam nalog (`auth.users`) briše se service role ključem, npr. iz Edge funkcije.
 - **Fotografije i video trenera.** Svuda je tamni okvir „FOTO TRENERA”, po DESIGN.md.
-- **Demo sadržaj.** Tri trenera i pet programa u `lib/data/seed.dart`, dok ne postoji backend.
+- **Demo sadržaj.** Tri trenera bez naloga i pet programa (`lib/data/seed.dart` → `supabase/seed.sql`). Pravi treneri dolaze kroz režim kreatora.
 
 ## Struktura
 
@@ -54,11 +89,20 @@ lib/
     rules.dart              niz nedelja, rekordi, prošli rezultat, oprema, zamene (čiste funkcije)
   data/
     app_store.dart          stanje aplikacije i sve radnje
-    storage.dart            gde se stanje čuva
-    seed.dart               demo treneri i programi
+    sync.dart               mutacije, red za slanje, interfejs prema serveru
+    supabase_backend.dart   Supabase: podaci, prijava, mapiranje grešaka
+    rows.dart               domen ↔ redovi baze
+    auth.dart               prijava (interfejs)
+    storage.dart            lokalni keš
+    seed.dart               demo treneri i programi (izvor za supabase/seed.sql)
   app/                      ekrani (svaki u temi koju mu DESIGN.md dodeljuje)
   ui/                       dizajn sistem, uvozi se samo preko chalkline_ui.dart
   gallery/                  galerija komponenti i primeri ekrana
+supabase/
+  migrations/               šema, RLS pravila
+  seed.sql                  generisan iz lib/data/seed.dart
+  templates/                email šabloni sa kodom
+  tests/                    RLS testovi za tool/test_db.sh
 assets/
   fonts/                    Archivo variable (wdth 62–125, wght 100–900), OFL
   icons/                    Phosphor Light i Bold, MIT
@@ -76,5 +120,6 @@ assets/
 
 ```bash
 flutter analyze
-flutter test    # domen, stanje, svi ekrani u obe teme na 360px, ceo tok od onboardinga do rezimea
+flutter test         # domen, stanje, sinhronizacija, prijava, svi ekrani u obe teme na 360px, celi tokovi
+tool/test_db.sh      # šema i RLS pravila na pravom Postgresu
 ```

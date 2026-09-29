@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../config.dart';
+import '../data/app_store.dart';
 import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
+import 'auth_screen.dart';
 import 'common.dart';
 import 'creator_mode.dart';
 import 'creator_profile.dart';
@@ -102,28 +104,122 @@ class ProfileScreen extends StatelessWidget {
           onPressed: () => pushScreen(context, const CreatorModeScreen(), theme: ClTheme.light),
         ),
         gap,
-        const ClSectionHeader(label: 'Podaci'),
-        Text(
-          'Podaci su sačuvani na ovom uređaju. $appName još nema nalog u oblaku.',
-          style: cl.text.body.copyWith(color: cl.colors.inkMuted),
-        ),
-        gapS,
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ClButton(
-            label: 'Obriši sve podatke',
-            variant: ClButtonVariant.danger,
-            onPressed: () async {
-              final ok = await confirmClSheet(
-                context,
-                title: 'Obriši sve?',
-                message: 'Profil, plan, pretplate i cela istorija treninga se brišu sa ovog uređaja.',
-                confirmLabel: 'Obriši sve',
-                danger: true,
-              );
-              if (ok && context.mounted) await context.readStore.resetAll();
-            },
+        const _DataSection(),
+      ],
+    );
+  }
+}
+
+/// Local mode: data lives on the device. Cloud mode: account, sync status,
+/// saving a guest account, signing out.
+class _DataSection extends StatelessWidget {
+  const _DataSection();
+
+  Future<void> _signOut(BuildContext context, AppStore store) async {
+    final guest = store.account?.isGuest ?? false;
+    final pending = store.pendingChanges;
+    final ok = await confirmClSheet(
+      context,
+      title: 'Odjavi se?',
+      message: [
+        if (guest) 'Gost nalog se ne može vratiti. Sačuvaj nalog da ne izgubiš istoriju.',
+        if (pending > 0)
+          '${countLabel(pending, 'izmena još nije poslata', 'izmene još nisu poslate', 'izmena još nije poslato')} na server.',
+        if (!guest && pending == 0) 'Tvoji podaci ostaju na nalogu. Prijavi se istim emailom da ih vratiš.',
+      ].join(' '),
+      confirmLabel: 'Odjavi se',
+      danger: guest || pending > 0,
+    );
+    if (!ok || !context.mounted) return;
+    await store.clearDeviceCache();
+    await store.auth!.signOut();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final cl = context.cl;
+    final muted = cl.text.body.copyWith(color: cl.colors.inkMuted);
+    final account = store.account;
+
+    final Widget status;
+    if (!store.isCloud) {
+      status = Text(
+        'Podaci su sačuvani na ovom uređaju. $appName radi u lokalnom demo režimu.',
+        style: muted,
+      );
+    } else if (store.pendingChanges > 0 || store.syncError != null) {
+      status = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (store.syncError != null) ClNotice(store.syncError!, danger: true),
+          if (store.pendingChanges > 0)
+            ClNotice(
+              '${countLabel(store.pendingChanges, 'izmena čeka', 'izmene čekaju', 'izmena čeka')} slanje. '
+              'Trening radi i bez interneta.',
+            ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ClButton(
+              label: 'Pošalji ponovo',
+              variant: ClButtonVariant.text,
+              onPressed: store.retrySync,
+            ),
           ),
+        ],
+      );
+    } else {
+      status = Text('Sve je sačuvano na nalogu.', style: muted);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ClSectionHeader(label: store.isCloud ? 'Nalog' : 'Podaci'),
+        if (account != null) ...[
+          Text(account.isGuest ? 'Gost' : (account.email ?? ''), style: cl.text.bodyStrong),
+          const SizedBox(height: ClSpace.s1),
+          if (account.isGuest) ...[
+            Text('Podaci su vezani za ovaj telefon dok ne sačuvaš nalog.', style: muted),
+            gapS,
+            ClButton(
+              label: 'Sačuvaj nalog',
+              variant: ClButtonVariant.secondary,
+              expand: true,
+              onPressed: () => pushScreen(context, AuthScreen(auth: store.auth!, saveAccount: true)),
+            ),
+            gapS,
+          ],
+        ],
+        status,
+        gapS,
+        Wrap(
+          spacing: ClSpace.s3,
+          runSpacing: ClSpace.s3,
+          children: [
+            if (store.isCloud && store.auth != null)
+              ClButton(
+                label: 'Odjavi se',
+                variant: ClButtonVariant.secondary,
+                onPressed: () => _signOut(context, store),
+              ),
+            ClButton(
+              label: 'Obriši moje podatke',
+              variant: ClButtonVariant.danger,
+              onPressed: () async {
+                final ok = await confirmClSheet(
+                  context,
+                  title: 'Obriši sve?',
+                  message: store.isCloud
+                      ? 'Profil, plan, pretplate, profil trenera i cela istorija treninga se brišu sa naloga i ovog uređaja.'
+                      : 'Profil, plan, pretplate i cela istorija treninga se brišu sa ovog uređaja.',
+                  confirmLabel: 'Obriši sve',
+                  danger: true,
+                );
+                if (ok && context.mounted) await context.readStore.resetAll();
+              },
+            ),
+          ],
         ),
       ],
     );

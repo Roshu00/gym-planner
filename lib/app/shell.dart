@@ -79,7 +79,39 @@ class _HomeShellState extends State<HomeShell> {
                 ],
               ),
             ),
+            const _SyncBanner(),
             ClBottomNav(selected: _index, onChanged: _select),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown on every tab while a change could not reach the server.
+class _SyncBanner extends StatelessWidget {
+  const _SyncBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final error = store.syncError;
+    if (error == null) return const SizedBox.shrink();
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: context.clColors.border)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(left: ClSpace.s4),
+        child: Row(
+          children: [
+            Expanded(child: ClNotice(error, danger: true)),
+            ClButton(label: 'Ponovo', variant: ClButtonVariant.text, onPressed: store.retrySync),
+            ClIconButton(
+              icon: ClIcons.close,
+              semanticLabel: 'Sakrij poruku',
+              onPressed: store.dismissSyncError,
+            ),
           ],
         ),
       ),
