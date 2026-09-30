@@ -10,7 +10,7 @@ import 'subscribe_sheet.dart';
 import 'workout_detail.dart';
 
 /// A creator's program: what it is, how well it fits the user's equipment,
-/// its workouts, and one action. Dark theme.
+/// its workouts, and one action.
 class ProgramDetailScreen extends StatelessWidget {
   const ProgramDetailScreen({super.key, required this.programId});
 
@@ -54,7 +54,7 @@ class ProgramDetailScreen extends StatelessWidget {
     if (locked) {
       action = ClButton(
         label: 'Pretplati se',
-        variant: ClButtonVariant.ink,
+        variant: ClButtonVariant.pop,
         expand: true,
         onPressed: c == null ? null : () => showSubscribeSheet(context, c),
       );
@@ -74,14 +74,14 @@ class ProgramDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s8),
       header: ClWorkoutHero(
         title: p.name,
+        color: context.clColors.popFor(p.id),
         label: '${c?.name ?? ''} · ${programMeta(p)}',
-        height: 360,
+        height: 300,
         topBar: Row(
           children: [
             ClIconButton(
               icon: ClIcons.back,
               semanticLabel: 'Nazad',
-              color: cl.colors.onPhoto,
               onPressed: () => Navigator.of(context).maybePop(),
             ),
           ],

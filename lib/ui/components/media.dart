@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../tokens/spacing.dart';
 
-/// Photo/video frame with radius 0. Without media (or while loading) it shows
-/// the dark `photo-empty` frame with a small label, never a color block.
+/// Photo/video frame. Round it with [ClipRRect] where it sits. Without media
+/// (or while loading) it shows the dark `photo-empty` frame with a small label.
 class ClPhoto extends StatelessWidget {
   const ClPhoto({
     super.key,
@@ -29,7 +29,7 @@ class ClPhoto extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(ClSpace.s4),
           child: Text(
-            placeholderLabel.toUpperCase(),
+            placeholderLabel,
             style: context.clText.label.copyWith(color: c.onPhoto.withValues(alpha: 0.6)),
           ),
         ),
@@ -51,7 +51,6 @@ class ClPhoto extends StatelessWidget {
 }
 
 /// Bottom scrim so white text stays readable on any photo.
-/// The only gradient allowed in the system.
 class ClPhotoScrim extends StatelessWidget {
   const ClPhotoScrim({super.key, this.coverage = 0.6});
 
@@ -81,16 +80,19 @@ class ClPhotoScrim extends StatelessWidget {
   }
 }
 
-/// Circle: the only round element. 28px in lists, 56px on the profile.
-/// No story rings, no colored outlines.
+/// Circle with initials on a pop color, or a photo. 28px in lists, 56px on the profile.
 class ClAvatar extends StatelessWidget {
-  const ClAvatar({super.key, required this.name, this.image, this.size = ClSize.avatarList});
+  const ClAvatar({super.key, required this.name, this.image, this.size = ClSize.avatarList, this.color});
 
-  const ClAvatar.profile({super.key, required this.name, this.image}) : size = ClSize.avatarProfile;
+  const ClAvatar.profile({super.key, required this.name, this.image, this.color})
+    : size = ClSize.avatarProfile;
 
   final String name;
   final ImageProvider? image;
   final double size;
+
+  /// Fill behind the initials. Defaults to a pop color picked from [name].
+  final Color? color;
 
   String get _initials {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
@@ -110,7 +112,7 @@ class ClAvatar extends StatelessWidget {
           fontSize: size * 0.36,
           height: 1,
           letterSpacing: 0,
-          color: cl.colors.ink,
+          color: cl.colors.onPop,
         ),
       ),
     );
@@ -121,7 +123,7 @@ class ClAvatar extends StatelessWidget {
         dimension: size,
         child: ClipOval(
           child: ColoredBox(
-            color: cl.colors.surfaceRaised,
+            color: color ?? cl.colors.popFor(name),
             child: image == null
                 ? initials
                 : Image(image: image!, fit: BoxFit.cover, errorBuilder: (context, e, s) => initials),

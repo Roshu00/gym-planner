@@ -7,7 +7,6 @@ import 'common.dart';
 import 'subscribe_sheet.dart';
 
 /// One exercise: the creator's cue, the user's record and recent sets.
-/// Dark theme.
 class ExerciseDetailScreen extends StatelessWidget {
   const ExerciseDetailScreen({super.key, required this.exerciseId});
 
@@ -43,23 +42,26 @@ class ExerciseDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s12),
       header: SizedBox(
         height: 260,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const ClPhoto(placeholderLabel: 'Video vežbe'),
-            Positioned(
-              top: 0,
-              left: 0,
-              child: SafeArea(
-                child: ClIconButton(
-                  icon: ClIcons.back,
-                  semanticLabel: 'Nazad',
-                  color: cl.colors.onPhoto,
-                  onPressed: () => Navigator.of(context).maybePop(),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(ClRadius.lg)),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ClPhoto(placeholderLabel: 'Video vežbe'),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: SafeArea(
+                  child: ClIconButton(
+                    icon: ClIcons.back,
+                    semanticLabel: 'Nazad',
+                    color: cl.colors.onPhoto,
+                    onPressed: () => Navigator.of(context).maybePop(),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       children: [
@@ -73,7 +75,7 @@ class ExerciseDetailScreen extends StatelessWidget {
           if (c != null)
             ClButton(
               label: 'Pretplati se',
-              variant: ClButtonVariant.ink,
+              variant: ClButtonVariant.pop,
               expand: true,
               onPressed: () => showSubscribeSheet(context, c),
             ),

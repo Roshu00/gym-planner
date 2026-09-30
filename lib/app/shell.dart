@@ -11,7 +11,7 @@ import 'today.dart';
 
 enum AppTab { today, plan, discover, progress, profile }
 
-/// Bottom-nav shell. All tabs use the dark theme.
+/// Bottom-nav shell. All tabs use the light theme.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, this.openCreatorId});
 
@@ -60,7 +60,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     const tabs = [TodayScreen(), PlanTabScreen(), DiscoverScreen(), ProgressScreen(), ProfileScreen()];
     return ClThemeScope(
-      theme: ClTheme.dark,
+      theme: ClTheme.light,
       child: Scaffold(
         body: Column(
           children: [
@@ -70,7 +70,7 @@ class _HomeShellState extends State<HomeShell> {
                 children: [
                   for (var i = 0; i < tabs.length; i++)
                     ClThemeScope(
-                      theme: ClTheme.dark,
+                      theme: ClTheme.light,
                       child: TickerMode(enabled: i == _index, child: tabs[i]),
                     ),
                 ],

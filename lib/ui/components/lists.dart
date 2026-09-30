@@ -7,7 +7,8 @@ import 'media.dart';
 import 'pressable.dart';
 import 'tag.dart';
 
-/// Library row: name, meta, tags. Separated by a 1px `border`.
+/// Row card: name, meta, tags on a rounded `surface`. [divider] keeps the
+/// gap below it.
 class ClListRow extends StatelessWidget {
   const ClListRow({
     super.key,
@@ -36,11 +37,11 @@ class ClListRow extends StatelessWidget {
     final c = cl.colors;
     Widget row(bool pressed) => AnimatedContainer(
       duration: context.motion(ClMotion.fast),
-      constraints: const BoxConstraints(minHeight: ClSize.targetWorkout),
-      padding: const EdgeInsets.symmetric(vertical: ClSpace.s3),
+      constraints: const BoxConstraints(minHeight: ClSize.targetWorkout + ClSpace.s2),
+      padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s3, ClSpace.s3, ClSpace.s3),
       decoration: BoxDecoration(
-        color: pressed ? c.surfaceRaised : c.bg,
-        border: divider ? Border(bottom: BorderSide(color: c.border)) : null,
+        color: pressed ? c.surfaceRaised : c.surface,
+        borderRadius: BorderRadius.circular(ClRadius.sm),
       ),
       child: Row(
         children: [
@@ -74,13 +75,17 @@ class ClListRow extends StatelessWidget {
       ),
     );
 
+    final gap = EdgeInsets.only(bottom: divider ? ClSpace.s2 : 0);
     // Information rows are not buttons; their trailing controls stay reachable.
-    if (onPressed == null) return row(false);
-    return ClPressable(
-      onPressed: onPressed,
-      radius: 0,
-      semanticLabel: meta == null ? title : '$title, $meta',
-      builder: (context, pressed) => row(pressed),
+    if (onPressed == null) return Padding(padding: gap, child: row(false));
+    return Padding(
+      padding: gap,
+      child: ClPressable(
+        onPressed: onPressed,
+        radius: ClRadius.sm,
+        semanticLabel: meta == null ? title : '$title, $meta',
+        builder: (context, pressed) => row(pressed),
+      ),
     );
   }
 }
@@ -116,7 +121,7 @@ class ClCreatorRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(followers, style: cl.text.data),
-          Text('PRATIOCA', style: cl.text.label),
+          Text('pratilaca', style: cl.text.label),
         ],
       ),
     );
@@ -164,6 +169,7 @@ class ClExerciseRow extends StatelessWidget {
   }
 }
 
+/// Pill segmented tabs. Selected = ink pill with bg text.
 class ClTabs extends StatelessWidget {
   const ClTabs({super.key, required this.tabs, required this.selected, required this.onChanged});
 
@@ -175,43 +181,37 @@ class ClTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: c.border)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: BorderRadius.circular(ClRadius.full)),
         child: Row(
           children: [
-            for (var i = 0; i < tabs.length; i++) ...[
+            for (var i = 0; i < tabs.length; i++)
               ClPressable(
                 selected: i == selected,
                 semanticLabel: tabs[i],
-                radius: 0,
+                radius: ClRadius.full,
                 onPressed: () => onChanged(i),
                 builder: (context, pressed) => AnimatedContainer(
                   duration: context.motion(ClMotion.fast),
-                  height: ClSize.target,
+                  curve: ClMotion.curve,
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: ClSpace.s4),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: i == selected ? c.ink : Colors.transparent,
-                        width: ClSize.rule,
-                      ),
-                    ),
+                    color: i == selected ? c.ink : Colors.transparent,
+                    borderRadius: BorderRadius.circular(ClRadius.full),
                   ),
                   child: Text(
-                    tabs[i].toUpperCase(),
-                    style: cl.text.label.copyWith(
-                      fontSize: 12,
-                      color: i == selected || pressed ? c.ink : c.inkMuted,
+                    tabs[i],
+                    style: cl.text.filter.copyWith(
+                      color: i == selected ? c.bg : (pressed ? c.ink : c.inkMuted),
                     ),
                   ),
                 ),
               ),
-              if (i < tabs.length - 1) const SizedBox(width: ClSpace.s6),
-            ],
           ],
         ),
       ),
@@ -234,8 +234,8 @@ const clNavItems = [
   ClNavItem(label: 'Profil', icon: ClIcons.profile),
 ];
 
-/// 5 items, thin icons + `label`. Active = `ink`, inactive = `ink-muted`.
-/// Never signal in navigation.
+/// Floating black bar, 5 items. Active = lime pill behind the icon and a
+/// white label; inactive = dimmed white. Black in both themes.
 class ClBottomNav extends StatelessWidget {
   const ClBottomNav({super.key, required this.selected, required this.onChanged, this.items = clNavItems});
 
@@ -247,43 +247,58 @@ class ClBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: c.bg,
-        border: Border(top: BorderSide(color: c.border)),
-      ),
+    final white = c.onPhoto;
+    return ColoredBox(
+      color: c.bg,
       child: SafeArea(
         top: false,
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            children: [
-              for (var i = 0; i < items.length; i++)
-                Expanded(
-                  child: ClPressable(
-                    selected: i == selected,
-                    semanticLabel: items[i].label,
-                    radius: 0,
-                    onPressed: () => onChanged(i),
-                    builder: (context, pressed) {
-                      final color = i == selected ? c.ink : c.inkMuted;
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(items[i].icon, size: ClSize.icon, color: color),
-                          const SizedBox(height: 2),
-                          Text(
-                            items[i].label.toUpperCase(),
-                            maxLines: 1,
-                            overflow: TextOverflow.clip,
-                            style: cl.text.label.copyWith(fontSize: 9.5, color: color),
-                          ),
-                        ],
-                      );
-                    },
+        minimum: const EdgeInsets.only(bottom: ClSpace.s2),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(ClSpace.s3, ClSpace.s1, ClSpace.s3, 0),
+          child: Container(
+            height: 68,
+            padding: const EdgeInsets.symmetric(horizontal: ClSpace.s1),
+            decoration: BoxDecoration(color: c.onPop, borderRadius: BorderRadius.circular(ClRadius.lg)),
+            child: Row(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  Expanded(
+                    child: ClPressable(
+                      selected: i == selected,
+                      semanticLabel: items[i].label,
+                      radius: ClRadius.sm,
+                      onPressed: () => onChanged(i),
+                      builder: (context, pressed) {
+                        final active = i == selected;
+                        final color = active ? white : white.withValues(alpha: pressed ? 0.8 : 0.55);
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            AnimatedContainer(
+                              duration: context.motion(ClMotion.fast),
+                              curve: ClMotion.curve,
+                              width: 44,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: active ? c.lime : Colors.transparent,
+                                borderRadius: BorderRadius.circular(ClRadius.full),
+                              ),
+                              child: Icon(items[i].icon, size: 20, color: active ? c.onPop : color),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              items[i].label,
+                              maxLines: 1,
+                              overflow: TextOverflow.clip,
+                              style: cl.text.label.copyWith(fontSize: 10.5, height: 1.2, color: color),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

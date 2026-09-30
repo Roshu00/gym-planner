@@ -74,7 +74,7 @@ Demo sadržaj ima jedan izvor, `lib/data/seed.dart`. Posle izmene pokreni `dart 
 
 - **Plaćanje.** Pretplata se aktivira bez naplate, a ekran to jasno kaže. Korisnik sam upisuje red u `subscriptions`; to pravilo je u migraciji označeno kao privremeno i treba ga zameniti webhookom plaćanja sa service role ključem.
 - **Brisanje naloga.** „Obriši moje podatke” briše sve redove korisnika. Sam nalog (`auth.users`) briše se service role ključem, npr. iz Edge funkcije.
-- **Fotografije i video trenera.** Svuda je tamni okvir „FOTO TRENERA”, po DESIGN.md.
+- **Fotografije i video trenera.** Dok ih nema, zaglavlja i kartice programa su blokovi boja, po DESIGN.md.
 - **Demo sadržaj.** Tri trenera bez naloga i pet programa (`lib/data/seed.dart` → `supabase/seed.sql`). Pravi treneri dolaze kroz režim kreatora.
 
 ## Struktura
@@ -104,7 +104,7 @@ supabase/
   templates/                email šabloni sa kodom
   tests/                    RLS testovi za tool/test_db.sh
 assets/
-  fonts/                    Archivo variable (wdth 62–125, wght 100–900), OFL
+  fonts/                    Bricolage Grotesque (text i display rez), OFL
   icons/                    Phosphor Light i Bold, MIT
 ```
 

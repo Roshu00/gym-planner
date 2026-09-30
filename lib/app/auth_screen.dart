@@ -8,7 +8,7 @@ import '../ui/chalkline_ui.dart';
 import 'common.dart';
 
 /// Email and a 6-digit code, no password. Also used to turn a guest into an
-/// account ([saveAccount]). Dark theme.
+/// account ([saveAccount]).
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key, required this.auth, this.saveAccount = false});
 

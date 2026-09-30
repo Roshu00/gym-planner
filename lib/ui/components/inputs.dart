@@ -8,7 +8,7 @@ InputDecoration _decoration(BuildContext context, {String? hint, Widget? prefix}
   final cl = context.cl;
   final c = cl.colors;
   OutlineInputBorder border(Color color, double width) => OutlineInputBorder(
-    borderRadius: BorderRadius.circular(ClRadius.sm),
+    borderRadius: BorderRadius.circular(ClRadius.xs),
     borderSide: BorderSide(color: color, width: width),
   );
   return InputDecoration(
@@ -17,19 +17,20 @@ InputDecoration _decoration(BuildContext context, {String? hint, Widget? prefix}
     hintStyle: TextStyle(color: c.inkMuted),
     prefixIcon: prefix,
     prefixIconColor: c.inkMuted,
-    filled: false,
-    contentPadding: const EdgeInsets.symmetric(horizontal: ClSpace.s3, vertical: ClSpace.s3),
-    enabledBorder: border(c.borderStrong, 1),
-    border: border(c.borderStrong, 1),
+    filled: true,
+    fillColor: c.surfaceRaised,
+    contentPadding: const EdgeInsets.symmetric(horizontal: ClSpace.s4, vertical: ClSpace.s3 + 2),
+    enabledBorder: border(Colors.transparent, 0),
+    border: border(Colors.transparent, 0),
     focusedBorder: border(c.focus, ClSize.focusRing),
-    errorBorder: border(c.danger, 1),
+    errorBorder: border(c.danger, 1.5),
     focusedErrorBorder: border(c.danger, ClSize.focusRing),
-    disabledBorder: border(c.border, 1),
+    disabledBorder: border(Colors.transparent, 0),
     errorStyle: cl.text.label.copyWith(color: c.danger),
   );
 }
 
-/// Text input: radius 4, 1px border-strong, 2px focus ring, `label` above.
+/// Text input: filled `surface-raised`, radius 12, 2px ink focus ring, `label` above.
 class ClTextField extends StatelessWidget {
   const ClTextField({
     super.key,
@@ -67,10 +68,7 @@ class ClTextField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (label != null) ...[
-          Text(label!.toUpperCase(), style: cl.text.label),
-          const SizedBox(height: ClSpace.s2),
-        ],
+        if (label != null) ...[Text(label!, style: cl.text.label), const SizedBox(height: ClSpace.s2)],
         ConstrainedBox(
           constraints: const BoxConstraints(minHeight: ClSize.target),
           child: TextField(
@@ -142,7 +140,7 @@ class _ClNumberFieldState extends State<ClNumberField> {
     return Semantics(
       label: widget.semanticLabel,
       child: SizedBox(
-        height: 40,
+        height: 42,
         child: TextField(
           controller: _controller,
           focusNode: _focus,

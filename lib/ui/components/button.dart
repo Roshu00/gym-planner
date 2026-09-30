@@ -5,26 +5,26 @@ import '../tokens/spacing.dart';
 import 'pressable.dart';
 
 enum ClButtonVariant {
-  /// Signal fill. One per screen.
+  /// Black pill. One per screen.
   primary,
 
-  /// Ink fill on bg ("PRETPLATI SE" on the creator profile).
-  ink,
+  /// Lime pill: the one action that should pop ("Pretplati se").
+  pop,
 
-  /// 1px border-strong, transparent.
+  /// 1.5px ink outline, transparent.
   secondary,
 
   /// Underlined, sentence case.
   text,
 
-  /// Full width, 56px, signal fill. Pinned to the bottom of the screen.
+  /// Full width, 56px, black pill. Pinned to the bottom of the screen.
   block,
 
-  /// Destructive: 1px danger outline, danger label.
+  /// Destructive: danger outline, danger label.
   danger,
 }
 
-/// 1–2 words, verb first: `POČNI TRENING`, `ZAVRŠI SET`.
+/// 1–2 words, verb first, sentence case: `Počni trening`, `Završi set`.
 class ClButton extends StatelessWidget {
   const ClButton({
     super.key,
@@ -79,8 +79,8 @@ class ClButton extends StatelessWidget {
     final isBlock = variant == ClButtonVariant.block;
     final (Color fill, Color fg, Color? outline) = switch (variant) {
       _ when !enabled => (c.border, c.inkMuted, null),
-      ClButtonVariant.primary || ClButtonVariant.block => (c.signal, c.onSignal, null),
-      ClButtonVariant.ink => (c.ink, c.bg, null),
+      ClButtonVariant.primary || ClButtonVariant.block => (c.ink, c.bg, null),
+      ClButtonVariant.pop => (c.signal, c.onSignal, c.onPop),
       ClButtonVariant.danger => (Colors.transparent, c.danger, c.danger),
       _ => (Colors.transparent, c.ink, c.borderStrong),
     };
@@ -88,8 +88,9 @@ class ClButton extends StatelessWidget {
     return ClPressable(
       onPressed: onPressed,
       semanticLabel: label,
+      radius: ClRadius.full,
       builder: (context, pressed) {
-        final pressedFill = outline != null ? c.surfaceRaised : fill.withValues(alpha: 0.82);
+        final pressedFill = fill == Colors.transparent ? c.surfaceRaised : fill.withValues(alpha: 0.82);
         return AnimatedContainer(
           duration: context.motion(ClMotion.fast),
           curve: ClMotion.curve,
@@ -98,8 +99,8 @@ class ClButton extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: isBlock ? ClSpace.s6 : ClSpace.s4 + 4),
           decoration: BoxDecoration(
             color: pressed ? pressedFill : fill,
-            borderRadius: BorderRadius.circular(ClRadius.sm),
-            border: outline == null ? null : Border.all(color: outline),
+            borderRadius: BorderRadius.circular(ClRadius.full),
+            border: outline == null ? null : Border.all(color: outline, width: 1.5),
           ),
           child: Row(
             mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
@@ -107,7 +108,7 @@ class ClButton extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  label.toUpperCase(),
+                  label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: (isBlock ? cl.text.buttonBlock : cl.text.button).copyWith(color: fg),

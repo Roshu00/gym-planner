@@ -20,9 +20,24 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   fonts:
-    - family: Archivo
+    - family: Bricolage
       fonts:
-        - asset: assets/fonts/Archivo-Variable.ttf
+        - asset: assets/fonts/Bricolage-Text-400.ttf
+          weight: 400
+        - asset: assets/fonts/Bricolage-Text-500.ttf
+          weight: 500
+        - asset: assets/fonts/Bricolage-Text-600.ttf
+          weight: 600
+        - asset: assets/fonts/Bricolage-Text-700.ttf
+          weight: 700
+        - asset: assets/fonts/Bricolage-Text-800.ttf
+          weight: 800
+    - family: BricolageDisplay
+      fonts:
+        - asset: assets/fonts/Bricolage-Display-700.ttf
+          weight: 700
+        - asset: assets/fonts/Bricolage-Display-800.ttf
+          weight: 800
     - family: PhosphorLight
       fonts:
         - asset: assets/icons/Phosphor-Light.ttf

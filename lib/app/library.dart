@@ -91,7 +91,7 @@ class _LibraryContentState extends State<LibraryContent> {
           )
         else ...[
           Text(
-            '${countLabel(creators.length, 'trener', 'trenera', 'trenera')} koje pratiš'.toUpperCase(),
+            '${countLabel(creators.length, 'trener', 'trenera', 'trenera')} koje pratiš',
             style: context.clText.label,
           ),
           const SizedBox(height: ClSpace.s2),

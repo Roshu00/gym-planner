@@ -7,7 +7,6 @@ import '../theme.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
 import '../tokens/typography.dart';
-import 'rule.dart';
 
 class ClChartPoint {
   const ClChartPoint(this.label, this.value);
@@ -17,8 +16,8 @@ class ClChartPoint {
   final double value;
 }
 
-/// Progress chart: 2px `ink` line, no fills or gradients. Only the current or
-/// best point uses `signal`, with its value in `signal-text`.
+/// Progress chart on a white card: a rounded 2.5px ink line. The current or
+/// best point is a lime dot, its value in a lime pill.
 class ClLineChart extends StatelessWidget {
   const ClLineChart({
     super.key,
@@ -46,37 +45,50 @@ class ClLineChart extends StatelessWidget {
     return Semantics(
       label: '$title. ${points.map((p) => '${p.label}: ${formatNumber(p.value)}').join(', ')}',
       excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const ClRule(),
-          const SizedBox(height: ClSpace.s2),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(child: Text(title.toUpperCase(), style: cl.text.label)),
-              Text.rich(
-                TextSpan(
-                  children: [
+      child: Container(
+        padding: const EdgeInsets.all(ClSpace.s4),
+        decoration: BoxDecoration(color: cl.colors.surface, borderRadius: BorderRadius.circular(ClRadius.lg)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: Text(title, style: cl.text.bodyStrong)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: ClSpace.s3, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: cl.colors.lime,
+                    borderRadius: BorderRadius.circular(ClRadius.full),
+                  ),
+                  child: Text.rich(
                     TextSpan(
-                      text: formatNumber(best.value),
-                      style: cl.text.metric.copyWith(color: cl.colors.signalText),
+                      children: [
+                        TextSpan(
+                          text: formatNumber(best.value),
+                          style: cl.text.metric.copyWith(color: cl.colors.onPop),
+                        ),
+                        if (unit != null)
+                          TextSpan(
+                            text: ' $unit',
+                            style: cl.text.unit.copyWith(color: cl.colors.onPop),
+                          ),
+                      ],
                     ),
-                    if (unit != null) TextSpan(text: ' $unit', style: cl.text.unit),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: ClSpace.s3),
-          SizedBox(
-            height: height,
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: _LineChartPainter(points, hi, cl.colors, cl.text),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: ClSpace.s3),
+            SizedBox(
+              height: height,
+              child: CustomPaint(
+                size: Size.infinite,
+                painter: _LineChartPainter(points, hi, cl.colors, cl.text),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -128,19 +140,27 @@ class _LineChartPainter extends CustomPainter {
       Paint()
         ..color = colors.ink
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..strokeJoin = StrokeJoin.miter
-        ..strokeCap = StrokeCap.square,
+        ..strokeWidth = 2.5
+        ..strokeJoin = StrokeJoin.round
+        ..strokeCap = StrokeCap.round,
     );
 
     final h = at(highlight);
-    canvas.drawRect(Rect.fromCenter(center: h, width: 10, height: 10), Paint()..color = colors.signal);
+    canvas.drawCircle(h, 8, Paint()..color = colors.lime);
+    canvas.drawCircle(
+      h,
+      8,
+      Paint()
+        ..color = colors.onPop
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
 
     final labelStyle = text.label;
     for (var i = 0; i < points.length; i++) {
       final tp = TextPainter(
         text: TextSpan(
-          text: points[i].label.toUpperCase(),
+          text: points[i].label,
           style: i == highlight ? labelStyle.copyWith(color: colors.ink) : labelStyle,
         ),
         textDirection: TextDirection.ltr,

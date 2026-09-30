@@ -5,7 +5,7 @@ import '../ui/chalkline_ui.dart';
 import 'examples.dart';
 import 'sections.dart';
 
-final galleryTheme = ValueNotifier<Brightness>(Brightness.dark);
+final galleryTheme = ValueNotifier<Brightness>(Brightness.light);
 
 class GalleryApp extends StatelessWidget {
   const GalleryApp({super.key});
@@ -40,7 +40,7 @@ class GallerySection {
 
 final _foundations = [
   GallerySection('Boje', 'Tokeni, tamna i svetla tema', (_) => const ColorsPage()),
-  GallerySection('Tipografija', 'Archivo u tri širine', (_) => const TypographyPage()),
+  GallerySection('Tipografija', 'Bricolage Grotesque', (_) => const TypographyPage()),
   GallerySection('Razmaci i oblici', 'Space, radius, veličine', (_) => const SpacingPage()),
   GallerySection('Ikone', 'Phosphor Light', (_) => const IconsPage()),
 ];
@@ -49,6 +49,7 @@ final _components = [
   GallerySection('Button', 'Primary, ink, secondary, text, block', (_) => const ButtonsPage()),
   GallerySection('Tag i Filter', 'PR, outline, danger, filteri', (_) => const TagsPage()),
   GallerySection('Avatar i foto', 'Avatar, photo-empty, scrim', (_) => const MediaPage()),
+  GallerySection('Blokovi boja', 'PopBlock, Sticker, kartica za story', (_) => const PopPage()),
   GallerySection('WorkoutHero', 'Fotografija trenera s naslovom', (_) => const HeroPage()),
   GallerySection('StatBar', 'Brojevi, segmenti, linija napretka', (_) => const StatBarPage()),
   GallerySection('SetTable', 'Unos setova, stanja, PR', (_) => const SetTablePage()),
@@ -64,9 +65,9 @@ final _components = [
 ];
 
 final _examples = [
-  GallerySection('Danas', 'Tamna tema', (_) => const TodayExample(), theme: ClTheme.dark),
-  GallerySection('Trening', 'Tamna tema, isprobaj unos', (_) => const WorkoutExample(), theme: ClTheme.dark),
-  GallerySection('Rezime', 'Svetla tema', (_) => const SummaryExample(), theme: ClTheme.light),
+  GallerySection('Danas', 'Blok boje za današnji trening', (_) => const TodayExample(), theme: ClTheme.light),
+  GallerySection('Trening', 'Isprobaj unos', (_) => const WorkoutExample(), theme: ClTheme.light),
+  GallerySection('Rezime', 'Kartica za story', (_) => const SummaryExample(), theme: ClTheme.light),
 ];
 
 class GalleryHome extends StatelessWidget {
@@ -108,7 +109,7 @@ class GalleryHome extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: ClScreenTitle(label: 'Dizajn sistem · v0.1', title: appName),
+                    child: ClScreenTitle(label: 'Dizajn sistem · v0.2', title: appName),
                   ),
                   const ThemeToggle(),
                 ],
@@ -249,7 +250,7 @@ class Specimen extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: ClSpace.s4),
-            child: Text(label.toUpperCase(), style: context.clText.label),
+            child: Text(label, style: context.clText.label),
           ),
           const SizedBox(height: ClSpace.s3),
           bleed

@@ -8,7 +8,7 @@ import 'library.dart';
 import 'plan_finder.dart';
 import 'program_detail.dart';
 
-/// Creators and their programs. Filters combine across groups. Dark theme.
+/// Creators and their programs. Filters combine across groups.
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
 
@@ -46,7 +46,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
     final header = [
       const SizedBox(height: ClSpace.s4),
-      const ClScreenTitle(label: 'Treneri i programi', title: 'Otkrij'),
+      const ClScreenTitle(label: 'Treneri i programi', title: 'Otkrij', large: true),
       gapS,
       ClTabs(
         tabs: const ['Otkrij', 'Biblioteka'],
@@ -75,7 +75,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           onPressed: () => pushScreen(context, const PlanFinderScreen()),
         ),
         gap,
-        Text('FILTERI', style: context.clText.label),
+        Text('Filteri', style: context.clText.label),
         const SizedBox(height: ClSpace.s1),
         Wrap(
           spacing: ClSpace.s2,
@@ -129,6 +129,7 @@ class ProgramTile extends StatelessWidget {
     final fit = store.fitOf(program);
     return ClProgramCard(
       title: program.name,
+      color: context.clColors.popFor(program.id),
       meta: programMeta(program),
       creatorName: c?.name ?? '',
       followers: followersLabel(c?.followers ?? 0),

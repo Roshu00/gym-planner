@@ -23,7 +23,7 @@ extension StoreContext on BuildContext {
 /// Pushes [screen] in the theme DESIGN.md assigns to it.
 Future<T?> pushScreen<T>(BuildContext context, Widget screen, {ClTheme? theme, bool replace = false}) {
   final route = MaterialPageRoute<T>(
-    builder: (_) => ClThemeScope(theme: theme ?? ClTheme.dark, child: screen),
+    builder: (_) => ClThemeScope(theme: theme ?? ClTheme.light, child: screen),
   );
   final nav = Navigator.of(context);
   return replace ? nav.pushReplacement(route) : nav.push(route);
@@ -102,7 +102,7 @@ class AppScreen extends StatelessWidget {
 }
 
 /// Vertical rhythm between blocks.
-const gap = SizedBox(height: ClSpace.s8);
+const gap = SizedBox(height: ClSpace.s6);
 const gapS = SizedBox(height: ClSpace.s4);
 
 // ───────────────────────── Copy helpers

@@ -13,7 +13,7 @@ const _dayShort = ['Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub', 'Ned'];
 
 /// History and planned days on one calendar. Today is selected on open.
 /// Planned days are a forecast from the training days: a missed day moves
-/// the next workout forward and never counts against the user. Dark theme.
+/// the next workout forward and never counts against the user.
 class PlanTabScreen extends StatefulWidget {
   const PlanTabScreen({super.key});
 
@@ -83,6 +83,7 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
               ? 'Istorija i planirani dani'
               : '${plan.name} · ${store.creator(plan.creatorId)?.name ?? ''}',
           title: 'Plan',
+          large: true,
         ),
         const SizedBox(height: ClSpace.s6),
         ClStatBar(
@@ -178,9 +179,20 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
     final w = plannedId == null ? null : store.workoutsById[plannedId];
     if (w != null) {
       return [
-        Text(w.name.toUpperCase(), style: cl.text.displayM.copyWith(fontSize: 32, height: 1)),
-        const SizedBox(height: ClSpace.s2),
-        Text('${day == today ? 'Danas' : 'Planirano'} · ${workoutMeta(w)}', style: muted),
+        ClPopBlock(
+          color: cl.colors.popFor(w.id),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${day == today ? 'Danas' : 'Planirano'} · ${workoutMeta(w)}',
+                style: cl.text.bodyStrong.copyWith(fontSize: 13),
+              ),
+              const SizedBox(height: ClSpace.s1),
+              Text(w.name, style: cl.text.displayM),
+            ],
+          ),
+        ),
         gapS,
         for (final (i, we) in w.exercises.indexed)
           if (store.resolveExercise(we.exerciseId) case final e?)
@@ -212,7 +224,7 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
       final next = schedule.entries.where((e) => e.key.isAfter(day)).firstOrNull;
       final nextWorkout = next == null ? null : store.workoutsById[next.value];
       return [
-        Text('ODMOR.', style: cl.text.displayM.copyWith(fontSize: 32, height: 1)),
+        Text('Odmor.', style: cl.text.displayM),
         const SizedBox(height: ClSpace.s2),
         Text(
           [

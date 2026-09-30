@@ -5,7 +5,7 @@ import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 
-/// Name, goal, experience, where the user trains and their equipment. Dark theme.
+/// Name, goal, experience, where the user trains and their equipment.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, this.invitedBy});
 

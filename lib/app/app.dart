@@ -36,7 +36,7 @@ class ChalklineApp extends StatelessWidget {
     key: key,
     title: appName,
     debugShowCheckedModeBanner: false,
-    theme: ClTheme.dark.toThemeData(),
+    theme: ClTheme.light.toThemeData(),
     home: home,
   );
 
@@ -132,7 +132,7 @@ class _Root extends StatelessWidget {
     final store = context.store;
     if (!store.loaded) {
       return Scaffold(
-        body: Center(child: Text('UČITAVANJE', style: context.clText.label)),
+        body: Center(child: Text('Učitavanje…', style: context.clText.label)),
       );
     }
     final creator = initialCreatorHandle == null ? null : store.creatorByHandle(initialCreatorHandle!);

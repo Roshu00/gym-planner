@@ -24,7 +24,7 @@ class _Choice<T> extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(label.toUpperCase(), style: context.clText.label),
+      Text(label, style: context.clText.label),
       const SizedBox(height: ClSpace.s1),
       Wrap(
         spacing: ClSpace.s2,

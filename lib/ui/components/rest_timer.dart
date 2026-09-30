@@ -6,11 +6,11 @@ import '../format.dart';
 import '../theme.dart';
 import '../tokens/spacing.dart';
 import 'button.dart';
-import 'rule.dart';
+import 'pop.dart';
 import 'stat_bar.dart';
 
-/// Rest countdown: `label`, big `metric-l` clock, thin progress line.
-/// Keeps counting past zero in `danger` (rest time over). Give it a new key to restart.
+/// Rest countdown on a peach block: `label`, big clock, progress line.
+/// Keeps counting past zero on lilac (rest time over). Give it a new key to restart.
 class ClRestTimer extends StatefulWidget {
   const ClRestTimer({
     super.key,
@@ -69,45 +69,50 @@ class _ClRestTimerState extends State<ClRestTimer> with SingleTickerProviderStat
     final over = _remaining < Duration.zero;
     final shown = Duration(seconds: (_remaining.inMilliseconds / 1000).ceil());
     final progress = _total.inMilliseconds == 0 ? 1.0 : _elapsed.inMilliseconds / _total.inMilliseconds;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const ClRule(),
-        const SizedBox(height: ClSpace.s3),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(over ? 'ODMOR JE GOTOV' : 'ODMOR', style: cl.text.label),
-                  const SizedBox(height: ClSpace.s1),
-                  Semantics(
-                    liveRegion: true,
-                    label: over ? 'Odmor je gotov' : 'Odmor ${formatClock(shown)}',
-                    excludeSemantics: true,
-                    child: Text(
-                      formatClock(over ? -_remaining : shown),
-                      style: cl.text.metricL.copyWith(color: over ? cl.colors.danger : cl.colors.ink),
+    final c = cl.colors;
+    return ClPopBlock(
+      color: over ? c.lilac : c.peach,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(over ? 'Odmor je gotov' : 'Odmor', style: cl.text.label.copyWith(color: c.onPop)),
+                    Semantics(
+                      liveRegion: true,
+                      label: over ? 'Odmor je gotov' : 'Odmor ${formatClock(shown)}',
+                      excludeSemantics: true,
+                      child: Text(
+                        '${over ? '+' : ''}${formatClock(over ? -_remaining : shown)}',
+                        style: cl.text.metricL.copyWith(fontSize: 48, height: 1.05, color: c.onPop),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+              _Step(label: '−${widget.step.inSeconds} s', onPressed: () => _adjust(-widget.step)),
+              const SizedBox(width: ClSpace.s2),
+              _Step(label: '+${widget.step.inSeconds} s', onPressed: () => _adjust(widget.step)),
+            ],
+          ),
+          const SizedBox(height: ClSpace.s3),
+          ClProgressLine(value: progress, onPop: true),
+          if (widget.onSkip != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ClButton(
+                label: 'Preskoči odmor',
+                variant: ClButtonVariant.text,
+                onPressed: widget.onSkip,
               ),
             ),
-            _Step(label: '−${widget.step.inSeconds} s', onPressed: () => _adjust(-widget.step)),
-            const SizedBox(width: ClSpace.s2),
-            _Step(label: '+${widget.step.inSeconds} s', onPressed: () => _adjust(widget.step)),
-          ],
-        ),
-        const SizedBox(height: ClSpace.s3),
-        ClProgressLine(value: progress),
-        if (widget.onSkip != null)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: ClButton(label: 'Preskoči odmor', variant: ClButtonVariant.text, onPressed: widget.onSkip),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

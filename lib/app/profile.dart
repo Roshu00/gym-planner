@@ -10,7 +10,7 @@ import 'creator_mode.dart';
 import 'creator_profile.dart';
 import 'plan_screen.dart';
 
-/// The user: equipment, subscriptions, plan, creator mode, account. Dark theme.
+/// The user: equipment, subscriptions, plan, creator mode, account.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 

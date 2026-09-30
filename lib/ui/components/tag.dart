@@ -5,17 +5,17 @@ import '../tokens/spacing.dart';
 import 'pressable.dart';
 
 enum ClTagVariant {
-  /// Personal record. Signal fill.
+  /// Personal record. Black sticker with lime text.
   pr,
 
-  /// Inset 1px border-strong.
+  /// 1.5px ink outline.
   outline,
 
   /// Outline in danger.
   danger,
 }
 
-/// 18px, radius 2, 10/700 UPPERCASE.
+/// 20px pill, 11/800.
 class ClTag extends StatefulWidget {
   const ClTag(this.label, {super.key, this.variant = ClTagVariant.outline, this.animateIn = false});
 
@@ -56,30 +56,30 @@ class _ClTagState extends State<ClTag> with SingleTickerProviderStateMixin {
     final cl = context.cl;
     final c = cl.colors;
     final (Color? fill, Color fg, Color? line) = switch (widget.variant) {
-      ClTagVariant.pr => (c.signal, c.onSignal, null),
+      ClTagVariant.pr => (c.onPop, c.lime, null),
       ClTagVariant.outline => (null, c.ink, c.borderStrong),
       ClTagVariant.danger => (null, c.danger, c.danger),
     };
     return ScaleTransition(
       scale: CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack),
       child: Container(
-        height: 18,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
+        height: 20,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           color: fill,
-          borderRadius: BorderRadius.circular(ClRadius.xs),
-          border: line == null ? null : Border.all(color: line),
+          borderRadius: BorderRadius.circular(ClRadius.full),
+          border: line == null ? null : Border.all(color: line, width: 1.5),
         ),
         child: Center(
           widthFactor: 1,
-          child: Text(widget.label.toUpperCase(), style: cl.text.tag.copyWith(color: fg)),
+          child: Text(widget.label, style: cl.text.tag.copyWith(color: fg)),
         ),
       ),
     );
   }
 }
 
-/// 32px, radius 4, 12/600 UPPERCASE. Selected = ink fill with bg text.
+/// 36px pill, 13/700. Selected = lime with an ink outline; otherwise a quiet chip.
 class ClFilter extends StatelessWidget {
   const ClFilter({super.key, required this.label, required this.selected, required this.onChanged});
 
@@ -92,24 +92,25 @@ class ClFilter extends StatelessWidget {
     final cl = context.cl;
     final c = cl.colors;
     return ClPressable(
+      radius: ClRadius.full,
       selected: selected,
       semanticLabel: label,
       onPressed: onChanged == null ? null : () => onChanged!(!selected),
       builder: (context, pressed) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: (ClSize.target - 32) / 2),
+        padding: const EdgeInsets.symmetric(vertical: (ClSize.target - 36) / 2),
         child: AnimatedContainer(
           duration: context.motion(ClMotion.fast),
           curve: ClMotion.curve,
-          height: 32,
-          padding: const EdgeInsets.symmetric(horizontal: ClSpace.s3),
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: ClSpace.s4 - 2),
           decoration: BoxDecoration(
-            color: selected ? c.ink : (pressed ? c.surfaceRaised : Colors.transparent),
-            borderRadius: BorderRadius.circular(ClRadius.sm),
-            border: Border.all(color: selected ? c.ink : c.borderStrong),
+            color: selected ? c.lime : (pressed ? c.border : c.surfaceRaised),
+            borderRadius: BorderRadius.circular(ClRadius.full),
+            border: Border.all(color: selected ? c.onPop : Colors.transparent, width: 1.5),
           ),
           child: Center(
             widthFactor: 1,
-            child: Text(label.toUpperCase(), style: cl.text.filter.copyWith(color: selected ? c.bg : c.ink)),
+            child: Text(label, style: cl.text.filter.copyWith(color: selected ? c.onPop : c.ink)),
           ),
         ),
       ),

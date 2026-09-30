@@ -6,7 +6,7 @@ import '../ui/chalkline_ui.dart';
 import 'common.dart';
 
 /// Proof of the workout: praise for showing up, volume, records, the
-/// creator's message. Also the history detail view. Light theme.
+/// creator's message, on a card made to be shared. Also the history detail view.
 class SummaryScreen extends StatelessWidget {
   const SummaryScreen({super.key, required this.sessionId, this.justFinished = false});
 
@@ -27,11 +27,7 @@ class SummaryScreen extends StatelessWidget {
     }
     final date = s.finishedAt ?? s.startedAt;
     final label = justFinished
-        ? [
-            'Trening završen',
-            formatDuration(s.duration),
-            if (store.streak > 0) 'Niz ${store.streak} ned.',
-          ].join(' · ')
+        ? '${s.workoutName} · ${formatDuration(s.duration)}'
         : '${weekdayName(date)} ${formatDate(date)} · ${formatDuration(s.duration)}';
     final message = s.finishMessage.isNotEmpty
         ? s.finishMessage
@@ -45,12 +41,7 @@ class SummaryScreen extends StatelessWidget {
         backLabel: justFinished ? 'Zatvori' : 'Nazad',
       ),
       bottom: justFinished
-          ? ClButton(
-              label: 'Gotovo',
-              variant: ClButtonVariant.ink,
-              expand: true,
-              onPressed: () => Navigator.of(context).pop(),
-            )
+          ? ClButton.block(label: 'Gotovo', onPressed: () => Navigator.of(context).pop())
           : null,
       children: [
         ClSummary(
@@ -59,11 +50,14 @@ class SummaryScreen extends StatelessWidget {
           stats: [
             ClStat(label: 'Volumen', value: formatNumber(s.volume, maxDecimals: 0), unit: 'kg'),
             ClStat(label: 'Rekordi', value: '${s.prCount}', unit: 'PR', highlight: s.prCount > 0),
+            if (justFinished && store.streak > 0)
+              ClStat(label: 'Niz', value: '${store.streak}', unit: 'ned.'),
           ],
           exercises: [
             for (final e in s.exercises) ClSummaryExercise(name: e.name, detail: _detail(e), isPr: e.hasPr),
           ],
           creatorName: s.creatorName,
+          creatorHandle: store.creator(s.creatorId)?.handle,
           creatorMessage: message,
         ),
       ],

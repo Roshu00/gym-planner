@@ -10,7 +10,7 @@ import 'summary_screen.dart';
 import 'swap_sheet.dart';
 
 /// Set-by-set workout. Last time's result is the hint, confirming a set
-/// starts the rest timer, records show immediately. Dark theme.
+/// starts the rest timer, records show immediately.
 class WorkoutSessionScreen extends StatefulWidget {
   const WorkoutSessionScreen({super.key});
 

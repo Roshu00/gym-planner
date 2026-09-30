@@ -8,7 +8,6 @@ import 'subscribe_sheet.dart';
 import 'workout_session.dart';
 
 /// One workout from a creator's library. Can be done once, outside the plan.
-/// Dark theme.
 class WorkoutDetailScreen extends StatelessWidget {
   const WorkoutDetailScreen({super.key, required this.workoutId});
 
@@ -33,7 +32,7 @@ class WorkoutDetailScreen extends StatelessWidget {
     if (locked) {
       action = ClButton(
         label: 'Pretplati se',
-        variant: ClButtonVariant.ink,
+        variant: ClButtonVariant.pop,
         expand: true,
         onPressed: c == null ? null : () => showSubscribeSheet(context, c),
       );
@@ -57,6 +56,7 @@ class WorkoutDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s8),
       header: ClWorkoutHero(
         title: w.name,
+        color: context.clColors.popFor(w.id),
         label: '${c?.name ?? ''} · ${workoutMeta(w)}',
         height: 320,
         compact: true,
@@ -65,7 +65,6 @@ class WorkoutDetailScreen extends StatelessWidget {
             ClIconButton(
               icon: ClIcons.back,
               semanticLabel: 'Nazad',
-              color: cl.colors.onPhoto,
               onPressed: () => Navigator.of(context).maybePop(),
             ),
           ],

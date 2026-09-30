@@ -5,7 +5,8 @@ import 'demo_data.dart';
 import 'gallery_app.dart';
 import 'sections.dart';
 
-/// Today: hero → stat bar + segments → exercise preview → block button → nav.
+/// Today: greeting → workout on a pop block → week block → exercises →
+/// block button → floating nav.
 class TodayExample extends StatefulWidget {
   const TodayExample({super.key});
 
@@ -18,100 +19,100 @@ class _TodayExampleState extends State<TodayExample> {
 
   @override
   Widget build(BuildContext context) {
-    final onPhoto = context.clColors.onPhoto;
+    final cl = context.cl;
+    final c = cl.colors;
     return Scaffold(
-      body: GalleryWidth(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  ClWorkoutHero(
-                    title: 'Push day',
-                    label: '$demoCreator · Nedelja 3 / 8',
-                    height: 420,
-                    topBar: Row(
-                      children: [
-                        ClIconButton(
-                          icon: ClIcons.back,
-                          semanticLabel: 'Nazad u galeriju',
-                          color: onPhoto,
-                          onPressed: () => Navigator.of(context).maybePop(),
-                        ),
-                      ],
+      body: SafeArea(
+        bottom: false,
+        child: GalleryWidth(
+          child: Column(
+            children: [
+              ClTopBar(backLabel: 'Nazad u galeriju', onBack: () => Navigator.of(context).maybePop()),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(ClSpace.s4, 0, ClSpace.s4, ClSpace.s6),
+                  children: [
+                    const ClScreenTitle(label: 'Sreda, 30. 9.', title: 'Zdravo, Ana'),
+                    const SizedBox(height: ClSpace.s4),
+                    ClPopBlock(
+                      color: c.lime,
+                      sticker: const ClSticker('Nedelja 3/8'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Danas · $demoCreator', style: cl.text.bodyStrong.copyWith(fontSize: 13)),
+                          const SizedBox(height: ClSpace.s2),
+                          Text('Push day', style: cl.text.displayL),
+                          const SizedBox(height: ClSpace.s1),
+                          Text('5 vežbi · ~58 min', style: cl.text.body),
+                          const SizedBox(height: ClSpace.s8),
+                        ],
+                      ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(ClSpace.s4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const ClStatBar(
-                          stats: [
-                            ClStat(label: 'Niz', value: '12', unit: 'ned.'),
-                            ClStat(label: 'Ova nedelja', value: '2/4', highlight: true),
-                            ClStat(label: 'Trajanje', value: '58', unit: 'min'),
-                          ],
-                          segments: ClSegmentBar(total: 4, done: 2),
-                        ),
-                        const SizedBox(height: ClSpace.s8),
-                        const ClSectionHeader(label: '5 vežbi'),
-                        ClExerciseRow(
-                          index: 1,
-                          name: 'Bench press',
-                          detail: '4 × 6–8 · Prošli put ${formatSet(80, 8)}',
-                        ),
-                        ClExerciseRow(
-                          index: 2,
-                          name: 'Rameni potisak',
-                          detail: '3 × 8–10 · Prošli put ${formatSet(42.5, 9)}',
-                        ),
-                        const ClExerciseRow(
-                          index: 3,
-                          name: 'Propadanja',
-                          detail: '3 × 10 · Prošli put +10 kg',
-                        ),
-                        ClExerciseRow(
-                          index: 4,
-                          name: 'Odručenje',
-                          detail: '3 × 12–15 · Prošli put ${formatSet(10, 14)}',
-                        ),
-                        ClExerciseRow(
-                          index: 5,
-                          name: 'Triceps sajla',
-                          detail: '3 × 12 · Prošli put ${formatSet(25, 12)}',
-                        ),
-                      ],
+                    const SizedBox(height: ClSpace.s4),
+                    ClPopBlock(
+                      color: c.lilac,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '2 od 4 ove nedelje',
+                                  style: cl.text.bodyStrong.copyWith(fontSize: 17),
+                                ),
+                              ),
+                              Text('Niz 12 ned.', style: cl.text.bodyStrong.copyWith(fontSize: 13)),
+                            ],
+                          ),
+                          const SizedBox(height: ClSpace.s3),
+                          const ClSegmentBar(total: 4, done: 2, onPop: true),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s2, ClSpace.s4, ClSpace.s3),
-              child: ClButton.block(
-                label: 'Počni trening',
-                onPressed: () => Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const ClThemeScopeDark(child: WorkoutExample())),
+                    const SizedBox(height: ClSpace.s6),
+                    const ClSectionHeader(label: 'Snaga 8'),
+                    ClExerciseRow(
+                      index: 1,
+                      name: 'Bench press',
+                      detail: '4 × 6–8 · Prošli put ${formatSet(80, 8)}',
+                    ),
+                    ClExerciseRow(
+                      index: 2,
+                      name: 'Rameni potisak',
+                      detail: '3 × 8–10 · Prošli put ${formatSet(42.5, 9)}',
+                    ),
+                    const ClExerciseRow(index: 3, name: 'Propadanja', detail: '3 × 10 · Prošli put +10 kg'),
+                    ClExerciseRow(
+                      index: 4,
+                      name: 'Odručenje',
+                      detail: '3 × 12–15 · Prošli put ${formatSet(10, 14)}',
+                    ),
+                    ClExerciseRow(
+                      index: 5,
+                      name: 'Triceps sajla',
+                      detail: '3 × 12 · Prošli put ${formatSet(25, 12)}',
+                    ),
+                  ],
                 ),
               ),
-            ),
-            ClBottomNav(selected: _nav, onChanged: (i) => setState(() => _nav = i)),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s2, ClSpace.s4, ClSpace.s3),
+                child: ClButton.block(
+                  label: 'Počni trening',
+                  onPressed: () =>
+                      Navigator.of(context)
+                          .pushReplacement(MaterialPageRoute(builder: (_) => const WorkoutExample())),
+                ),
+              ),
+              ClBottomNav(selected: _nav, onChanged: (i) => setState(() => _nav = i)),
+            ],
+          ),
         ),
       ),
     );
   }
-}
-
-class ClThemeScopeDark extends StatelessWidget {
-  const ClThemeScopeDark({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => ClThemeScope(theme: ClTheme.dark, child: child);
 }
 
 /// Workout session: title + prescription → set table → rest timer → block button.
@@ -178,7 +179,7 @@ class _WorkoutExampleState extends State<WorkoutExample> {
                       onToggleDone: _toggle,
                     ),
                     const SizedBox(height: ClSpace.s2),
-                    Text('Završeno $done / ${_sets.length}'.toUpperCase(), style: cl.text.label),
+                    Text('Završeno $done / ${_sets.length}', style: cl.text.label),
                     if (_resting) ...[
                       const SizedBox(height: ClSpace.s6),
                       ClRestTimer(
@@ -243,7 +244,7 @@ class SummaryExample extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s2, ClSpace.s4, ClSpace.s4),
                 child: ClButton(
                   label: 'Gotovo',
-                  variant: ClButtonVariant.ink,
+                  variant: ClButtonVariant.pop,
                   expand: true,
                   onPressed: () => Navigator.of(context).maybePop(),
                 ),

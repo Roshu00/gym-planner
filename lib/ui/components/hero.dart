@@ -6,9 +6,8 @@ import 'media.dart';
 import 'pressable.dart';
 import 'tag.dart';
 
-/// Full-bleed creator photo with a `label` (creator · week X / Y) above a
-/// `display-l` title, both anchored `space-4` from the bottom-left on the scrim.
-/// Also used as the creator profile header.
+/// Creator photo with rounded bottom corners, a `label` (creator · week X / Y)
+/// above a display title on the scrim. Also used as the creator profile header.
 class ClWorkoutHero extends StatelessWidget {
   const ClWorkoutHero({
     super.key,
@@ -18,12 +17,17 @@ class ClWorkoutHero extends StatelessWidget {
     this.height = 460,
     this.compact = false,
     this.topBar,
+    this.color,
   });
 
   final String title;
   final String label;
   final ImageProvider? image;
   final double height;
+
+  /// Pop color shown instead of the dark photo frame while there is no
+  /// [image]. Text turns ink.
+  final Color? color;
 
   /// Uses `display-m` instead of `display-l` for tighter layouts.
   final bool compact;
@@ -34,58 +38,61 @@ class ClWorkoutHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cl = context.cl;
-    final onPhoto = cl.colors.onPhoto;
+    final pop = image == null ? color : null;
+    final onPhoto = pop == null ? cl.colors.onPhoto : cl.colors.onPop;
     return SizedBox(
       height: height,
       width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ClPhoto(image: image, semanticLabel: null),
-          const ClPhotoScrim(),
-          if (topBar != null)
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(ClRadius.lg)),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (pop != null) ColoredBox(color: pop) else ...[ClPhoto(image: image), const ClPhotoScrim()],
+            if (topBar != null)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  bottom: false,
+                  child: IconTheme(
+                    data: IconThemeData(color: onPhoto),
+                    child: topBar!,
+                  ),
+                ),
+              ),
             Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                bottom: false,
-                child: IconTheme(
-                  data: IconThemeData(color: onPhoto),
-                  child: topBar!,
+              left: ClSpace.s4,
+              right: ClSpace.s4,
+              bottom: ClSpace.s4,
+              child: Semantics(
+                header: true,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(label, style: cl.text.label.copyWith(color: onPhoto)),
+                    const SizedBox(height: ClSpace.s1),
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: (compact ? cl.text.displayM : cl.text.displayL).copyWith(color: onPhoto),
+                    ),
+                  ],
                 ),
               ),
             ),
-          Positioned(
-            left: ClSpace.s4,
-            right: ClSpace.s4,
-            bottom: ClSpace.s4,
-            child: Semantics(
-              header: true,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(label.toUpperCase(), style: cl.text.label.copyWith(color: onPhoto)),
-                  const SizedBox(height: ClSpace.s2),
-                  Text(
-                    title.toUpperCase(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: (compact ? cl.text.displayM : cl.text.displayL).copyWith(color: onPhoto),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Magazine-cover card: photo (radius 0, ~220px) with a condensed title on the
-/// scrim, then avatar + creator + followers, then outline tags. No border, no shadow.
+/// Program card: a rounded photo (~220px) with the title on the scrim, then
+/// avatar + creator + followers, then tags.
 class ClProgramCard extends StatelessWidget {
   const ClProgramCard({
     super.key,
@@ -99,7 +106,11 @@ class ClProgramCard extends StatelessWidget {
     this.locked = false,
     this.onPressed,
     this.photoHeight = 220,
+    this.color,
   });
+
+  /// Pop color shown instead of the dark photo frame while there is no [image].
+  final Color? color;
 
   final String title;
   final String creatorName;
@@ -121,10 +132,11 @@ class ClProgramCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cl = context.cl;
-    final onPhoto = cl.colors.onPhoto;
+    final pop = image == null ? color : null;
+    final onPhoto = pop == null ? cl.colors.onPhoto : cl.colors.onPop;
     return ClPressable(
       onPressed: onPressed,
-      radius: 0,
+      radius: ClRadius.lg,
       semanticLabel: '$title, $creatorName',
       builder: (context, pressed) => AnimatedOpacity(
         duration: context.motion(ClMotion.fast),
@@ -134,32 +146,39 @@ class ClProgramCard extends StatelessWidget {
           children: [
             SizedBox(
               height: photoHeight,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClPhoto(image: image),
-                  const ClPhotoScrim(),
-                  Positioned(
-                    left: ClSpace.s4,
-                    right: ClSpace.s4,
-                    bottom: ClSpace.s4,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (meta != null) ...[
-                          Text(meta!.toUpperCase(), style: cl.text.label.copyWith(color: onPhoto)),
-                          const SizedBox(height: ClSpace.s2),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(ClRadius.lg),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (pop != null)
+                      ColoredBox(color: pop)
+                    else ...[
+                      ClPhoto(image: image),
+                      const ClPhotoScrim(),
+                    ],
+                    Positioned(
+                      left: ClSpace.s4,
+                      right: ClSpace.s4,
+                      bottom: ClSpace.s4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (meta != null) ...[
+                            Text(meta!, style: cl.text.label.copyWith(color: onPhoto)),
+                            const SizedBox(height: ClSpace.s1),
+                          ],
+                          Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: cl.text.displayM.copyWith(color: onPhoto),
+                          ),
                         ],
-                        Text(
-                          title.toUpperCase(),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: cl.text.displayM.copyWith(color: onPhoto),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: ClSpace.s3),
@@ -198,10 +217,7 @@ class ClCreatorLine extends StatelessWidget {
         Expanded(
           child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: cl.text.bodyStrong),
         ),
-        if (trailing != null) ...[
-          const SizedBox(width: ClSpace.s2),
-          Text(trailing!.toUpperCase(), style: cl.text.label),
-        ],
+        if (trailing != null) ...[const SizedBox(width: ClSpace.s2), Text(trailing!, style: cl.text.label)],
       ],
     );
   }

@@ -7,7 +7,6 @@ import '../tokens/spacing.dart';
 import 'icons.dart';
 import 'inputs.dart';
 import 'pressable.dart';
-import 'rule.dart';
 import 'tag.dart';
 
 enum ClSetState { pending, current, done }
@@ -62,8 +61,9 @@ const _flexKg = 26;
 const _flexReps = 20;
 const _flexRir = 16;
 
-/// Columns: # · previous · kg · reps · RIR · check. 56px rows, 2px rule on
-/// top, 1px border below each row. Confirming a set should start the rest timer.
+/// Columns: # · previous · kg · reps · RIR · check. Each set is a rounded
+/// 56px row: done = lime, current = ink outline. Confirming a set should start
+/// the rest timer.
 class ClSetTable extends StatelessWidget {
   const ClSetTable({
     super.key,
@@ -82,28 +82,27 @@ class ClSetTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final cl = context.cl;
     Widget head(String t, {int? flex, double? width, TextAlign align = TextAlign.center}) {
-      final text = Text(t.toUpperCase(), style: cl.text.label, textAlign: align);
+      final text = Text(t, style: cl.text.label, textAlign: align);
       return width != null ? SizedBox(width: width, child: text) : Expanded(flex: flex!, child: text);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const ClRule(),
         SizedBox(
-          height: 32,
+          height: 28,
           child: Row(
             children: [
+              const SizedBox(width: ClSpace.s3),
               head('#', width: _colIndex, align: TextAlign.left),
               head('Prethodno', flex: _flexPrev, align: TextAlign.left),
               head('kg', flex: _flexKg),
               head('Pon.', flex: _flexReps),
               if (showRir) head('RIR', flex: _flexRir),
-              const SizedBox(width: _colCheck),
+              const SizedBox(width: _colCheck + ClSpace.s1),
             ],
           ),
         ),
-        const ClDivider(),
         for (var i = 0; i < sets.length; i++)
           ClSetRow(
             number: i + 1,
@@ -144,6 +143,9 @@ class ClSetRow extends StatelessWidget {
               : '${data.previousReps} pon.')
         : '—';
 
+    final current = data.state == ClSetState.current;
+    final text = done ? c.onPop : null;
+
     Widget cell(int flex, Widget child) => Expanded(
       flex: flex,
       child: Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: child),
@@ -155,94 +157,106 @@ class ClSetRow extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(v.isEmpty ? '—' : v, style: cl.text.data),
+            Text(v.isEmpty ? '—' : v, style: cl.text.data.copyWith(color: text)),
             if (pr) ...[const SizedBox(width: ClSpace.s1), const ClTag.pr(animateIn: true)],
           ],
         ),
       ),
     );
 
-    return AnimatedContainer(
-      duration: context.motion(ClMotion.base),
-      curve: ClMotion.curve,
-      height: ClSize.targetWorkout,
-      decoration: BoxDecoration(
-        color: data.state == ClSetState.current ? c.surface : c.bg,
-        border: Border(bottom: BorderSide(color: c.border)),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: _colIndex,
-            child: Text('$number', style: cl.text.data.copyWith(color: done ? c.signalText : c.inkMuted)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: ClSpace.s2),
+      child: AnimatedContainer(
+        duration: context.motion(ClMotion.base),
+        curve: ClMotion.curve,
+        height: ClSize.targetWorkout + ClSpace.s1,
+        padding: const EdgeInsets.only(left: ClSpace.s3, right: ClSpace.s1),
+        decoration: BoxDecoration(
+          color: done ? c.lime : c.surface,
+          borderRadius: BorderRadius.circular(ClRadius.sm),
+          border: Border.all(
+            color: done ? c.onPop : (current ? c.borderStrong : c.border),
+            width: current || done ? 1.5 : 1,
           ),
-          Expanded(
-            flex: _flexPrev,
-            child: Text(
-              prev,
-              maxLines: 1,
-              overflow: TextOverflow.fade,
-              softWrap: false,
-              style: cl.text.data.copyWith(color: c.inkMuted, fontSize: 13),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: _colIndex,
+              child: Text('$number', style: cl.text.data.copyWith(color: done ? c.onPop : c.inkMuted)),
             ),
-          ),
-          if (done) ...[
-            cell(_flexKg, value(data.kg, pr: data.isPr)),
-            cell(_flexReps, value(data.reps)),
-            if (showRir) cell(_flexRir, value(data.rir)),
-          ] else ...[
-            cell(
-              _flexKg,
-              ClNumberField(
-                value: data.kg,
-                decimal: true,
-                hint: (data.hintKg ?? data.previousKg) == null
-                    ? null
-                    : formatNumber(data.hintKg ?? data.previousKg!),
-                semanticLabel: 'Set $number, kilogrami',
-                onChanged: (v) => onChanged(data.copyWith(kg: v)),
-              ),
-            ),
-            cell(
-              _flexReps,
-              ClNumberField(
-                value: data.reps,
-                hint: (data.hintReps ?? data.previousReps)?.toString(),
-                semanticLabel: 'Set $number, ponavljanja',
-                onChanged: (v) => onChanged(data.copyWith(reps: v)),
-              ),
-            ),
-            if (showRir)
-              cell(
-                _flexRir,
-                ClNumberField(
-                  value: data.rir,
-                  semanticLabel: 'Set $number, RIR',
-                  textInputAction: TextInputAction.done,
-                  onChanged: (v) => onChanged(data.copyWith(rir: v)),
+            Expanded(
+              flex: _flexPrev,
+              child: Text(
+                prev,
+                maxLines: 1,
+                overflow: TextOverflow.fade,
+                softWrap: false,
+                style: cl.text.data.copyWith(
+                  color: done ? c.onPop.withValues(alpha: 0.6) : c.inkMuted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-          ],
-          SizedBox(
-            width: _colCheck,
-            child: ClSetCheck(
-              done: done,
-              semanticLabel: done ? 'Poništi set $number' : 'Završi set $number',
-              onPressed: () {
-                if (!done) {
-                  data.isPr ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact();
-                }
-                onToggleDone();
-              },
             ),
-          ),
-        ],
+            if (done) ...[
+              cell(_flexKg, value(data.kg, pr: data.isPr)),
+              cell(_flexReps, value(data.reps)),
+              if (showRir) cell(_flexRir, value(data.rir)),
+            ] else ...[
+              cell(
+                _flexKg,
+                ClNumberField(
+                  value: data.kg,
+                  decimal: true,
+                  hint: (data.hintKg ?? data.previousKg) == null
+                      ? null
+                      : formatNumber(data.hintKg ?? data.previousKg!),
+                  semanticLabel: 'Set $number, kilogrami',
+                  onChanged: (v) => onChanged(data.copyWith(kg: v)),
+                ),
+              ),
+              cell(
+                _flexReps,
+                ClNumberField(
+                  value: data.reps,
+                  hint: (data.hintReps ?? data.previousReps)?.toString(),
+                  semanticLabel: 'Set $number, ponavljanja',
+                  onChanged: (v) => onChanged(data.copyWith(reps: v)),
+                ),
+              ),
+              if (showRir)
+                cell(
+                  _flexRir,
+                  ClNumberField(
+                    value: data.rir,
+                    semanticLabel: 'Set $number, RIR',
+                    textInputAction: TextInputAction.done,
+                    onChanged: (v) => onChanged(data.copyWith(rir: v)),
+                  ),
+                ),
+            ],
+            SizedBox(
+              width: _colCheck,
+              child: ClSetCheck(
+                done: done,
+                semanticLabel: done ? 'Poništi set $number' : 'Završi set $number',
+                onPressed: () {
+                  if (!done) {
+                    data.isPr ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact();
+                  }
+                  onToggleDone();
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Set confirmation check. Done = `signal` fill with a check. Never color alone.
+/// Round set confirmation check. Done = lime fill with an ink check. Never color alone.
 class ClSetCheck extends StatelessWidget {
   const ClSetCheck({super.key, required this.done, required this.onPressed, this.semanticLabel});
 
@@ -256,6 +270,7 @@ class ClSetCheck extends StatelessWidget {
     return ClPressable(
       onPressed: onPressed,
       semanticLabel: semanticLabel,
+      radius: ClRadius.full,
       selected: done,
       builder: (context, pressed) => SizedBox.square(
         dimension: ClSize.targetWorkout,
@@ -266,9 +281,9 @@ class ClSetCheck extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: done ? c.signal : (pressed ? c.surfaceRaised : Colors.transparent),
-              borderRadius: BorderRadius.circular(ClRadius.sm),
-              border: Border.all(color: done ? c.signal : c.borderStrong),
+              color: done ? c.lime : (pressed ? c.surfaceRaised : Colors.transparent),
+              shape: BoxShape.circle,
+              border: Border.all(color: done ? c.onPop : c.borderStrong, width: 1.5),
             ),
             child: AnimatedScale(
               duration: context.motion(ClMotion.fast),
@@ -277,7 +292,7 @@ class ClSetCheck extends StatelessWidget {
               child: AnimatedOpacity(
                 duration: context.motion(ClMotion.fast),
                 opacity: done ? 1 : 0,
-                child: Icon(ClIcons.check, size: 20, color: c.onSignal),
+                child: Icon(ClIcons.check, size: 20, color: c.onPop),
               ),
             ),
           ),

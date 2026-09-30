@@ -9,13 +9,13 @@ import 'pressable.dart';
 enum ClDayMark {
   none,
 
-  /// A finished workout. Shown with a check in `signal-text` (progress).
+  /// A finished workout. Lime day with a check.
   done,
 
-  /// A workout the plan expects on this day.
+  /// A workout the plan expects on this day. Lilac day with a barbell.
   planned,
 
-  /// A rest day. Never styled as a failure.
+  /// A rest day: a quiet moon. Never styled as a failure.
   rest,
 }
 
@@ -43,8 +43,8 @@ String _markLabel(ClDayMark m) => switch (m) {
   ClDayMark.none => '',
 };
 
-/// Month calendar, Monday first. Each day shows its number and one icon:
-/// done, planned or rest. The selected day is filled with `ink`.
+/// Month calendar on a white card, Monday first. Each day shows its number
+/// and one icon: done (lime), planned (lilac) or rest. Selected = ink.
 class ClCalendar extends StatelessWidget {
   const ClCalendar({
     super.key,
@@ -74,67 +74,72 @@ class ClCalendar extends StatelessWidget {
     final leading = first.weekday - 1;
     final rows = ((leading + daysInMonth) / 7).ceil();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Semantics(
-                header: true,
-                child: Text(
-                  '${_months[month.month - 1]} ${month.year}'.toUpperCase(),
-                  style: cl.text.displayM.copyWith(fontSize: 32, height: 1),
-                ),
-              ),
-            ),
-            ClIconButton(
-              icon: ClIcons.back,
-              semanticLabel: 'Prethodni mesec',
-              onPressed: () => onMonthChanged(DateTime(month.year, month.month - 1)),
-            ),
-            ClIconButton(
-              icon: ClIcons.chevron,
-              semanticLabel: 'Sledeći mesec',
-              onPressed: () => onMonthChanged(DateTime(month.year, month.month + 1)),
-            ),
-          ],
-        ),
-        const SizedBox(height: ClSpace.s3),
-        ExcludeSemantics(
-          child: Row(
-            children: [
-              for (final d in _weekdays)
-                Expanded(
-                  child: Text(d, textAlign: TextAlign.center, style: cl.text.label),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: ClSpace.s2),
-        for (var r = 0; r < rows; r++)
+    return Container(
+      padding: const EdgeInsets.fromLTRB(ClSpace.s2, ClSpace.s3, ClSpace.s2, ClSpace.s3),
+      decoration: BoxDecoration(color: cl.colors.surface, borderRadius: BorderRadius.circular(ClRadius.lg)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Row(
             children: [
-              for (var c = 0; c < 7; c++)
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      final n = r * 7 + c - leading + 1;
-                      if (n < 1 || n > daysInMonth) return const SizedBox(height: ClSize.targetWorkout);
-                      final day = DateTime(month.year, month.month, n);
-                      return _DayCell(
-                        day: day,
-                        mark: markFor(day),
-                        isToday: _same(day, today),
-                        isSelected: _same(day, selected),
-                        onTap: () => onSelect(day),
-                      );
-                    },
+              const SizedBox(width: ClSpace.s2),
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    '${_months[month.month - 1]} ${month.year}',
+                    style: cl.text.displayM.copyWith(fontSize: 26, height: 1),
                   ),
                 ),
+              ),
+              ClIconButton(
+                icon: ClIcons.back,
+                semanticLabel: 'Prethodni mesec',
+                onPressed: () => onMonthChanged(DateTime(month.year, month.month - 1)),
+              ),
+              ClIconButton(
+                icon: ClIcons.chevron,
+                semanticLabel: 'Sledeći mesec',
+                onPressed: () => onMonthChanged(DateTime(month.year, month.month + 1)),
+              ),
             ],
           ),
-      ],
+          const SizedBox(height: ClSpace.s3),
+          ExcludeSemantics(
+            child: Row(
+              children: [
+                for (final d in _weekdays)
+                  Expanded(
+                    child: Text(d, textAlign: TextAlign.center, style: cl.text.label),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: ClSpace.s2),
+          for (var r = 0; r < rows; r++)
+            Row(
+              children: [
+                for (var c = 0; c < 7; c++)
+                  Expanded(
+                    child: Builder(
+                      builder: (context) {
+                        final n = r * 7 + c - leading + 1;
+                        if (n < 1 || n > daysInMonth) return const SizedBox(height: ClSize.targetWorkout);
+                        final day = DateTime(month.year, month.month, n);
+                        return _DayCell(
+                          day: day,
+                          mark: markFor(day),
+                          isToday: _same(day, today),
+                          isSelected: _same(day, selected),
+                          onTap: () => onSelect(day),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }
@@ -158,13 +163,15 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
-    final fg = isSelected ? c.bg : c.ink;
-    final (IconData? icon, Color iconColor) = switch (mark) {
-      ClDayMark.done => (ClIcons.check, isSelected ? c.bg : c.signalText),
-      ClDayMark.planned => (ClIcons.barbell, isSelected ? c.bg : c.ink),
-      ClDayMark.rest => (ClIcons.rest, isSelected ? c.bg : c.inkMuted),
-      ClDayMark.none => (null, c.inkMuted),
+    final (IconData? icon, Color? fill) = switch (mark) {
+      ClDayMark.done => (ClIcons.check, c.lime),
+      ClDayMark.planned => (ClIcons.barbell, c.lilac),
+      ClDayMark.rest => (ClIcons.rest, null),
+      ClDayMark.none => (null, null),
     };
+    final bg = isSelected ? c.ink : (fill ?? Colors.transparent);
+    final fg = isSelected ? c.bg : (fill != null ? c.onPop : c.ink);
+    final iconColor = isSelected || fill != null ? fg : c.inkMuted;
     final label = [
       '${day.day}. ${day.month}.',
       _weekdayNames[day.weekday - 1],
@@ -183,9 +190,9 @@ class _DayCell extends StatelessWidget {
           curve: ClMotion.curve,
           height: ClSize.targetWorkout,
           decoration: BoxDecoration(
-            color: isSelected ? c.ink : (pressed ? c.surfaceRaised : Colors.transparent),
-            borderRadius: BorderRadius.circular(ClRadius.sm),
-            border: isToday && !isSelected ? Border.all(color: c.ink, width: ClSize.rule) : null,
+            color: pressed && fill == null && !isSelected ? c.surfaceRaised : bg,
+            borderRadius: BorderRadius.circular(ClRadius.xs + 4),
+            border: isToday && !isSelected ? Border.all(color: c.ink, width: 2) : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -209,12 +216,17 @@ class ClCalendarLegend extends StatelessWidget {
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
-    Widget item(IconData icon, Color color, String text) => Row(
+    Widget item(IconData icon, Color? fill, String text) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: ClSpace.s1),
-        Text(text.toUpperCase(), style: cl.text.label),
+        Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(7)),
+          child: Icon(icon, size: 14, color: fill == null ? c.inkMuted : c.onPop),
+        ),
+        const SizedBox(width: ClSpace.s1 + 2),
+        Text(text, style: cl.text.label),
       ],
     );
     return ExcludeSemantics(
@@ -222,9 +234,9 @@ class ClCalendarLegend extends StatelessWidget {
         spacing: ClSpace.s4,
         runSpacing: ClSpace.s2,
         children: [
-          item(ClIcons.check, c.signalText, 'Urađeno'),
-          item(ClIcons.barbell, c.ink, 'Planirano'),
-          item(ClIcons.rest, c.inkMuted, 'Odmor'),
+          item(ClIcons.check, c.lime, 'Urađeno'),
+          item(ClIcons.barbell, c.lilac, 'Planirano'),
+          item(ClIcons.rest, null, 'Odmor'),
         ],
       ),
     );

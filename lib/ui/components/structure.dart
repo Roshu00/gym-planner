@@ -6,7 +6,6 @@ import '../tokens/spacing.dart';
 import 'button.dart';
 import 'icons.dart';
 import 'pressable.dart';
-import 'rule.dart';
 import 'summary.dart';
 
 /// Screen top bar: back, a `label`, optional trailing actions. 48px targets.
@@ -40,12 +39,7 @@ class ClTopBar extends StatelessWidget {
             Expanded(
               child: label == null
                   ? const SizedBox()
-                  : Text(
-                      label!.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.clText.label,
-                    ),
+                  : Text(label!, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.clText.label),
             ),
             ...actions,
           ],
@@ -55,8 +49,8 @@ class ClTopBar extends StatelessWidget {
   }
 }
 
-/// Selectable row for single or multiple choice. Selected = 2px ink border
-/// and a check; never color alone.
+/// Selectable row for single or multiple choice. Selected = lime fill, ink
+/// outline and a check; never color alone.
 class ClOptionRow extends StatelessWidget {
   const ClOptionRow({
     super.key,
@@ -81,15 +75,16 @@ class ClOptionRow extends StatelessWidget {
         onPressed: onPressed,
         selected: selected,
         semanticLabel: meta == null ? title : '$title, $meta',
+        radius: ClRadius.sm,
         builder: (context, pressed) => AnimatedContainer(
           duration: context.motion(ClMotion.fast),
           curve: ClMotion.curve,
           constraints: const BoxConstraints(minHeight: ClSize.targetWorkout),
           padding: const EdgeInsets.symmetric(horizontal: ClSpace.s4, vertical: ClSpace.s3),
           decoration: BoxDecoration(
-            color: pressed ? c.surfaceRaised : (selected ? c.surface : Colors.transparent),
+            color: selected ? c.lime : (pressed ? c.surfaceRaised : c.surface),
             borderRadius: BorderRadius.circular(ClRadius.sm),
-            border: Border.all(color: selected ? c.ink : c.borderStrong, width: selected ? 2 : 1),
+            border: Border.all(color: selected ? c.onPop : Colors.transparent, width: 1.5),
           ),
           child: Row(
             children: [
@@ -97,12 +92,16 @@ class ClOptionRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: cl.text.bodyStrong),
+                    Text(title, style: cl.text.bodyStrong.copyWith(color: selected ? c.onPop : null)),
                     if (meta != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         meta!,
-                        style: cl.text.body.copyWith(color: c.inkMuted, fontSize: 13, height: 18 / 13),
+                        style: cl.text.body.copyWith(
+                          color: selected ? c.onPop.withValues(alpha: 0.7) : c.inkMuted,
+                          fontSize: 13,
+                          height: 18 / 13,
+                        ),
                       ),
                     ],
                   ],
@@ -111,7 +110,7 @@ class ClOptionRow extends StatelessWidget {
               AnimatedOpacity(
                 duration: context.motion(ClMotion.fast),
                 opacity: selected ? 1 : 0,
-                child: Icon(ClIcons.check, size: 20, color: c.ink),
+                child: Icon(ClIcons.check, size: 20, color: c.onPop),
               ),
             ],
           ),
@@ -150,7 +149,7 @@ class ClStepper extends StatelessWidget {
       value: format?.call(value) ?? '$value',
       child: Row(
         children: [
-          Expanded(child: Text(label.toUpperCase(), style: cl.text.label)),
+          Expanded(child: Text(label, style: cl.text.bodyStrong)),
           ClIconButton(
             icon: ClIcons.remove,
             semanticLabel: 'Smanji $label',
@@ -171,8 +170,7 @@ class ClStepper extends StatelessWidget {
   }
 }
 
-/// Empty state: a condensed title, one sentence, one action.
-/// Keeps a number on screen when there is one to show.
+/// Empty state on a white card: a display title, one sentence, one action.
 class ClEmptyState extends StatelessWidget {
   const ClEmptyState({super.key, required this.title, required this.message, this.label, this.action});
 
@@ -184,16 +182,18 @@ class ClEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cl = context.cl;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const ClRule(),
-        const SizedBox(height: ClSpace.s6),
-        ClScreenTitle(title: title, label: label),
-        const SizedBox(height: ClSpace.s3),
-        Text(message, style: cl.text.body.copyWith(color: cl.colors.inkMuted)),
-        if (action != null) ...[const SizedBox(height: ClSpace.s6), action!],
-      ],
+    return Container(
+      padding: const EdgeInsets.all(ClSpace.s6 - 4),
+      decoration: BoxDecoration(color: cl.colors.surface, borderRadius: BorderRadius.circular(ClRadius.lg)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ClScreenTitle(title: title, label: label),
+          const SizedBox(height: ClSpace.s3),
+          Text(message, style: cl.text.body.copyWith(color: cl.colors.inkMuted)),
+          if (action != null) ...[const SizedBox(height: ClSpace.s6), action!],
+        ],
+      ),
     );
   }
 }
@@ -218,7 +218,7 @@ class ClNotice extends StatelessWidget {
   }
 }
 
-/// Bottom sheet: square top, 2px rule, `display-m` title. 250 ms.
+/// Bottom sheet: rounded top with a grab handle, `display-m` title. 250 ms.
 Future<T?> showClSheet<T>(
   BuildContext context, {
   required String title,
@@ -233,7 +233,10 @@ Future<T?> showClSheet<T>(
     backgroundColor: theme.colors.bg,
     barrierColor: theme.colors.photoScrim,
     elevation: 0,
-    shape: const RoundedRectangleBorder(),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(ClRadius.lg)),
+    ),
+    clipBehavior: Clip.antiAlias,
     sheetAnimationStyle: const AnimationStyle(duration: ClMotion.sheet, reverseDuration: ClMotion.sheet),
     builder: (context) => ClThemeScope(
       theme: theme,
@@ -249,9 +252,19 @@ Future<T?> showClSheet<T>(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const ClRule(),
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: ClSpace.s2),
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: theme.colors.border,
+                        borderRadius: BorderRadius.circular(ClRadius.full),
+                      ),
+                    ),
+                  ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s1, 0),
+                    padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s3, ClSpace.s1, 0),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

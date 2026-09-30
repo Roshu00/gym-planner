@@ -7,7 +7,6 @@ import 'shell.dart';
 import 'swap_sheet.dart';
 
 /// The follower's copy of a program: order, next workout, exercise swaps.
-/// Dark theme.
 class PlanScreen extends StatelessWidget {
   const PlanScreen({super.key});
 

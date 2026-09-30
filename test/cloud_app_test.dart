@@ -48,23 +48,23 @@ void main() {
 
   testWidgets('sign in with an email code, then onboarding', (tester) async {
     await pumpApp(tester);
-    expect(find.text('PRIJAVI SE.'), findsOneWidget);
+    expect(find.text('Prijavi se.'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'ana@primer.rs');
     await tester.pump();
-    await tapText(tester, 'POŠALJI KOD');
+    await tapText(tester, 'Pošalji kod');
     expect(auth.sentTo, ['ana@primer.rs']);
-    expect(find.text('UPIŠI KOD.'), findsOneWidget);
+    expect(find.text('Upiši kod.'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '000000');
     await tester.pump();
-    await tapText(tester, 'PRIJAVI SE');
+    await tapText(tester, 'Prijavi se');
     expect(find.text('Kod nije tačan ili je istekao.'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '123456');
     await tester.pump();
-    await tapText(tester, 'PRIJAVI SE');
+    await tapText(tester, 'Prijavi se');
     await tester.pumpAndSettle();
-    expect(find.text('KAKO SE ZOVEŠ?'), findsOneWidget, reason: 'no profile on the server yet');
+    expect(find.text('Kako se zoveš?'), findsOneWidget, reason: 'no profile on the server yet');
   });
 
   testWidgets('a returning user on a new device goes straight to Today', (tester) async {
@@ -84,50 +84,50 @@ void main() {
     await auth.verifyCode('boban@primer.rs', '123456');
     await pumpApp(tester);
     await tester.pumpAndSettle();
-    expect(find.text('ZDRAVO, BOBAN'), findsOneWidget);
+    expect(find.text('Zdravo, Boban'), findsOneWidget);
   });
 
   testWidgets('guest trains, saves the account, then signs out', (tester) async {
     await pumpApp(tester);
     await tapText(tester, 'Probaj bez naloga');
     await tester.pumpAndSettle();
-    expect(find.text('KAKO SE ZOVEŠ?'), findsOneWidget);
+    expect(find.text('Kako se zoveš?'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'Gost');
     await tester.pump();
-    await tapText(tester, 'DALJE');
+    await tapText(tester, 'Dalje');
     await tapText(tester, 'Snaga');
-    await tapText(tester, 'DALJE');
+    await tapText(tester, 'Dalje');
     await tapText(tester, 'Početnik');
-    await tapText(tester, 'DALJE');
+    await tapText(tester, 'Dalje');
     await tapText(tester, 'Teretana');
-    await tapText(tester, 'DALJE');
-    await tapText(tester, 'POČNI');
+    await tapText(tester, 'Dalje');
+    await tapText(tester, 'Počni');
     expect(remote.tables['profiles']!.single['name'], 'Gost');
 
     // Creator mode asks for a real account first.
-    await tapText(tester, 'PROFIL');
-    expect(find.text('Gost'), findsOneWidget);
+    await tapText(tester, 'Profil');
+    expect(find.text('Gost').hitTestable(), findsOneWidget);
     await tapText(tester, 'Režim kreatora');
-    expect(find.text('SAČUVAJ NALOG.'), findsOneWidget);
-    await tapText(tester, 'SAČUVAJ NALOG');
+    expect(find.text('Sačuvaj nalog.'), findsOneWidget);
+    await tapText(tester, 'Sačuvaj nalog');
     await tester.enterText(find.byType(TextField), 'gost@primer.rs');
     await tester.pump();
-    await tapText(tester, 'POŠALJI KOD');
+    await tapText(tester, 'Pošalji kod');
     await tester.enterText(find.byType(TextField), '123456');
     await tester.pump();
-    await tapText(tester, 'SAČUVAJ NALOG');
+    await tapText(tester, 'Sačuvaj nalog');
     await tester.pumpAndSettle();
     expect(auth.current!.isGuest, isFalse);
-    expect(find.text('TVOJ PROFIL.'), findsOneWidget, reason: 'creator mode is open now');
+    expect(find.text('Tvoj profil.'), findsOneWidget, reason: 'creator mode is open now');
     await tester.tap(find.bySemanticsLabel('Nazad').hitTestable().first);
     await tester.pumpAndSettle();
     expect(find.text('gost@primer.rs'), findsOneWidget);
     expect(remote.tables['profiles']!.single['name'], 'Gost', reason: 'same user, same data');
 
-    await tapText(tester, 'ODJAVI SE');
-    await tapText(tester, 'ODJAVI SE');
+    await tapText(tester, 'Odjavi se');
+    await tapText(tester, 'Odjavi se');
     await tester.pumpAndSettle();
-    expect(find.text('PRIJAVI SE.'), findsOneWidget);
+    expect(find.text('Prijavi se.'), findsOneWidget);
   });
 
   testWidgets('a sync problem shows on every tab and can be retried', (tester) async {
@@ -137,14 +137,14 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Ana');
     await tester.pump();
     remote.offline = true;
-    await tapText(tester, 'DALJE');
+    await tapText(tester, 'Dalje');
     await tapText(tester, 'Snaga');
-    await tapText(tester, 'DALJE');
+    await tapText(tester, 'Dalje');
     await tapText(tester, 'Početnik');
-    await tapText(tester, 'DALJE');
+    await tapText(tester, 'Dalje');
     await tapText(tester, 'Teretana');
-    await tapText(tester, 'DALJE');
-    await tapText(tester, 'POČNI');
+    await tapText(tester, 'Dalje');
+    await tapText(tester, 'Počni');
     expect(find.text('Nije sačuvano na serveru. Proveri internet.'), findsOneWidget);
     remote.offline = false;
     await tapText(tester, 'Ponovo');

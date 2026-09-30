@@ -7,7 +7,7 @@ import 'common.dart';
 import 'program_detail.dart';
 
 /// "Find a plan for me": goal, level, place and days per week, then
-/// programs ranked by how well they fit, with the reasons. Dark theme.
+/// programs ranked by how well they fit, with the reasons.
 class PlanFinderScreen extends StatefulWidget {
   const PlanFinderScreen({super.key});
 
@@ -32,7 +32,7 @@ class _PlanFinderScreenState extends State<PlanFinderScreen> {
   ) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(label.toUpperCase(), style: context.clText.label),
+      Text(label, style: context.clText.label),
       const SizedBox(height: ClSpace.s1),
       Wrap(
         spacing: ClSpace.s2,

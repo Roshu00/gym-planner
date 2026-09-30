@@ -13,26 +13,29 @@ abstract final class ClSpace {
 }
 
 abstract final class ClRadius {
-  /// Tags.
-  static const double xs = 2;
+  /// Fields and small inner boxes.
+  static const double xs = 12;
 
-  /// Buttons, inputs, filters.
-  static const double sm = 4;
+  /// Rows, cards, photos inside a block.
+  static const double sm = 20;
 
-  /// Photos and sections.
+  /// Color blocks, big photos, sheets.
+  static const double lg = 28;
+
+  /// Hard edge, only for full-bleed media.
   static const double none = 0;
 
-  /// Avatar only.
+  /// Buttons, tags, filters, avatars, checks.
   static const double full = 999;
 }
 
 abstract final class ClSize {
   static const double target = 48;
   static const double targetWorkout = 56;
-  static const double rule = 2;
+  static const double rule = 1.5;
   static const double hairline = 1;
-  static const double bar = 4;
-  static const double barGap = 3;
+  static const double bar = 10;
+  static const double barGap = 6;
   static const double focusRing = 2;
   static const double icon = 24;
   static const double avatarList = 28;

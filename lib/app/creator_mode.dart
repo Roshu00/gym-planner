@@ -8,7 +8,7 @@ import 'creator_editors.dart';
 import 'creator_profile.dart';
 
 /// Where a creator builds their system once: exercises, workouts, programs,
-/// what is public and what is for subscribers. Light theme, denser.
+/// what is public and what is for subscribers.
 class CreatorModeScreen extends StatefulWidget {
   const CreatorModeScreen({super.key});
 

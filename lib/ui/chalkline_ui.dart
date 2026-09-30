@@ -9,6 +9,7 @@ export 'components/inputs.dart';
 export 'components/line_chart.dart';
 export 'components/lists.dart';
 export 'components/media.dart';
+export 'components/pop.dart';
 export 'components/pressable.dart';
 export 'components/rest_timer.dart';
 export 'components/rule.dart';

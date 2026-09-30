@@ -12,7 +12,7 @@ class ClTheme extends ThemeExtension<ClTheme> {
   static final dark = ClTheme(ClColors.dark);
   static final light = ClTheme(ClColors.light);
 
-  static ClTheme of(BuildContext context) => Theme.of(context).extension<ClTheme>() ?? dark;
+  static ClTheme of(BuildContext context) => Theme.of(context).extension<ClTheme>() ?? light;
 
   @override
   ClTheme copyWith({ClColors? colors}) => ClTheme(colors ?? this.colors);
@@ -26,7 +26,7 @@ class ClTheme extends ThemeExtension<ClTheme> {
     return ThemeData(
       useMaterial3: true,
       brightness: c.brightness,
-      fontFamily: 'Archivo',
+      fontFamily: 'Bricolage',
       scaffoldBackgroundColor: c.bg,
       canvasColor: c.bg,
       dividerColor: c.border,

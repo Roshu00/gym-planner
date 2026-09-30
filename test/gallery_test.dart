@@ -60,7 +60,7 @@ void main() {
 
   testWidgets('gallery home lists every section', (tester) async {
     await pumpPage(tester, const GalleryHome(), ClTheme.dark);
-    expect(find.text('CHALKLINE'), findsOneWidget);
+    expect(find.text('Chalkline'), findsOneWidget);
     await scrollThrough(tester);
     expect(tester.takeException(), isNull);
   });

@@ -180,7 +180,7 @@ void main() {
     await pump(tester, store, const WorkoutSessionScreen(), ClTheme.dark);
     await tester.tap(find.bySemanticsLabel('Završi set 1'));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('ODMOR'), findsOneWidget);
+    expect(find.text('Odmor'), findsOneWidget);
     expect(store.active!.exercises.first.sets.first.done, isTrue);
     await scrollThrough(tester);
     expect(tester.takeException(), isNull);
@@ -210,39 +210,40 @@ void main() {
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
     }
 
-    expect(find.text('KAKO SE ZOVEŠ?'), findsOneWidget);
+    expect(find.text('Kako se zoveš?'), findsOneWidget);
     expect(find.text('Jelena Ilić'), findsOneWidget, reason: 'invited by the creator link');
     await tester.enterText(find.byType(TextField), 'Ana');
     await tester.pump();
-    await tapText('DALJE');
+    await tapText('Dalje');
     await tapText('Opšta forma');
-    await tapText('DALJE');
+    await tapText('Dalje');
     await tapText('Početnik');
-    await tapText('DALJE');
+    await tapText('Dalje');
     await tapText('Kod kuće');
-    await tapText('DALJE');
-    await tapText('POČNI');
+    await tapText('Dalje');
+    await tapText('Počni');
 
     // The creator link opens the creator's profile.
-    expect(find.text('JELENA ILIĆ'), findsOneWidget);
-    await tapText('KUĆA 30');
-    await tapText('POČNI PROGRAM');
+    expect(find.text('Jelena Ilić'), findsWidgets);
+    expect(find.textContaining('@jelena.moves'), findsOneWidget, reason: 'the creator profile is open');
+    await tapText('Kuća 30');
+    await tapText('Počni program');
     expect(store.plan!.programId, 'p_j_home');
-    expect(find.text('DONJI DEO'), findsOneWidget);
+    expect(find.text('Donji deo'), findsOneWidget);
 
-    await tapText('POČNI TRENING');
-    expect(find.text('GOBL ČUČANJ'), findsOneWidget);
+    await tapText('Počni trening');
+    expect(find.text('Gobl čučanj'), findsWidgets);
     await tester.enterText(find.byType(TextField).first, '12');
-    await tapText('ZAVRŠI SET');
-    await tapText('ZAVRŠI SET');
+    await tapText('Završi set');
+    await tapText('Završi set');
     expect(store.active!.exercises.first.sets[1].kg, 12, reason: 'weight carries over');
-    await tapText('ZAVRŠI SET');
-    await tapText('SLEDEĆA VEŽBA');
+    await tapText('Završi set');
+    await tapText('Sledeća vežba');
     await tapText('Završi trening');
-    await tapText('ZAVRŠI TRENING');
-    expect(find.text('POJAVIO SI SE.'), findsOneWidget);
-    await tapText('GOTOVO');
-    expect(find.text('GORNJI DEO'), findsOneWidget, reason: 'the plan moved to the next workout');
+    await tapText('Završi trening');
+    expect(find.text('Pojavio si se.'), findsOneWidget);
+    await tapText('Gotovo');
+    expect(find.text('Gornji deo'), findsOneWidget, reason: 'the plan moved to the next workout');
     expect(store.thisWeek, 1);
   });
 
@@ -257,34 +258,34 @@ void main() {
     _clock = DateTime(2026, 9, 30, 18); // Wednesday
     store.setTrainingDays({1, 3, 5});
     await pump(tester, store, const PlanTabScreen(), ClTheme.dark);
-    expect(find.text('SEPTEMBAR 2026'), findsOneWidget);
-    expect(find.textContaining('· DANAS'), findsOneWidget);
+    expect(find.text('Septembar 2026'), findsOneWidget);
+    expect(find.textContaining('· Danas'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp(r'^30\. 9\., sreda, danas')), findsOneWidget);
 
     // Thursday is a rest day now.
     await tester.tap(find.bySemanticsLabel('Sledeći mesec'));
     await tester.pump();
-    expect(find.text('OKTOBAR 2026'), findsOneWidget);
+    expect(find.text('Oktobar 2026'), findsOneWidget);
     await tester.tap(find.bySemanticsLabel(RegExp(r'^1\. 10\., četvrtak')));
     await tester.pump();
-    expect(find.text('ODMOR.'), findsOneWidget);
+    expect(find.text('Odmor.'), findsOneWidget);
 
     // Making Thursday a training day plans a workout on it.
-    await tapVisible(tester, 'ČET');
+    await tapVisible(tester, 'Čet');
     await tester.pump();
     expect(store.plan!.trainingDays, {1, 3, 4, 5});
-    expect(find.text('ODMOR.'), findsNothing);
+    expect(find.text('Odmor.'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('Plan tab without a plan offers the plan finder', (tester) async {
     await pump(tester, await freshStore(), const PlanTabScreen(), ClTheme.dark);
-    await tapVisible(tester, 'PRONAĐI PLAN');
+    await tapVisible(tester, 'Pronađi plan');
     await tester.pumpAndSettle();
-    expect(find.text('PLAN ZA TEBE.'), findsOneWidget);
-    await tester.tap(find.text('PRONAĐI'));
+    expect(find.text('Plan za tebe.'), findsOneWidget);
+    await tester.tap(find.text('Pronađi'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('NAJBOLJE SE UKLAPA'), findsOneWidget);
+    expect(find.textContaining('Najbolje se uklapa'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

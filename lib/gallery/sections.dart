@@ -22,9 +22,9 @@ class ColorsPage extends StatelessWidget {
     return GalleryPage(
       title: 'Boje',
       rules: const [
-        'Crna i bela čine 95% ekrana. Signal je jedina boja brenda.',
-        'Signal najviše na 3 mesta po ekranu: glavna akcija, napredak, rekord.',
-        'Na tamnoj pozadini tekst u signal boji je uvek signal-text.',
+        'Topla svetla osnova, crni tekst i tri jarke boje: limeta, lila, breskva.',
+        'Boje su veliki zaobljeni blokovi, ne tanki detalji. Tekst na boji je uvek on-pop.',
+        'Limeta znači urađeno, trenutno i rekord. Lila i breskva nose sadržaj.',
       ],
       children: [
         Specimen(
@@ -44,6 +44,7 @@ class ColorsPage extends StatelessWidget {
                         height: 40,
                         decoration: BoxDecoration(
                           color: e.value,
+                          borderRadius: BorderRadius.circular(ClRadius.xs),
                           border: Border.all(color: cl.colors.border),
                         ),
                       ),
@@ -60,14 +61,22 @@ class ColorsPage extends StatelessWidget {
           ),
         ),
         Specimen(
-          label: 'Signal kao tekst',
-          child: Wrap(
-            spacing: ClSpace.s6,
-            runSpacing: ClSpace.s3,
+          label: 'Pop boje',
+          child: Row(
             children: [
-              Text('3/4', style: cl.text.metric.copyWith(color: cl.colors.signalText)),
-              Text('102,5 kg', style: cl.text.metric.copyWith(color: cl.colors.signalText)),
-              Text('Danger', style: cl.text.bodyStrong.copyWith(color: cl.colors.danger)),
+              for (final (color, name) in [
+                (cl.colors.lime, 'Limeta'),
+                (cl.colors.lilac, 'Lila'),
+                (cl.colors.peach, 'Breskva'),
+              ]) ...[
+                Expanded(
+                  child: ClPopBlock(
+                    color: color,
+                    child: SizedBox(height: 72, child: Text(name, style: cl.text.bodyStrong)),
+                  ),
+                ),
+                if (name != 'Breskva') const SizedBox(width: ClSpace.s2),
+              ],
             ],
           ),
         ),
@@ -100,24 +109,24 @@ class TypographyPage extends StatelessWidget {
     return GalleryPage(
       title: 'Tipografija',
       rules: const [
-        'Jedna porodica, Archivo, u tri širine: 62% za naslove, 100% za tekst, 125% za brojeve.',
-        'Svi brojevi su široki i tabularni. Naslovi su 1–3 reči, najviše 2 reda.',
+        'Bricolage Grotesque u dve optičke veličine: display za naslove i velike brojeve, text za sve ostalo.',
+        'Sve je obična rečenica, bez velikih slova. Brojevi su tabularni. Naslovi su 1–3 reči.',
       ],
       children: [
         Specimen(
-          label: 'Condensed 62% · naslovi',
+          label: 'Display · naslovi',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              row('display-xl', 'NOVA NEDELJA.', t.displayXl),
-              row('display-l', 'PUSH DAY', t.displayL),
-              row('display-m', 'POJAVIO SI SE.', t.displayM),
-              row('button', 'POČNI TRENING', t.button),
+              row('display-xl', 'Nova nedelja.', t.displayXl),
+              row('display-l', 'Push day', t.displayL),
+              row('display-m', 'Pojavio si se.', t.displayM),
+              row('button', 'Počni trening', t.button),
             ],
           ),
         ),
         Specimen(
-          label: 'Wide 125% · brojevi',
+          label: 'Display · brojevi',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -128,7 +137,7 @@ class TypographyPage extends StatelessWidget {
           ),
         ),
         Specimen(
-          label: '100% · tekst',
+          label: 'Text · tekst',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -170,14 +179,14 @@ class SpacingPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: ClSpace.s2),
-        Text(label.toUpperCase(), style: cl.text.label),
+        Text(label, style: cl.text.label),
       ],
     );
     return GalleryPage(
       title: 'Razmaci i oblici',
       rules: const [
-        'Oštri oblici: foto i sekcije 0, dugmad i polja 4, tagovi 2. Jedini krug je avatar.',
-        'Struktura dolazi od linija, ne kutija. Bez senki.',
+        'Sve je zaobljeno: polja 12, redovi i kartice 20, blokovi boja 28. Dugmad i tagovi su pilule.',
+        'Struktura dolazi od blokova na toploj osnovi, ne od linija. Bez senki.',
       ],
       children: [
         Specimen(
@@ -189,7 +198,7 @@ class SpacingPage extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: ClSpace.s2),
                   child: Row(
                     children: [
-                      SizedBox(width: 80, child: Text(e.key.toUpperCase(), style: cl.text.label)),
+                      SizedBox(width: 80, child: Text(e.key, style: cl.text.label)),
                       Container(width: e.value, height: 16, color: cl.colors.ink),
                       const SizedBox(width: ClSpace.s2),
                       Text('${e.value.toInt()}', style: cl.text.data),
@@ -205,23 +214,19 @@ class SpacingPage extends StatelessWidget {
             spacing: ClSpace.s4,
             runSpacing: ClSpace.s4,
             children: [
-              shape('0 foto', ClRadius.none),
-              shape('2 tag', ClRadius.xs),
-              shape('4 kontrole', ClRadius.sm),
-              shape('avatar', 0, circle: true),
+              shape('12 polja', ClRadius.xs),
+              shape('20 redovi', ClRadius.sm),
+              shape('28 blokovi', ClRadius.lg),
+              shape('pilula', ClRadius.full),
             ],
           ),
         ),
         Specimen(
-          label: 'Linije',
+          label: 'Linija',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('RULE · 2PX IZNAD BLOKOVA PODATAKA', style: cl.text.label),
-              const SizedBox(height: ClSpace.s2),
-              const ClRule(),
-              const SizedBox(height: ClSpace.s6),
-              Text('BORDER · 1PX IZMEĐU REDOVA', style: cl.text.label),
+              Text('Border · 1px, retko', style: cl.text.label),
               const SizedBox(height: ClSpace.s2),
               const ClDivider(),
             ],
@@ -309,8 +314,8 @@ class _ButtonsPageState extends State<ButtonsPage> {
     return GalleryPage(
       title: 'Button',
       rules: const [
-        'Jedno primary dugme po ekranu. 1–2 reči, glagol prvi.',
-        'Bez pilula. Dugme samo s ikonom mora imati opis za čitač ekrana.',
+        'Jedno primary dugme po ekranu: crna pilula. 1–2 reči, glagol prvi.',
+        'Pop (limeta) samo za akciju koja mora da iskoči. Dugme samo s ikonom mora imati opis.',
       ],
       children: [
         Specimen(
@@ -325,10 +330,10 @@ class _ButtonsPageState extends State<ButtonsPage> {
           ),
         ),
         Specimen(
-          label: 'ink',
+          label: 'pop',
           child: pair(
-            ClButton(label: 'Pretplati se', variant: ClButtonVariant.ink, onPressed: _tap),
-            const ClButton(label: 'Pretplati se', variant: ClButtonVariant.ink, onPressed: null),
+            ClButton(label: 'Pretplati se', variant: ClButtonVariant.pop, onPressed: _tap),
+            const ClButton(label: 'Pretplati se', variant: ClButtonVariant.pop, onPressed: null),
           ),
         ),
         Specimen(
@@ -399,8 +404,8 @@ class _TagsPageState extends State<TagsPage> {
     return GalleryPage(
       title: 'Tag i Filter',
       rules: const [
-        'PR uvek ima tekst, nikad samo boju.',
-        'Filter je pravougaonik (radius 4), izabran je pun ink.',
+        'PR je crna nalepnica sa limeta tekstom, uvek sa tekstom.',
+        'Filter je pilula. Izabran je limeta sa crnom ivicom.',
       ],
       children: [
         const Specimen(
@@ -454,7 +459,7 @@ class MediaPage extends StatelessWidget {
     return GalleryPage(
       title: 'Avatar i foto',
       rules: const [
-        'Fotografija trenera je glavni motiv. Bez medija prikaži tamni photo-empty okvir, nikad blok boje.',
+        'Fotografija trenera je glavni motiv. Dok je nema, zaglavlja i kartice koriste boju umesto tamnog okvira.',
         'Beli tekst preko fotografije uvek stoji na scrim-u.',
       ],
       children: [
@@ -521,7 +526,7 @@ class HeroPage extends StatelessWidget {
     return GalleryPage(
       title: 'WorkoutHero',
       rules: const [
-        'Fotografija preko cele širine, radius 0, scrim na donjih 60%.',
+        'Preko cele širine, donji uglovi 28. Bez fotografije je blok boje sa crnim tekstom.',
         'Label (kreator · nedelja X / Y) iznad display-l naslova.',
       ],
       children: [
@@ -530,10 +535,15 @@ class HeroPage extends StatelessWidget {
           bleed: true,
           child: ClWorkoutHero(title: 'Push day', label: '$demoCreator · Nedelja 3 / 8'),
         ),
-        const Specimen(
-          label: 'Dva reda naslova',
+        Specimen(
+          label: 'Bez fotografije · blok boje, dva reda',
           bleed: true,
-          child: ClWorkoutHero(title: 'Donji deo tela', label: '$demoCreator · Nedelja 3 / 8', height: 400),
+          child: ClWorkoutHero(
+            title: 'Donji deo tela',
+            label: '$demoCreator · Nedelja 3 / 8',
+            height: 320,
+            color: context.clColors.lilac,
+          ),
         ),
         Specimen(
           label: 'Profil kreatora · sa gornjom trakom',
@@ -566,10 +576,93 @@ class HeroPage extends StatelessWidget {
             },
           ),
         ),
-        const Specimen(
+        Specimen(
           label: 'Kompaktno · display-m',
           bleed: true,
-          child: ClWorkoutHero(title: 'Pull B', label: 'Sledeći trening', height: 240, compact: true),
+          child: ClWorkoutHero(
+            title: 'Pull B',
+            label: 'Sledeći trening',
+            height: 240,
+            compact: true,
+            color: context.clColors.peach,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class PopPage extends StatelessWidget {
+  const PopPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.cl;
+    final c = cl.colors;
+    return GalleryPage(
+      title: 'Blokovi boja',
+      rules: const [
+        'Glavna površina aplikacije: veliki zaobljeni blok u limeti, lila ili breskvi.',
+        'Unutra je uvek crn tekst, u obe teme. Najviše dva bloka na ekranu.',
+        'Nalepnica je jedna po bloku: nedelja programa, novi rekord.',
+      ],
+      children: [
+        Specimen(
+          label: 'ClPopBlock · sa nalepnicom',
+          child: ClPopBlock(
+            color: c.lime,
+            sticker: const ClSticker('Nedelja 3/8'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Danas · $demoCreator', style: cl.text.bodyStrong.copyWith(fontSize: 13)),
+                const SizedBox(height: ClSpace.s2),
+                Text('Push day', style: cl.text.displayL),
+                const SizedBox(height: ClSpace.s1),
+                Text('5 vežbi · ~58 min', style: cl.text.body),
+                const SizedBox(height: ClSpace.s6),
+              ],
+            ),
+          ),
+        ),
+        Specimen(
+          label: 'Nedelja · segmenti na boji',
+          child: ClPopBlock(
+            color: c.lilac,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('2 od 4 ove nedelje', style: cl.text.bodyStrong.copyWith(fontSize: 17)),
+                const SizedBox(height: ClSpace.s3),
+                const ClSegmentBar(total: 4, done: 2, onPop: true),
+              ],
+            ),
+          ),
+        ),
+        const Specimen(
+          label: 'ClSticker',
+          child: Wrap(
+            spacing: ClSpace.s4,
+            runSpacing: ClSpace.s4,
+            children: [
+              ClSticker('Nedelja 3/8'),
+              ClSticker('Novi PR', angle: -5),
+              ClSticker('Niz 12', angle: 0),
+            ],
+          ),
+        ),
+        Specimen(
+          label: 'ClShareCard · kartica za story',
+          child: ClShareCard(
+            label: 'Push day · ${formatDuration(const Duration(minutes: 58))}',
+            stats: const [
+              ClStat(label: 'Volumen', value: '8.240', unit: 'kg'),
+              ClStat(label: 'Rekordi', value: '2', unit: 'PR'),
+              ClStat(label: 'Niz', value: '12', unit: 'ned.'),
+            ],
+            creatorName: demoCreator,
+            creatorHandle: 'marko.lifts',
+          ),
         ),
       ],
     );
@@ -592,7 +685,7 @@ class _StatBarPageState extends State<StatBarPage> {
     return GalleryPage(
       title: 'StatBar',
       rules: const [
-        '2–3 kolone ispod rule linije. Samo broj napretka ili rekorda je u signal-text.',
+        '2–3 zaobljene pločice. Samo pločica napretka ili rekorda je limeta.',
         'Svaki ekran pokazuje bar jedan broj koji dokazuje napredak.',
       ],
       children: [
@@ -666,8 +759,8 @@ class _SetTablePageState extends State<SetTablePage> {
     return GalleryPage(
       title: 'SetTable',
       rules: const [
-        'Kolone: # · prethodno · kg · ponavljanja · RIR · potvrda. Redovi 56px.',
-        'Trenutni red ima surface pozadinu. Završen set ima punu kvačicu i broj u signal-text.',
+        'Kolone: # · prethodno · kg · ponavljanja · RIR · potvrda. Svaki set je zaobljen red.',
+        'Trenutni red ima crnu ivicu. Završen set je limeta sa kvačicom.',
         'Probaj: upiši 85 kg u set 2 i potvrdi, dobićeš PR. Prazno polje uzima prošli rezultat.',
       ],
       children: [
@@ -728,8 +821,8 @@ class _RestTimerPageState extends State<RestTimerPage> {
     return GalleryPage(
       title: 'RestTimer',
       rules: const [
-        'Kreće kad se potvrdi set. Veliki metric-l broj i tanka linija napretka.',
-        'Posle nule nastavlja da broji u danger boji.',
+        'Kreće kad se potvrdi set. Blok breskve, veliki broj i linija napretka.',
+        'Posle nule blok postaje lila i broji dalje.',
       ],
       children: [
         Specimen(
@@ -767,8 +860,8 @@ class ProgramCardPage extends StatelessWidget {
     return GalleryPage(
       title: 'ProgramCard',
       rules: const [
-        'Kao naslovna strana časopisa: foto, naslov na scrim-u, pa kreator i tagovi.',
-        'Bez okvira i bez senke. Kreator je uvek imenovan.',
+        'Zaobljena fotografija (ili blok boje) sa naslovom, pa kreator i tagovi.',
+        'Bez senke. Kreator je uvek imenovan.',
       ],
       children: [
         Specimen(
@@ -791,6 +884,7 @@ class ProgramCardPage extends StatelessWidget {
             followers: '${formatCompact(126000)} pratilaca',
             tags: const ['Teretana'],
             locked: true,
+            color: context.clColors.lime,
             onPressed: () {},
           ),
         ),
@@ -814,7 +908,7 @@ class _ListsPageState extends State<ListsPage> {
     const tabs = ['Vežbe', 'Treninzi', 'Programi'];
     return GalleryPage(
       title: 'Liste i tabovi',
-      rules: const ['Redovi su odvojeni linijom od 1px, bez kutija.'],
+      rules: const ['Svaki red je bela zaobljena kartica sa razmakom od 8px.'],
       children: [
         Specimen(
           label: 'ClTabs',
@@ -917,7 +1011,7 @@ class _InputsPageState extends State<InputsPage> {
     return GalleryPage(
       title: 'Polja za unos',
       rules: const [
-        'Radius 4, ivica border-strong, fokus je 2px okvir.',
+        'Popunjeno polje, radius 12, bez ivice. Fokus je crni okvir od 2px.',
         'Decimalni zarez: 82,5 kg. Greške su obične rečenice.',
       ],
       children: [
@@ -981,7 +1075,7 @@ class SummaryPage extends StatelessWidget {
       title: 'Summary',
       rules: const [
         'Hvali pojavljivanje, ne rezultat. Bez uzvičnika i emodžija.',
-        'U aplikaciji je rezime uvek u svetloj temi.',
+        'Gornji deo je kartica za story: lila blok sa brojevima u bojama i imenom trenera.',
       ],
       children: const [Specimen(label: 'Trenutna tema', child: DemoSummary())],
     );
@@ -994,10 +1088,11 @@ class DemoSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClSummary(
-      label: 'Trening završen · ${formatDuration(const Duration(minutes: 72))} · 2 PR',
+      label: 'Push day · ${formatDuration(const Duration(minutes: 72))}',
       stats: const [
         ClStat(label: 'Volumen', value: '8.240', unit: 'kg'),
         ClStat(label: 'Rekordi', value: '2', unit: 'PR', highlight: true),
+        ClStat(label: 'Niz', value: '12', unit: 'ned.'),
       ],
       exercises: [
         ClSummaryExercise(name: 'Bench press', detail: '4 × ${formatSet(85, 8)}', isPr: true),
@@ -1006,6 +1101,7 @@ class DemoSummary extends StatelessWidget {
         ClSummaryExercise(name: 'Triceps sajla', detail: '3 × ${formatSet(25, 12)}'),
       ],
       creatorName: demoCreator,
+      creatorHandle: 'marko.lifts',
       creatorMessage: 'Sledeće je Pull B. Isti ritam.',
     );
   }
@@ -1018,7 +1114,9 @@ class ChartPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return GalleryPage(
       title: 'Grafikon',
-      rules: const ['Linija 2px u ink boji, bez popune. Signal samo za trenutnu ili najbolju vrednost.'],
+      rules: const [
+        'Zaobljena crna linija na beloj kartici. Limeta tačka i pilula za trenutnu ili najbolju vrednost.',
+      ],
       children: const [
         Specimen(
           label: 'Trenutna vrednost',
@@ -1070,7 +1168,7 @@ class _NavPageState extends State<NavPage> {
   Widget build(BuildContext context) {
     return GalleryPage(
       title: 'Navigacija',
-      rules: const ['5 stavki. Aktivna je ink, ostale ink-muted. Nikad signal u navigaciji.'],
+      rules: const ['Plutajuća crna traka, 5 stavki. Aktivna ima limeta pilulu iza ikone.'],
       children: [
         Specimen(
           label: 'ClBottomNav · ${clNavItems[_index].label}',
@@ -1248,8 +1346,8 @@ class _CalendarPageState extends State<CalendarPage> {
     return GalleryPage(
       title: 'Kalendar',
       rules: const [
-        'Danas je unapred izabran i ima okvir. Izabran dan je pun ink.',
-        'Urađen trening ima kvačicu u signal-text, planiran šipku, odmor mesec. Propušten dan je samo odmor.',
+        'Danas je unapred izabran i ima okvir. Izabran dan je crn.',
+        'Urađen trening je limeta sa kvačicom, planiran lila sa šipkom, odmor mesec. Propušten dan je samo odmor.',
       ],
       children: [
         Specimen(

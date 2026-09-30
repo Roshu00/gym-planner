@@ -6,7 +6,7 @@ import 'creator_mode.dart';
 import 'discover.dart';
 import 'subscribe_sheet.dart';
 
-/// Creator profile: photo header, numbers, subscribe, programs. Light theme.
+/// Creator profile: photo header, numbers, subscribe, programs.
 class CreatorProfileScreen extends StatelessWidget {
   const CreatorProfileScreen({super.key, required this.creatorId});
 
@@ -25,7 +25,6 @@ class CreatorProfileScreen extends StatelessWidget {
     final cl = context.cl;
     final programs = store.programsOf(c.id).where((p) => p.workoutIds.isNotEmpty).toList();
     final subscribed = store.subscriptions.contains(c.id);
-    final onPhoto = cl.colors.onPhoto;
 
     final List<Widget> actions;
     if (c.isMine) {
@@ -68,7 +67,7 @@ class CreatorProfileScreen extends StatelessWidget {
             Expanded(
               child: ClButton(
                 label: 'Pretplati se',
-                variant: ClButtonVariant.ink,
+                variant: ClButtonVariant.pop,
                 expand: true,
                 onPressed: () => showSubscribeSheet(context, c),
               ),
@@ -91,14 +90,14 @@ class CreatorProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s12),
       header: ClWorkoutHero(
         title: c.name,
+        color: context.clColors.popFor(c.id),
         label: '@${c.handle} · ${c.tagline}',
-        height: 380,
+        height: 320,
         topBar: Row(
           children: [
             ClIconButton(
               icon: ClIcons.back,
               semanticLabel: 'Nazad',
-              color: onPhoto,
               onPressed: () => Navigator.of(context).maybePop(),
             ),
           ],

@@ -6,7 +6,7 @@ import 'common.dart';
 import 'summary_screen.dart';
 
 /// Numbers that prove discipline: streak, workouts, records, volume,
-/// per-exercise progress and the full history. Dark theme.
+/// per-exercise progress and the full history.
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
 
@@ -39,7 +39,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       return AppScreen(
         children: [
           const SizedBox(height: ClSpace.s4),
-          const ClScreenTitle(label: 'Tvoji brojevi', title: 'Napredak'),
+          const ClScreenTitle(label: 'Tvoji brojevi', title: 'Napredak', large: true),
           const SizedBox(height: ClSpace.s6),
           stats,
           gap,
@@ -69,7 +69,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return AppScreen(
       children: [
         const SizedBox(height: ClSpace.s4),
-        const ClScreenTitle(label: 'Tvoji brojevi', title: 'Napredak'),
+        const ClScreenTitle(label: 'Tvoji brojevi', title: 'Napredak', large: true),
         const SizedBox(height: ClSpace.s6),
         stats,
         gap,
