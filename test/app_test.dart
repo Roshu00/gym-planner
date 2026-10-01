@@ -114,6 +114,15 @@ Future<void> tapVisible(WidgetTester tester, String text) async {
   await tester.pump(const Duration(milliseconds: 300));
 }
 
+/// Brings the control with this accessible [label] into view and taps it.
+Future<void> tapLabel(WidgetTester tester, String label) async {
+  final target = find.bySemanticsLabel(label).last;
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
+  await tester.tap(target);
+  await tester.pumpAndSettle();
+}
+
 Future<void> scrollThrough(WidgetTester tester) async {
   final scrollables = find.byType(Scrollable);
   for (var i = 0; i < 15 && scrollables.evaluate().isNotEmpty; i++) {
@@ -300,6 +309,57 @@ void main() {
     expect(creatorHandleFromUri(Uri.parse('https://chalkline.app/c/marko.lifts')), 'marko.lifts');
     expect(creatorHandleFromUri(Uri.parse('https://x.app/#/c/jelena.moves')), 'jelena.moves');
     expect(creatorHandleFromUri(Uri.parse('https://x.app/')), isNull);
+  });
+
+  testWidgets('Plan tab: change a day in one tap and undo it', (tester) async {
+    final store = await seasonedStore();
+    _clock = DateTime(2026, 9, 30, 18); // Wednesday, a training day
+    store.setTrainingDays({1, 3, 5});
+    final wed = DateTime(2026, 9, 30);
+    final thu = DateTime(2026, 10, 1);
+    await pump(tester, store, const PlanTabScreen(), ClTheme.light);
+    expect(store.plannedOn(wed), isNotNull);
+
+    await tapLabel(tester, 'Odmor');
+    expect(store.dayPlan(wed)!.train, isFalse);
+    expect(find.textContaining('Odmor danas'), findsOneWidget);
+    await tapLabel(tester, 'Poništi');
+    expect(store.dayPlan(wed), isNull);
+
+    await tapLabel(tester, 'Pomeri za dan');
+    expect(store.plannedOn(thu), isNotNull, reason: 'Thursday was the next rest day');
+    expect(find.textContaining('pomereni za jedan dan'), findsOneWidget);
+    await tapLabel(tester, 'Poništi');
+    expect(store.plannedOn(thu), isNull);
+
+    await tapLabel(tester, 'Kraća verzija');
+    expect(store.dayPlan(wed)!.note, 'Kraća verzija');
+    expect(find.text('Kraća verzija'), findsWidgets, reason: 'sticker on the day');
+
+    await tapLabel(tester, 'Pauza');
+    await tapLabel(tester, 'Uzmi pauzu');
+    expect(store.dayPlan(DateTime(2026, 10, 2))!.note, 'Pauza');
+    expect(store.plannedOn(wed), isNull);
+
+    await tapLabel(tester, 'Vrati na plan');
+    expect(store.dayPlan(wed), isNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Plan tab: edit a day\'s exercises in a sheet', (tester) async {
+    final store = await seasonedStore();
+    _clock = DateTime(2026, 9, 30, 18);
+    store.setTrainingDays({1, 3, 5});
+    final wed = DateTime(2026, 9, 30);
+    final before = store.plannedOn(wed)!.exercises.length;
+    await pump(tester, store, const PlanTabScreen(), ClTheme.light);
+    await tapLabel(tester, 'Izmeni vežbe');
+    await tester.tap(find.bySemanticsLabel(RegExp(r'^Ukloni ')).first);
+    await tester.pump();
+    await tapLabel(tester, 'Sačuvaj za ovaj dan');
+    expect(store.plannedOn(wed)!.exercises.length, before - 1);
+    expect(store.dayPlan(wed)!.note, 'Prilagođeno');
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Plan tab: today is selected, a rest day and training days', (tester) async {

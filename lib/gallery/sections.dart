@@ -438,6 +438,18 @@ class _TagsPageState extends State<TagsPage> {
           ),
         ),
         Specimen(
+          label: 'ClActionChip · radnja na jedan klik',
+          child: Wrap(
+            spacing: ClSpace.s2,
+            children: [
+              ClActionChip(label: 'Odmor', icon: ClIcons.rest, onPressed: () {}),
+              ClActionChip(label: 'Pomeri za dan', icon: ClIcons.arrowRight, onPressed: () {}),
+              ClActionChip(label: 'Kraća verzija', icon: ClIcons.timer, onPressed: () {}),
+              ClActionChip(label: 'Pauza', icon: ClIcons.days, onPressed: () {}),
+            ],
+          ),
+        ),
+        Specimen(
           label: 'Filter · ${_selected.length} izabrano',
           bleed: true,
           child: ClFilterRow(
@@ -1367,6 +1379,7 @@ class _CalendarPageState extends State<CalendarPage> {
         'Danas je unapred izabran i ima okvir. Izabran dan je crn.',
         'Kompaktan: urađen trening je limeta sa kvačicom, planiran lila sa šipkom, odmor mesec.',
         'Propušten dan je samo odmor. Statistika ne stoji iznad kalendara.',
+        'Dan koji je korisnik sam promenio ima tačku u gornjem uglu.',
       ],
       children: [
         Specimen(
@@ -1379,6 +1392,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 selected: _selected,
                 today: _today,
                 markFor: _mark,
+                isEdited: (d) => d.difference(_today).inDays == 2,
                 onSelect: (d) => setState(() => _selected = d),
                 onMonthChanged: (m) => setState(() => _month = m),
               ),

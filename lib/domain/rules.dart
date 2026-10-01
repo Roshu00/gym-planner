@@ -177,9 +177,15 @@ List<Session> sessionsOn(Iterable<Session> sessions, DateTime day) {
     ..sort((a, b) => a.finishedAt!.compareTo(b.finishedAt!));
 }
 
-/// Forecast of the plan's next workouts on its training days, from [from]
-/// through [until]. Today counts unless a workout was already done today.
-/// Not a promise: a missed day simply moves everything forward.
+/// Whether [day] is a training day: the user's own choice for the day wins
+/// over the plan's training weekdays.
+bool isTrainingDay(UserPlan plan, DateTime day) =>
+    plan.days[dayKey(day)]?.train ?? plan.trainingDays.contains(day.weekday);
+
+/// Forecast of the plan's workouts from [from] through [until]. Today counts
+/// unless a workout was already done today. Not a promise: a missed or rest
+/// day simply moves the rotation forward. A day with its own workout keeps
+/// it; it takes the rotation's place only when it is the rotation's next one.
 Map<DateTime, String> projectSchedule(
   UserPlan plan,
   Iterable<Session> sessions,
@@ -187,19 +193,28 @@ Map<DateTime, String> projectSchedule(
   DateTime until,
 ) {
   final result = <DateTime, String>{};
-  if (plan.workoutIds.isEmpty || plan.trainingDays.isEmpty) return result;
+  if (plan.workoutIds.isEmpty) return result;
   var day = dateOnly(from);
   if (sessionsOn(sessions, day).isNotEmpty) day = DateTime(day.year, day.month, day.day + 1);
   final end = dateOnly(until);
   var k = 0;
   while (!day.isAfter(end)) {
-    if (plan.trainingDays.contains(day.weekday)) {
-      result[day] = plan.workoutIds[(plan.nextIndex + k) % plan.workoutIds.length];
-      k++;
+    if (isTrainingDay(plan, day)) {
+      final queued = plan.workoutIds[(plan.nextIndex + k) % plan.workoutIds.length];
+      final own = plan.days[dayKey(day)]?.workoutId;
+      result[day] = own ?? queued;
+      if (own == null || own == queued) k++;
     }
     day = DateTime(day.year, day.month, day.day + 1);
   }
   return result;
+}
+
+/// A shorter version of a workout for a low-energy day: the first exercises
+/// (about 60%, at least 2) with one set less each (at least 2).
+List<WorkoutExercise> quickVersion(List<WorkoutExercise> exercises) {
+  final keep = math.min(exercises.length, math.max(2, (exercises.length * 0.6).ceil()));
+  return [for (final e in exercises.take(keep)) e.copyWith(sets: math.max(2, e.sets - 1))];
 }
 
 /// What the user is looking for in "Pronađi plan".

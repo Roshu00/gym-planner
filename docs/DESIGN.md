@@ -27,10 +27,11 @@ Domain model and scope come from `training_planner_mvp_plan.md` (Exercise → Wo
 5. **One primary button per screen**: a black pill. The lime `pop` button is for the one action that must stand out ("Pretplati se").
 6. **Everything is rounded.** Fields 12, rows and cards 20, color blocks and big photos 28. Buttons, tags, filters, checks and avatars are pills or circles.
 7. **Sentence case everywhere.** No uppercase titles, labels or buttons.
-8. **No shadows.** Structure comes from blocks on the warm base, not from lines or elevation.
-9. **The creator is always named and visible** next to their content (avatar + name or handle).
-10. **Every screen shows at least one number that proves progress** (streak in weeks, weekly goal, volume, PR).
-11. **Never use hex values in components.** Use tokens only (`lib/ui/tokens/colors.dart` is the only file with hex values).
+8. **Soft shadows on white cards only.** Rows, tiles, menus, the calendar and action chips sit on the warm base with one soft warm shadow (`ClElevation.card`). Pop blocks and controls stay flat.
+9. **Secondary things live one tap away.** Settings, equipment, filters and rarely used actions go into menu groups and sheets, not onto the main screen.
+10. **The creator is always named and visible** next to their content (avatar + name or handle).
+11. **Every screen shows at least one number that proves progress** (streak in weeks, weekly goal, volume, PR).
+12. **Never use hex values in components.** Use tokens only (`lib/ui/tokens/colors.dart` is the only file with hex values).
 
 ---
 
@@ -58,6 +59,7 @@ The light theme is used on every screen. The dark theme exists for the gallery a
 | `danger` | `#D92D20` | `#FF6B5E` | Delete, errors |
 | `photo-empty` | `#1F1E1B` | `#2A2927` | Empty media frame where a photo is expected (video) |
 | `photo-scrim` | `rgba(0,0,0,.55)` | same | Gradient under white text on photos |
+| `shadow` | `rgba(59,52,38,.12)` | `rgba(0,0,0,.45)` | Soft card shadow: 0 6 18 −6, plus 0 1 3 at half strength |
 
 A workout, program or creator always gets the same pop color: `popFor(id)` picks it from the id.
 
@@ -89,7 +91,7 @@ radius-xs 12 (fields) · radius-sm 20 (rows, cards, tiles) · radius-lg 28 (colo
 target 48 (min touch) · target-workout 56 (primary button + workout rows) · bar 10 (segments, 6 gap)
 ```
 
-No shadows anywhere.
+One elevation: `ClElevation.card` on white cards. No other shadows.
 
 ### 3.4 CSS variables (web)
 
@@ -126,7 +128,7 @@ Build these first and compose every screen from them. Every component is in the 
   - `primary` (black pill, one per screen),
   - `pop` (lime pill with a black outline, e.g. "Pretplati se"),
   - `secondary` (1.5px ink outline, transparent),
-  - `text` (underlined, 15/700),
+  - `text` (a plain ink link, 15/700, no underline, optional trailing icon),
   - `block` (full width, 56px, black, pinned to the bottom of the screen),
   - `danger` (danger outline and label).
 
@@ -169,26 +171,41 @@ Build these first and compose every screen from them. Every component is in the 
 - `Filter`: a 36px pill, 13/700 on `surface-raised`. When selected it is lime with a black outline.
 
 ### Lists and Tabs
-- `ListRow`: a white rounded card (radius 20) with an 8px gap below.
+- `ListRow`: a white rounded card (radius 20) with a soft shadow and an 8px gap below.
+- `CreatorRow`: avatar, name, handle, followers. A creator the user follows gets an ink ring around the avatar and a lime `Pratiš` tag; a subscription shows a black `Pretplata` tag. Followed creators are listed first.
+- `MenuGroup` + `MenuRow`: settings-style group in one white card. Each row has an icon, a title, the current value on the right and a chevron, and opens a sheet or a screen. Used for Profile and for plan settings.
+- `ActionChip`: a white pill with an icon and a short label, for one-tap actions on an item (a calendar day).
 - `Tabs`: a segmented pill; the selected tab is a black pill.
 
 ### Avatar
 - A circle with initials on a pop color picked from the name, or a photo. 28px in lists, 56px on the profile.
 
 ### Calendar
-- On a white card (radius 28). The month title is `display-m`, with previous/next buttons.
+- Compact, on a white card (radius 28). The month title is 17/700, with previous/next buttons. Cells are 42px.
 - Day cells are rounded squares: done = lime with a check, planned = lilac with a barbell, rest = a muted moon, selected = black, today = 2px ink outline (selected on open). A missed planned day is shown as rest, never as a failure.
-- A legend under the grid shows the same swatches.
+- A day the user changed has a small dot in the corner.
+- A legend under the grid shows the same swatches. No stats above the calendar.
+
+### The plan suggests, the user decides
+- Each day can be changed in one tap from the Plan tab (and today's from Today), and every change can be undone (`Poništi`):
+  - **Odmor**: the day becomes rest; the following workouts move one training day forward.
+  - **Pomeri za dan**: the day becomes rest and the next rest day becomes a training day, so the workouts in between slide by a day and the week after stays the same.
+  - **Pauza**: a break of 1–28 days (travel, illness, a busy week). The plan continues where it stopped.
+  - **Drugi trening**: another workout from the plan or the library; the plan's next workout waits.
+  - **Kraća verzija**: about 60% of the exercises with one set less, for a low-energy day.
+  - **Izmeni vežbe**: swap, remove, add exercises and change sets for that day only.
+  - **Treniraj ovaj dan** on a rest day, **Zabeleži naknadno** on a past day without a logged workout, **Vrati na plan** to drop the change.
+- A changed day shows why on a sticker (`Kraća verzija`, `Prilagođeno`, `Drugi trening`, `Pauza`).
 
 ### Chart
 - On a white card: a rounded 2.5px ink line, with a lime dot and a lime value pill for the current or best value.
 
 ### Bottom navigation
-- A floating black bar (radius 28) with 5 items: Danas, Plan, Otkrij, Napredak, Profil.
-- The active item has a lime pill behind its icon and a white label. Inactive items are dimmed white.
+- A quiet bar on `bg` with a hairline on top and 5 items: Danas, Plan, Otkrij, Napredak, Profil.
+- The active item uses the solid (Fill) icon and an ink label; inactive items use the outline icon in `ink-muted`. No color, so the screen keeps the attention.
 
 ### Icons
-- Phosphor Light, 24px grid, `currentColor`. Use sparingly: prefer a text label over an icon.
+- Phosphor Regular, 24px grid, `currentColor`; Phosphor Fill only for the active navigation item. Use sparingly: prefer a text label over an icon.
 
 ---
 
@@ -198,15 +215,18 @@ All screens use the light theme.
 
 | Screen | Composition |
 |---|---|
-| **Today** | Date label + "Zdravo, Ime" → today's workout on a pop block with a week sticker → the week on a second pop block (x of y, streak, segments) → exercise rows → Button `block` "Počni trening" |
+| **Today** (new user) | "Dobro došao/la" → lime welcome block with "Pronađi plan za sebe" → programs ranked for the profile (pop cards with `NN% za tebe`) → creators → "Kako radi" in three steps |
+| **Today** (between plans) | "Nova nedelja." on lilac with what was done so far → "Pronađi plan" → programs → creators |
+| **Today** (with a plan) | Date label + "Zdravo, Ime" → today's workout (with the day's changes) on a pop block with a sticker → one-tap chips (Kraća verzija, Pomeri za sutra, Odmor danas, Vrati na plan) → the week on a second pop block → exercise rows → Button `block` "Počni trening" |
 | **Workout session** | Exercise title (`display-m`) + prescription label → creator note → SetTable → peach RestTimer → Button `block` "Završi set" |
 | **Workout summary** | ShareCard (lilac story card) → creator message → exercise list → Button `block` "Gotovo" |
-| **Plan** | Title "Plan" → stat tiles (Ova nedelja · Niz · Ovaj mesec) → Calendar card → selected day: done workouts, planned workout on a pop block with exercises (today: Button `block` "Počni trening"), or rest → training day chips |
-| **Discover** | Title "Otkrij" → Tabs Otkrij / Biblioteka → Button `secondary` "Pronađi plan za sebe" → filter chips → creator rows → ProgramCards in pop colors |
+| **Plan** | Title "Plan" (label: plan · x of y this week) → compact Calendar → selected day: done workouts; a planned workout on a pop block with action chips and its exercises (today: Button `block` "Počni trening"); a rest day with "Treniraj ovaj dan" and "Pauza"; a past day with "Zabeleži naknadno" → menu: Dani treninga, Program i zamene vežbi |
+| **Discover** | Title "Otkrij" → Tabs Otkrij / Biblioteka → Button "Pronađi plan za sebe" + `secondary` "Filteri" (sheet) → active filters → creator rows (followed first) → ProgramCards in pop colors |
 | **Creator profile** | Pop color header with the name → stat tiles (Pratioci · Programi · Vežbe) → Button `pop` "Pretplati se" (+ `secondary` "Zaprati") → programs |
 | **Library** | Tab inside Discover: filters Programi / Treninzi / Vežbe → list rows |
 | **Progress** | Title "Napredak" → stat tiles → chart cards → history rows |
-| **Profile** | Name → stat tiles (Treninzi · Niz · Pretplate) → equipment chips → plan → subscriptions → creator mode → account |
+| **Profile** | Avatar + name → stat tiles (Treninzi · Niz · Rekordi) → menu groups: Treniranje (Moj plan, Pretplate, Oprema), Podešavanja (Pol, Nalog/Podaci), Za trenere (Režim kreatora); each opens a sheet or a screen |
+| **Onboarding** | Name → gender (Žensko, Muško, Ne želim da kažem; used to address the user) → goal → experience → place → equipment |
 | **Creator mode** | Same system, denser lists. Numbers first |
 
 ---
@@ -215,6 +235,7 @@ All screens use the light theme.
 
 - **Titles** are short, in sentence case: `Push day`, `Pojavio si se.`, `Nova nedelja.`
 - **Numbers are the proof**: `Prošli put 80 kg × 8`, `2 od 4 ove nedelje`, `2 PR`.
+- **Address the user in their gender** (`Pojavio/Pojavila si se.`, `gde si stao/stala`); masculine when not given.
 - **Praise showing up, not the result.** Missing a day is a fresh start, never a failure.
 - **Creator messages are plain sentences** in the creator's voice: `Sledeće je Pull B. Isti ritam.`
 - **Never** write exclamation marks in system copy, emoji, "BEAST MODE", shaming ("Niste trenirali 3 dana"), or result promises ("−5 kg za 30 dana").
@@ -264,8 +285,8 @@ All screens use the light theme.
 
 - [ ] At most two pop blocks on the screen, in different colors, with black text
 - [ ] Lime only for done, current, record or selected
-- [ ] Exactly one primary button
-- [ ] No hex values in components, no shadows
+- [ ] Exactly one primary button; secondary things in a menu or a sheet
+- [ ] No hex values in components; shadows only on white cards (`ClElevation.card`)
 - [ ] Rounded: fields 12, rows and cards 20, blocks 28, controls are pills
 - [ ] Sentence case everywhere, numbers tabular
 - [ ] Creator is named and visible next to their content

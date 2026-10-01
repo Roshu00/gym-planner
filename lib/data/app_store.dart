@@ -495,6 +495,127 @@ class AppStore extends ChangeNotifier {
 
   Workout? get nextWorkout => plan == null ? null : workoutsById[plan!.nextWorkoutId];
 
+  // ───────────────────────── Calendar: the plan suggests, the user decides
+
+  /// The plan's forecast from today through [until], with the user's day changes.
+  Map<DateTime, String> schedule(DateTime until) =>
+      plan == null ? const {} : projectSchedule(plan!, sessions, now, until);
+
+  /// The user's own choice for [day], if they changed it.
+  DayPlan? dayPlan(DateTime day) => plan?.days[dayKey(day)];
+
+  /// What is planned on [day] (today or later): the workout and the exact
+  /// exercises, or null on a rest day.
+  ({Workout workout, List<WorkoutExercise> exercises, DayPlan? custom})? plannedOn(DateTime day) {
+    final d = dateOnly(day);
+    final id = schedule(d)[d];
+    final w = id == null ? null : workoutsById[id];
+    if (w == null) return null;
+    final custom = dayPlan(d);
+    return (workout: w, exercises: custom?.exercises ?? w.exercises, custom: custom);
+  }
+
+  /// Sets or clears (null) the user's choice for one day. Old past days are
+  /// dropped so the plan row stays small.
+  void setDayPlan(DateTime day, DayPlan? p) {
+    final current = plan;
+    if (current == null) return;
+    final cutoff = dayKey(dateOnly(now).subtract(const Duration(days: 60)));
+    final days = {
+      for (final e in current.days.entries)
+        if (e.key.compareTo(cutoff) >= 0) e.key: e.value,
+    };
+    if (p == null) {
+      days.remove(dayKey(day));
+    } else {
+      days[dayKey(day)] = p;
+    }
+    plan = current.copyWith(days: days);
+    _savePlan();
+  }
+
+  /// Puts back an earlier set of day changes (undo).
+  void restoreDays(Map<String, DayPlan> days) {
+    if (plan == null) return;
+    plan = plan!.copyWith(days: days);
+    _savePlan();
+  }
+
+  /// Rest on [day]. The workouts after it move forward by one training day.
+  void restOn(DateTime day) => setDayPlan(day, const DayPlan.rest());
+
+  /// Train on [day], with the next workout of the rotation or [workoutId].
+  void trainOn(DateTime day, {String? workoutId}) => setDayPlan(day, DayPlan.train(workoutId: workoutId));
+
+  /// Can't train on [day]: it becomes a rest day and the next rest day becomes
+  /// a training day, so the workouts in between slide by one day and the
+  /// week after stays the same. Returns the day that was given up, if any.
+  DateTime? shiftFrom(DateTime day) {
+    if (plan == null) return null;
+    final d = dateOnly(day);
+    DateTime at(int i) => DateTime(d.year, d.month, d.day + i);
+    final moved = dayPlan(d);
+    DateTime? taken;
+    for (var i = 1; i <= 14 && taken == null; i++) {
+      if (!isTrainingDay(plan!, at(i))) taken = at(i);
+    }
+    restOn(d);
+    if (taken != null) setDayPlan(taken, const DayPlan.train());
+    // An edited workout takes its edits to the day it lands on.
+    if (moved != null && moved.train && moved.edited) {
+      for (var i = 1; i <= 14; i++) {
+        if (isTrainingDay(plan!, at(i))) {
+          setDayPlan(at(i), moved);
+          break;
+        }
+      }
+    }
+    return taken;
+  }
+
+  /// A break of [count] days from [from] (travel, illness, a busy week).
+  /// The plan continues where it stopped afterwards.
+  void pause(DateTime from, int count) {
+    final d = dateOnly(from);
+    for (var i = 0; i < count; i++) {
+      final x = DateTime(d.year, d.month, d.day + i);
+      if (isTrainingDay(plan!, x)) setDayPlan(x, const DayPlan.rest(note: 'Pauza'));
+    }
+  }
+
+  /// Another workout on [day] instead of the planned one. The plan's next
+  /// workout waits for the following training day.
+  void swapWorkoutOn(DateTime day, String workoutId) =>
+      setDayPlan(day, DayPlan.train(workoutId: workoutId, note: 'Drugi trening'));
+
+  /// A shorter version of [day]'s workout for a low-energy day.
+  void quickVersionOn(DateTime day) {
+    final p = plannedOn(day);
+    if (p == null) return;
+    setDayPlan(
+      day,
+      DayPlan.train(
+        workoutId: p.workout.id,
+        exercises: quickVersion(p.workout.exercises),
+        note: 'Kraća verzija',
+      ),
+    );
+  }
+
+  /// [day]'s own exercise list: swapped, removed, added or with other sets.
+  void editDayExercises(DateTime day, List<WorkoutExercise> exercises) {
+    final p = plannedOn(day);
+    if (p == null) return;
+    setDayPlan(day, DayPlan.train(workoutId: p.workout.id, exercises: exercises, note: 'Prilagođeno'));
+  }
+
+  /// Starts what is planned today, with the day's own changes, or the plan's
+  /// next workout on a rest day.
+  Session startToday() {
+    final p = plannedOn(now);
+    return startSession(workoutId: p?.workout.id, exercises: p?.custom?.exercises);
+  }
+
   /// The exercise actually performed for [originalId] under the plan's swaps.
   Exercise? resolveExercise(String originalId, {bool usePlan = true}) {
     final id = usePlan ? (plan?.swaps[originalId] ?? originalId) : originalId;
@@ -507,7 +628,10 @@ class AppStore extends ChangeNotifier {
 
   /// Starts [workoutId] (the plan's next workout by default). Returns the
   /// running session if one exists.
-  Session startSession({String? workoutId}) {
+  /// [exercises] replaces the workout's list for this session (an edited day).
+  /// [loggedFor] records a workout done on an earlier day the user forgot
+  /// to log.
+  Session startSession({String? workoutId, List<WorkoutExercise>? exercises, DateTime? loggedFor}) {
     if (active != null) return active!;
     final fromPlan = workoutId == null || (plan != null && workoutId == plan!.nextWorkoutId);
     final w = workoutsById[workoutId ?? plan!.nextWorkoutId]!;
@@ -519,10 +643,10 @@ class AppStore extends ChangeNotifier {
       workoutName: w.name,
       creatorId: w.creatorId,
       creatorName: c?.name ?? '',
-      startedAt: now,
+      startedAt: loggedFor == null ? now : DateTime(loggedFor.year, loggedFor.month, loggedFor.day, 18),
       finishMessage: w.finishMessage,
       exercises: [
-        for (final we in w.exercises)
+        for (final we in exercises ?? w.exercises)
           if (resolveExercise(we.exerciseId, usePlan: fromPlan) case final e?)
             _sessionExercise(
               we,
@@ -633,8 +757,11 @@ class AppStore extends ChangeNotifier {
 
   /// Saves the session to history and moves the plan to its next workout.
   Session finishSession() {
+    final started = active!.startedAt;
+    // Logged later for an earlier day: it stays on that day.
+    final late = dateOnly(started).isBefore(dateOnly(now));
     final done = active!.copyWith(
-      finishedAt: now,
+      finishedAt: late ? started.add(const Duration(hours: 1)) : now,
       exercises: [
         for (final e in active!.exercises)
           if (e.doneSets.isNotEmpty) e.copyWith(sets: e.doneSets.toList()),

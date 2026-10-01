@@ -165,3 +165,47 @@ class ClFilterRow extends StatelessWidget {
     );
   }
 }
+
+/// One-tap action on a day or an item: a pill with an icon and a short
+/// label on `surface`, with a soft shadow. Use a row of them instead of
+/// burying common choices in a menu.
+class ClActionChip extends StatelessWidget {
+  const ClActionChip({super.key, required this.label, required this.icon, required this.onPressed});
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.cl;
+    final c = cl.colors;
+    return ClPressable(
+      onPressed: onPressed,
+      semanticLabel: label,
+      radius: ClRadius.full,
+      builder: (context, pressed) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: (ClSize.target - 40) / 2),
+        child: AnimatedContainer(
+          duration: context.motion(ClMotion.fast),
+          curve: ClMotion.curve,
+          height: 40,
+          padding: const EdgeInsets.only(left: ClSpace.s3, right: ClSpace.s4),
+          decoration: BoxDecoration(
+            color: pressed ? c.surfaceRaised : c.surface,
+            borderRadius: BorderRadius.circular(ClRadius.full),
+            boxShadow: ClElevation.card(c.shadow),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: c.ink),
+              const SizedBox(width: ClSpace.s2),
+              Text(label, style: cl.text.filter),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

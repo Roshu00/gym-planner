@@ -140,6 +140,7 @@ Row planRow(UserPlan p, String userId) => {
   'next_index': p.nextIndex,
   'completed': p.completed,
   'training_days': (p.trainingDays.toList()..sort()),
+  'days': {for (final e in p.days.entries) e.key: e.value.toJson()},
 };
 
 UserPlan planFromRow(Row r) => UserPlan(
@@ -155,6 +156,7 @@ UserPlan planFromRow(Row r) => UserPlan(
   nextIndex: (r['next_index'] as num?)?.toInt() ?? 0,
   completed: (r['completed'] as num?)?.toInt() ?? 0,
   trainingDays: {for (final d in _list(r['training_days'])) (d as num).toInt()},
+  days: dayPlansFromJson(r['days']),
 );
 
 Row sessionRow(Session s, String userId) => {

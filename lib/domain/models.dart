@@ -412,6 +412,59 @@ class UserProfile {
   );
 }
 
+/// `2026-10-01`: the key of a calendar day.
+String dayKey(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+/// The user's own decision for one calendar day. The plan only suggests;
+/// a day plan wins over it.
+class DayPlan {
+  const DayPlan.rest({this.note}) : train = false, workoutId = null, exercises = null;
+
+  const DayPlan.train({this.workoutId, this.exercises, this.note}) : train = true;
+
+  /// Training day (true) or rest day (false).
+  final bool train;
+
+  /// A specific workout for this day. Null takes the plan's next workout,
+  /// which keeps the rotation moving.
+  final String? workoutId;
+
+  /// This day's own exercise list (swapped, removed, added, shortened).
+  /// Null uses the workout as it is.
+  final List<WorkoutExercise>? exercises;
+
+  /// Why the day differs from the plan, shown on the day: `Kraća verzija`.
+  final String? note;
+
+  bool get edited => exercises != null || workoutId != null;
+
+  Map<String, Object?> toJson() => {
+    'train': train,
+    if (workoutId != null) 'workoutId': workoutId,
+    if (exercises != null) 'exercises': [for (final e in exercises!) e.toJson()],
+    if (note != null) 'note': note,
+  };
+
+  factory DayPlan.fromJson(Map<String, Object?> j) => (j['train'] as bool? ?? true)
+      ? DayPlan.train(
+          workoutId: j['workoutId'] as String?,
+          exercises: j['exercises'] == null
+              ? null
+              : [
+                  for (final e in j['exercises'] as List)
+                    WorkoutExercise.fromJson((e as Map).cast<String, Object?>()),
+                ],
+          note: j['note'] as String?,
+        )
+      : DayPlan.rest(note: j['note'] as String?);
+}
+
+Map<String, DayPlan> dayPlansFromJson(Object? json) => {
+  for (final e in ((json as Map?) ?? const {}).entries)
+    e.key as String: DayPlan.fromJson((e.value as Map).cast<String, Object?>()),
+};
+
 /// The follower's own copy of a program: workout order plus exercise swaps.
 class UserPlan {
   const UserPlan({
@@ -427,6 +480,7 @@ class UserPlan {
     this.nextIndex = 0,
     this.completed = 0,
     this.trainingDays = const {},
+    this.days = const {},
   });
 
   final String id;
@@ -451,26 +505,36 @@ class UserPlan {
   /// are a forecast: a missed day just moves the next workout forward.
   final Set<int> trainingDays;
 
+  /// The user's changes to single days, by [dayKey]. Days without an entry
+  /// follow [trainingDays] and the rotation.
+  final Map<String, DayPlan> days;
+
   String get nextWorkoutId => workoutIds[nextIndex % workoutIds.length];
 
   /// 1-based program week, capped at [weeks].
   int get currentWeek => (completed ~/ daysPerWeek + 1).clamp(1, weeks);
 
-  UserPlan copyWith({Map<String, String>? swaps, int? nextIndex, int? completed, Set<int>? trainingDays}) =>
-      UserPlan(
-        id: id,
-        programId: programId,
-        creatorId: creatorId,
-        name: name,
-        workoutIds: workoutIds,
-        weeks: weeks,
-        daysPerWeek: daysPerWeek,
-        startedAt: startedAt,
-        swaps: swaps ?? this.swaps,
-        nextIndex: nextIndex ?? this.nextIndex,
-        completed: completed ?? this.completed,
-        trainingDays: trainingDays ?? this.trainingDays,
-      );
+  UserPlan copyWith({
+    Map<String, String>? swaps,
+    int? nextIndex,
+    int? completed,
+    Set<int>? trainingDays,
+    Map<String, DayPlan>? days,
+  }) => UserPlan(
+    id: id,
+    programId: programId,
+    creatorId: creatorId,
+    name: name,
+    workoutIds: workoutIds,
+    weeks: weeks,
+    daysPerWeek: daysPerWeek,
+    startedAt: startedAt,
+    swaps: swaps ?? this.swaps,
+    nextIndex: nextIndex ?? this.nextIndex,
+    completed: completed ?? this.completed,
+    trainingDays: trainingDays ?? this.trainingDays,
+    days: days ?? this.days,
+  );
 
   Map<String, Object?> toJson() => {
     'id': id,
@@ -485,6 +549,7 @@ class UserPlan {
     'nextIndex': nextIndex,
     'completed': completed,
     'trainingDays': (trainingDays.toList()..sort()),
+    'days': {for (final e in days.entries) e.key: e.value.toJson()},
   };
 
   factory UserPlan.fromJson(Map<String, Object?> j) => UserPlan(
@@ -500,6 +565,7 @@ class UserPlan {
     nextIndex: j['nextIndex'] as int? ?? 0,
     completed: j['completed'] as int? ?? 0,
     trainingDays: {for (final d in (j['trainingDays'] as List? ?? const [])) d as int},
+    days: dayPlansFromJson(j['days']),
   );
 }
 

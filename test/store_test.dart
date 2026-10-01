@@ -27,6 +27,113 @@ void main() {
     store.completeOnboarding(gymProfile);
   });
 
+  group('calendar: the plan suggests, the user decides', () {
+    // p_m_start: Celo telo A / B on Mon, Wed, Fri. The clock is Wednesday 30. 9.
+    final wed = DateTime(2026, 9, 30);
+    final thu = DateTime(2026, 10, 1);
+    final fri = DateTime(2026, 10, 2);
+    final mon = DateTime(2026, 10, 5);
+    final wedNext = DateTime(2026, 10, 7);
+    const a = 'w_m_full_a';
+    const b = 'w_m_full_b';
+
+    Map<DateTime, String> week() => store.schedule(DateTime(2026, 10, 8));
+
+    setUp(() => store.startProgram('p_m_start'));
+
+    test('the forecast follows the training days', () {
+      expect(week(), {wed: a, fri: b, mon: a, wedNext: b});
+    });
+
+    test('a rest day moves the next workouts forward', () {
+      store.restOn(wed);
+      expect(week(), {fri: a, mon: b, wedNext: a});
+      expect(store.plannedOn(wed), isNull);
+    });
+
+    test('moving a day uses up the next rest day, the week after stays', () {
+      expect(store.shiftFrom(wed), thu);
+      expect(week(), {thu: a, fri: b, mon: a, wedNext: b});
+    });
+
+    test('a break of several days, then the plan continues', () {
+      store.pause(wed, 7);
+      expect(week(), {wedNext: a});
+      expect(store.dayPlan(fri)!.note, 'Pauza');
+    });
+
+    test('training on a rest day takes the next workout', () {
+      store.trainOn(thu);
+      expect(week(), {wed: a, thu: b, fri: a, mon: b, wedNext: a});
+    });
+
+    test('another workout today; the plan\'s next one waits', () {
+      store.swapWorkoutOn(wed, b);
+      expect(week(), {wed: b, fri: a, mon: b, wedNext: a});
+      store.startToday();
+      store.finishSession();
+      expect(store.nextWorkout!.id, a, reason: 'a different workout does not advance the rotation');
+    });
+
+    test('a shorter version keeps the rotation and is what today starts', () {
+      final full = store.workoutsById[a]!.exercises;
+      store.quickVersionOn(wed);
+      final planned = store.plannedOn(wed)!;
+      expect(planned.custom!.note, 'Kraća verzija');
+      expect(planned.exercises.length, lessThanOrEqualTo(full.length));
+      expect(planned.exercises.first.sets, full.first.sets - 1);
+      expect(week(), {wed: a, fri: b, mon: a, wedNext: b});
+      final session = store.startToday();
+      expect(session.exercises.length, planned.exercises.length);
+      expect(session.exercises.first.sets.length, planned.exercises.first.sets);
+      store.finishSession();
+      expect(store.nextWorkout!.id, b);
+    });
+
+    test('edited exercises only change that day', () {
+      final list = [...store.workoutsById[a]!.exercises]..removeLast();
+      store.editDayExercises(fri, [...store.workoutsById[b]!.exercises]..removeLast());
+      expect(store.plannedOn(fri)!.exercises.length, store.workoutsById[b]!.exercises.length - 1);
+      expect(store.plannedOn(wedNext)!.exercises.length, store.workoutsById[b]!.exercises.length);
+      store.editDayExercises(wed, list);
+      expect(store.startToday().exercises.length, list.length);
+    });
+
+    test('moving an edited day takes the edits along', () {
+      store.quickVersionOn(wed);
+      store.shiftFrom(wed);
+      expect(store.dayPlan(wed)!.train, isFalse);
+      expect(store.plannedOn(thu)!.custom!.note, 'Kraća verzija');
+    });
+
+    test('back to the plan', () {
+      store.restOn(wed);
+      store.setDayPlan(wed, null);
+      expect(week(), {wed: a, fri: b, mon: a, wedNext: b});
+    });
+
+    test('a forgotten workout is logged on its own day', () {
+      store.startSession(workoutId: a, loggedFor: DateTime(2026, 9, 28));
+      store.toggleSet(0, 0);
+      store.updateSet(0, 0, const SetLog(kg: 40, reps: 8));
+      store.toggleSet(0, 0);
+      final done = store.finishSession();
+      expect(done.finishedAt!.day, 28);
+      expect(store.nextWorkout!.id, b, reason: 'it counts for the plan');
+    });
+
+    test('day changes survive a restart', () async {
+      store.quickVersionOn(wed);
+      store.restOn(fri);
+      await Future<void>.delayed(Duration.zero);
+      final again = AppStore(storage: storage, clock: () => clock);
+      await again.load();
+      expect(again.dayPlan(fri)!.train, isFalse);
+      expect(again.plannedOn(wed)!.custom!.note, 'Kraća verzija');
+      expect(again.schedule(DateTime(2026, 10, 8)), {wed: a, mon: b, wedNext: a});
+    });
+  });
+
   test('starting a program creates a plan at its first workout', () {
     final plan = store.startProgram('p_m_start');
     expect(plan.workoutIds, ['w_m_full_a', 'w_m_full_b']);

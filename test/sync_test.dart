@@ -58,6 +58,19 @@ void main() {
     expect(profile.says('Pojavio', 'Pojavila'), 'Pojavio');
   });
 
+  test('day changes survive the plan row', () {
+    final store = AppStore(storage: MemoryStore(), clock: () => DateTime(2026, 9, 30, 18));
+    store.completeOnboarding(profile);
+    final plan = store.startProgram('p_m_start');
+    store.quickVersionOn(DateTime(2026, 9, 30));
+    store.restOn(DateTime(2026, 10, 2));
+    final back = planFromRow(jsonDecode(jsonEncode(planRow(store.plan!, 'u1'))) as Map<String, Object?>);
+    expect(back.id, plan.id);
+    expect(back.days['2026-10-02']!.train, isFalse);
+    expect(back.days['2026-09-30']!.note, 'Kraća verzija');
+    expect(back.days['2026-09-30']!.exercises!.length, store.plan!.days['2026-09-30']!.exercises!.length);
+  });
+
   test('changes reach the server in order', () async {
     final store = await open();
     store.completeOnboarding(profile);

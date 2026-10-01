@@ -57,6 +57,7 @@ class ClCalendar extends StatelessWidget {
     required this.markFor,
     required this.onSelect,
     required this.onMonthChanged,
+    this.isEdited,
   });
 
   /// Any day in the month to show.
@@ -66,6 +67,9 @@ class ClCalendar extends StatelessWidget {
   final ClDayMark Function(DateTime day) markFor;
   final ValueChanged<DateTime> onSelect;
   final ValueChanged<DateTime> onMonthChanged;
+
+  /// Days the user changed themselves get a small dot.
+  final bool Function(DateTime day)? isEdited;
 
   static bool _same(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
@@ -137,6 +141,7 @@ class ClCalendar extends StatelessWidget {
                           mark: markFor(day),
                           isToday: _same(day, today),
                           isSelected: _same(day, selected),
+                          isEdited: isEdited?.call(day) ?? false,
                           onTap: () => onSelect(day),
                         );
                       },
@@ -157,6 +162,7 @@ class _DayCell extends StatelessWidget {
     required this.isToday,
     required this.isSelected,
     required this.onTap,
+    this.isEdited = false,
   });
 
   final DateTime day;
@@ -164,6 +170,7 @@ class _DayCell extends StatelessWidget {
   final bool isToday;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isEdited;
 
   @override
   Widget build(BuildContext context) {
@@ -183,6 +190,7 @@ class _DayCell extends StatelessWidget {
       _weekdayNames[day.weekday - 1],
       if (isToday) 'danas',
       if (mark != ClDayMark.none) _markLabel(mark),
+      if (isEdited) 'izmenjeno',
     ].join(', ');
 
     return Padding(
@@ -200,12 +208,28 @@ class _DayCell extends StatelessWidget {
             borderRadius: BorderRadius.circular(ClRadius.xs + 4),
             border: isToday && !isSelected ? Border.all(color: c.ink, width: 2) : null,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
             children: [
-              Text('${day.day}', style: cl.text.data.copyWith(color: fg, fontSize: 13, height: 1.1)),
-              const SizedBox(height: 1),
-              SizedBox(height: 13, child: icon == null ? null : Icon(icon, size: 13, color: iconColor)),
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('${day.day}', style: cl.text.data.copyWith(color: fg, fontSize: 13, height: 1.1)),
+                    const SizedBox(height: 1),
+                    SizedBox(height: 13, child: icon == null ? null : Icon(icon, size: 13, color: iconColor)),
+                  ],
+                ),
+              ),
+              if (isEdited)
+                Positioned(
+                  top: 5,
+                  right: 6,
+                  child: Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(color: fg, shape: BoxShape.circle),
+                  ),
+                ),
             ],
           ),
         ),

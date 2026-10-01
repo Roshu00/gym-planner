@@ -70,12 +70,19 @@ class TodayScreen extends StatelessWidget {
     }
 
     final creator = store.creator(plan.creatorId);
-    final title = active?.workoutName ?? next.name;
+    // What the calendar says for today, with the user's own changes. On a
+    // rest day the plan's next workout is still one tap away.
+    final todayPlan = store.plannedOn(today);
+    final changed = store.dayPlan(today);
+    final workout = todayPlan?.workout ?? next;
+    final exercises = todayPlan?.exercises ?? next.exercises;
+    final title = active?.workoutName ?? workout.name;
+    final day = dateOnly(today);
     return AppScreen(
       bottom: ClButton.block(
         label: active == null ? 'Počni trening' : 'Nastavi trening',
         onPressed: () {
-          store.startSession();
+          store.startToday();
           pushScreen(context, const WorkoutSessionScreen());
         },
       ),
@@ -85,19 +92,53 @@ class TodayScreen extends StatelessWidget {
         gapS,
         ClPopBlock(
           color: workoutColor,
-          sticker: ClSticker('Nedelja ${plan.currentWeek}/${plan.weeks}'),
+          sticker: ClSticker(changed?.note ?? 'Nedelja ${plan.currentWeek}/${plan.weeks}'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Danas · ${creator?.name ?? ''}', style: cl.text.bodyStrong.copyWith(fontSize: 13)),
+              Text(
+                todayPlan == null ? 'Danas je odmor · možeš i da treniraš' : 'Danas · ${creator?.name ?? ''}',
+                style: cl.text.bodyStrong.copyWith(fontSize: 13),
+              ),
               const SizedBox(height: ClSpace.s1),
               Semantics(header: true, child: Text(title, maxLines: 2, style: cl.text.displayL)),
               const SizedBox(height: ClSpace.s1),
-              Text(workoutMeta(next), style: cl.text.body),
+              Text(
+                '${countLabel(exercises.length, 'vežba', 'vežbe', 'vežbi')} · ~${workout.estimatedMinutes} min',
+                style: cl.text.body,
+              ),
               const SizedBox(height: ClSpace.s8),
             ],
           ),
         ),
+        if (active == null) ...[
+          const SizedBox(height: ClSpace.s2),
+          Wrap(
+            spacing: ClSpace.s2,
+            children: [
+              if (todayPlan != null) ...[
+                if (changed?.note != 'Kraća verzija')
+                  ClActionChip(
+                    label: 'Kraća verzija',
+                    icon: ClIcons.timer,
+                    onPressed: () => store.quickVersionOn(day),
+                  ),
+                ClActionChip(
+                  label: 'Pomeri za sutra',
+                  icon: ClIcons.arrowRight,
+                  onPressed: () => store.shiftFrom(day),
+                ),
+                ClActionChip(label: 'Odmor danas', icon: ClIcons.rest, onPressed: () => store.restOn(day)),
+              ],
+              if (changed != null)
+                ClActionChip(
+                  label: 'Vrati na plan',
+                  icon: ClIcons.sync,
+                  onPressed: () => store.setDayPlan(day, null),
+                ),
+            ],
+          ),
+        ],
         gapS,
         week,
         gap,
@@ -109,7 +150,7 @@ class TodayScreen extends StatelessWidget {
             onPressed: () => pushScreen(context, const PlanScreen()),
           ),
         ),
-        for (final (i, we) in next.exercises.indexed)
+        for (final (i, we) in exercises.indexed)
           if (store.resolveExercise(we.exerciseId) case final e?)
             ClExerciseRow(
               index: i + 1,
