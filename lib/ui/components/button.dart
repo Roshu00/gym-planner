@@ -14,7 +14,7 @@ enum ClButtonVariant {
   /// 1.5px ink outline, transparent.
   secondary,
 
-  /// Underlined, sentence case.
+  /// Plain ink label without a fill, for a secondary link next to a button.
   text,
 
   /// Full width, 56px, black pill. Pinned to the bottom of the screen.
@@ -54,12 +54,7 @@ class ClButton extends StatelessWidget {
     final enabled = onPressed != null;
 
     if (variant == ClButtonVariant.text) {
-      final style = cl.text.bodyStrong.copyWith(
-        color: enabled ? c.ink : c.inkMuted,
-        decoration: TextDecoration.underline,
-        decorationColor: enabled ? c.ink : c.inkMuted,
-        decorationThickness: 1.5,
-      );
+      final style = cl.text.bodyStrong.copyWith(color: enabled ? c.ink : c.inkMuted);
       return ClPressable(
         onPressed: onPressed,
         builder: (context, pressed) => ConstrainedBox(
@@ -69,7 +64,16 @@ class ClButton extends StatelessWidget {
             child: Align(
               widthFactor: 1,
               alignment: Alignment.centerLeft,
-              child: Text(label, style: style),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(child: Text(label, style: style)),
+                  if (icon != null) ...[
+                    const SizedBox(width: ClSpace.s1),
+                    Icon(icon, size: 18, color: style.color),
+                  ],
+                ],
+              ),
             ),
           ),
         ),

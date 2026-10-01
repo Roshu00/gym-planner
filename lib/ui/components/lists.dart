@@ -5,6 +5,7 @@ import '../tokens/spacing.dart';
 import 'icons.dart';
 import 'media.dart';
 import 'pressable.dart';
+import 'rule.dart';
 import 'tag.dart';
 
 /// Row card: name, meta, tags on a rounded `surface`. [divider] keeps the
@@ -42,6 +43,7 @@ class ClListRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: pressed ? c.surfaceRaised : c.surface,
         borderRadius: BorderRadius.circular(ClRadius.sm),
+        boxShadow: ClElevation.card(c.shadow),
       ),
       child: Row(
         children: [
@@ -90,7 +92,12 @@ class ClListRow extends StatelessWidget {
   }
 }
 
-/// Discover row: avatar, name, followers (right-aligned label).
+/// How the user relates to a creator, shown on [ClCreatorRow].
+enum ClFollowStatus { none, following, subscribed }
+
+/// Discover row: avatar, name, followers (right-aligned label). A followed
+/// creator gets a ring on the avatar and a `Pratiš` tag; a subscription
+/// shows `Pretplata` instead.
 class ClCreatorRow extends StatelessWidget {
   const ClCreatorRow({
     super.key,
@@ -99,6 +106,7 @@ class ClCreatorRow extends StatelessWidget {
     this.handle,
     this.image,
     this.onPressed,
+    this.status = ClFollowStatus.none,
   });
 
   final String name;
@@ -108,6 +116,7 @@ class ClCreatorRow extends StatelessWidget {
   final String? handle;
   final ImageProvider? image;
   final VoidCallback? onPressed;
+  final ClFollowStatus status;
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +125,16 @@ class ClCreatorRow extends StatelessWidget {
       title: name,
       meta: handle,
       onPressed: onPressed,
-      leading: ClAvatar(name: name, image: image, size: 40),
+      leading: ClAvatar(name: name, image: image, size: 44, ring: status != ClFollowStatus.none),
+      tags: switch (status) {
+        ClFollowStatus.none => const [],
+        ClFollowStatus.following => const [
+          ClTag('Pratiš', variant: ClTagVariant.active, icon: ClIcons.check),
+        ],
+        ClFollowStatus.subscribed => const [
+          ClTag('Pretplata', variant: ClTagVariant.pr, icon: ClIcons.subscriptions),
+        ],
+      },
       trailing: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -165,6 +183,115 @@ class ClExerciseRow extends StatelessWidget {
               ),
             ),
       trailing: isPr ? const ClTag.pr() : null,
+    );
+  }
+}
+
+/// Settings-style group: one white card holding [ClMenuRow]s separated by
+/// hairlines, with an optional section title above. Use it to keep secondary
+/// things one tap away instead of spreading them over the screen.
+class ClMenuGroup extends StatelessWidget {
+  const ClMenuGroup({super.key, required this.children, this.title});
+
+  final String? title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.clColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (title != null) ClSectionHeader(label: title!),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(ClRadius.sm),
+            boxShadow: ClElevation.card(c.shadow),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(ClRadius.sm),
+            child: ColoredBox(
+              color: c.surface,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < children.length; i++) ...[
+                    if (i > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(left: ClSpace.s4 + ClSize.icon + ClSpace.s3),
+                        child: Container(height: ClSize.hairline, color: c.border),
+                      ),
+                    children[i],
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One row of a [ClMenuGroup]: icon, title, optional value on the right,
+/// chevron. Opens a sheet or a screen.
+class ClMenuRow extends StatelessWidget {
+  const ClMenuRow({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.onPressed,
+    this.value,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String title;
+
+  /// Short current state, e.g. `Početak`, `3`, `Gost`.
+  final String? value;
+  final VoidCallback? onPressed;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.cl;
+    final c = cl.colors;
+    final fg = danger ? c.danger : c.ink;
+    return ClPressable(
+      onPressed: onPressed,
+      radius: 0,
+      semanticLabel: value == null ? title : '$title, $value',
+      builder: (context, pressed) => AnimatedContainer(
+        duration: context.motion(ClMotion.fast),
+        color: pressed ? c.surfaceRaised : c.surface,
+        constraints: const BoxConstraints(minHeight: ClSize.targetWorkout),
+        padding: const EdgeInsets.symmetric(horizontal: ClSpace.s4, vertical: ClSpace.s3),
+        child: Row(
+          children: [
+            Icon(icon, size: ClSize.icon, color: fg),
+            const SizedBox(width: ClSpace.s3),
+            Expanded(
+              child: Text(title, style: cl.text.bodyStrong.copyWith(color: fg)),
+            ),
+            if (value != null) ...[
+              const SizedBox(width: ClSpace.s2),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 170),
+                child: Text(
+                  value!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: cl.text.body.copyWith(color: c.inkMuted),
+                ),
+              ),
+            ],
+            const SizedBox(width: ClSpace.s1),
+            Icon(ClIcons.chevron, size: 18, color: c.inkMuted),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -220,22 +347,26 @@ class ClTabs extends StatelessWidget {
 }
 
 class ClNavItem {
-  const ClNavItem({required this.label, required this.icon});
+  const ClNavItem({required this.label, required this.icon, required this.activeIcon});
 
   final String label;
   final IconData icon;
+
+  /// Solid version shown while the item is selected.
+  final IconData activeIcon;
 }
 
 const clNavItems = [
-  ClNavItem(label: 'Danas', icon: ClIcons.today),
-  ClNavItem(label: 'Plan', icon: ClIcons.plan),
-  ClNavItem(label: 'Otkrij', icon: ClIcons.discover),
-  ClNavItem(label: 'Napredak', icon: ClIcons.progress),
-  ClNavItem(label: 'Profil', icon: ClIcons.profile),
+  ClNavItem(label: 'Danas', icon: ClIcons.today, activeIcon: ClIcons.todayFilled),
+  ClNavItem(label: 'Plan', icon: ClIcons.plan, activeIcon: ClIcons.planFilled),
+  ClNavItem(label: 'Otkrij', icon: ClIcons.discover, activeIcon: ClIcons.discoverFilled),
+  ClNavItem(label: 'Napredak', icon: ClIcons.progress, activeIcon: ClIcons.progressFilled),
+  ClNavItem(label: 'Profil', icon: ClIcons.profile, activeIcon: ClIcons.profileFilled),
 ];
 
-/// Floating black bar, 5 items. Active = lime pill behind the icon and a
-/// white label; inactive = dimmed white. Black in both themes.
+/// Quiet bar on `bg` with a hairline on top, 5 items. Active = solid icon and
+/// an ink label; inactive = outline icon in `ink-muted`. No color, so the
+/// screen above keeps the attention.
 class ClBottomNav extends StatelessWidget {
   const ClBottomNav({super.key, required this.selected, required this.onChanged, this.items = clNavItems});
 
@@ -247,58 +378,49 @@ class ClBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
-    final white = c.onPhoto;
-    return ColoredBox(
-      color: c.bg,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: c.bg,
+        border: Border(top: BorderSide(color: c.border)),
+      ),
       child: SafeArea(
         top: false,
-        minimum: const EdgeInsets.only(bottom: ClSpace.s2),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(ClSpace.s3, ClSpace.s1, ClSpace.s3, 0),
-          child: Container(
-            height: 68,
-            padding: const EdgeInsets.symmetric(horizontal: ClSpace.s1),
-            decoration: BoxDecoration(color: c.onPop, borderRadius: BorderRadius.circular(ClRadius.lg)),
-            child: Row(
-              children: [
-                for (var i = 0; i < items.length; i++)
-                  Expanded(
-                    child: ClPressable(
-                      selected: i == selected,
-                      semanticLabel: items[i].label,
-                      radius: ClRadius.sm,
-                      onPressed: () => onChanged(i),
-                      builder: (context, pressed) {
-                        final active = i == selected;
-                        final color = active ? white : white.withValues(alpha: pressed ? 0.8 : 0.55);
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            AnimatedContainer(
-                              duration: context.motion(ClMotion.fast),
-                              curve: ClMotion.curve,
-                              width: 44,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: active ? c.lime : Colors.transparent,
-                                borderRadius: BorderRadius.circular(ClRadius.full),
-                              ),
-                              child: Icon(items[i].icon, size: 20, color: active ? c.onPop : color),
+        child: SizedBox(
+          height: 60,
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(
+                  child: ClPressable(
+                    selected: i == selected,
+                    semanticLabel: items[i].label,
+                    radius: ClRadius.xs,
+                    onPressed: () => onChanged(i),
+                    builder: (context, pressed) {
+                      final active = i == selected;
+                      final color = active || pressed ? c.ink : c.inkMuted;
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(active ? items[i].activeIcon : items[i].icon, size: ClSize.icon, color: color),
+                          const SizedBox(height: 3),
+                          Text(
+                            items[i].label,
+                            maxLines: 1,
+                            overflow: TextOverflow.clip,
+                            style: cl.text.label.copyWith(
+                              fontSize: 11,
+                              height: 1.2,
+                              color: color,
+                              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              items[i].label,
-                              maxLines: 1,
-                              overflow: TextOverflow.clip,
-                              style: cl.text.label.copyWith(fontSize: 10.5, height: 1.2, color: color),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),

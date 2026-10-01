@@ -174,6 +174,52 @@ void main() {
     });
   }
 
+  testWidgets('Today greets a new user differently from one between plans', (tester) async {
+    final store = await freshStore();
+    await pump(tester, store, const TodayScreen(), ClTheme.light);
+    expect(find.text('Tvoj trener.\nTvoj plan.'), findsOneWidget);
+    expect(find.text('Programi za tebe'), findsOneWidget);
+    expect(find.text('Nova nedelja.'), findsNothing);
+
+    final seasoned = await seasonedStore();
+    seasoned.leavePlan();
+    await pump(tester, seasoned, const TodayScreen(), ClTheme.light);
+    expect(find.text('Nova nedelja.'), findsOneWidget);
+    expect(find.textContaining('Do sada 4 treninga'), findsOneWidget);
+    expect(find.text('Tvoj trener.\nTvoj plan.'), findsNothing);
+  });
+
+  testWidgets('Discover marks followed and subscribed creators and lists them first', (tester) async {
+    final store = await freshStore();
+    store.toggleFollow('c_nikola');
+    store.subscribe('c_marko');
+    await pump(tester, store, const DiscoverScreen(), ClTheme.light);
+    expect(find.text('Pratiš'), findsOneWidget);
+    expect(find.text('Pretplata'), findsOneWidget);
+    double y(String name) => tester.getTopLeft(find.text(name).first).dy;
+    expect(y('Nikola Jovanović'), lessThan(y('Jelena Ilić')), reason: 'followed before more popular');
+    expect(y('Marko Petrović'), lessThan(y('Jelena Ilić')));
+  });
+
+  testWidgets('profile menus open their sheets, gender can be changed', (tester) async {
+    final store = await seasonedStore();
+    await pump(tester, store, const ProfileScreen(), ClTheme.light);
+    for (final row in ['Oprema', 'Pretplate', 'Podaci']) {
+      await tester.tap(find.text(row).hitTestable());
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Zatvori'), findsOneWidget, reason: '$row opens a sheet');
+      await tester.tap(find.bySemanticsLabel('Zatvori'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Pol').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Žensko').hitTestable());
+    await tester.pumpAndSettle();
+    expect(store.profile!.gender, Gender.female);
+    expect(find.text('Žensko'), findsOneWidget, reason: 'the menu row shows the new value');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('workout session renders mid-workout with rest timer', (tester) async {
     final store = await seasonedStore();
     store.startSession();
@@ -215,6 +261,8 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Ana');
     await tester.pump();
     await tapText('Dalje');
+    await tapText('Žensko');
+    await tapText('Dalje');
     await tapText('Opšta forma');
     await tapText('Dalje');
     await tapText('Početnik');
@@ -222,6 +270,7 @@ void main() {
     await tapText('Kod kuće');
     await tapText('Dalje');
     await tapText('Počni');
+    expect(store.profile!.gender, Gender.female);
 
     // The creator link opens the creator's profile.
     expect(find.text('Jelena Ilić'), findsWidgets);
@@ -241,7 +290,7 @@ void main() {
     await tapText('Sledeća vežba');
     await tapText('Završi trening');
     await tapText('Završi trening');
-    expect(find.text('Pojavio si se.'), findsOneWidget);
+    expect(find.text('Pojavila si se.'), findsOneWidget);
     await tapText('Gotovo');
     expect(find.text('Gornji deo'), findsOneWidget, reason: 'the plan moved to the next workout');
     expect(store.thisWeek, 1);
@@ -271,6 +320,8 @@ void main() {
     expect(find.text('Odmor.'), findsOneWidget);
 
     // Making Thursday a training day plans a workout on it.
+    await tapVisible(tester, 'Dani treninga');
+    await tester.pumpAndSettle();
     await tapVisible(tester, 'Čet');
     await tester.pump();
     expect(store.plan!.trainingDays, {1, 3, 4, 5});

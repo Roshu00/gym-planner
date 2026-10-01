@@ -174,6 +174,7 @@ class ClSetRow extends StatelessWidget {
         decoration: BoxDecoration(
           color: done ? c.lime : c.surface,
           borderRadius: BorderRadius.circular(ClRadius.sm),
+          boxShadow: done ? null : ClElevation.card(c.shadow),
           border: Border.all(
             color: done ? c.onPop : (current ? c.borderStrong : c.border),
             width: current || done ? 1.5 : 1,

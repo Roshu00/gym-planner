@@ -34,6 +34,9 @@ const _months = [
   'Decembar',
 ];
 const _weekdays = ['P', 'U', 'S', 'Č', 'P', 'S', 'N'];
+
+/// Day cell height: compact, and with the cell width still a comfortable target.
+const _cell = 42.0;
 const _weekdayNames = ['ponedeljak', 'utorak', 'sreda', 'četvrtak', 'petak', 'subota', 'nedelja'];
 
 String _markLabel(ClDayMark m) => switch (m) {
@@ -43,8 +46,8 @@ String _markLabel(ClDayMark m) => switch (m) {
   ClDayMark.none => '',
 };
 
-/// Month calendar on a white card, Monday first. Each day shows its number
-/// and one icon: done (lime), planned (lilac) or rest. Selected = ink.
+/// Compact month calendar on a white card, Monday first. Each day shows its
+/// number and a small icon: done (lime), planned (lilac) or rest. Selected = ink.
 class ClCalendar extends StatelessWidget {
   const ClCalendar({
     super.key,
@@ -75,8 +78,12 @@ class ClCalendar extends StatelessWidget {
     final rows = ((leading + daysInMonth) / 7).ceil();
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(ClSpace.s2, ClSpace.s3, ClSpace.s2, ClSpace.s3),
-      decoration: BoxDecoration(color: cl.colors.surface, borderRadius: BorderRadius.circular(ClRadius.lg)),
+      padding: const EdgeInsets.fromLTRB(ClSpace.s2, ClSpace.s1, ClSpace.s2, ClSpace.s2),
+      decoration: BoxDecoration(
+        color: cl.colors.surface,
+        borderRadius: BorderRadius.circular(ClRadius.lg),
+        boxShadow: ClElevation.card(cl.colors.shadow),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -88,7 +95,7 @@ class ClCalendar extends StatelessWidget {
                   header: true,
                   child: Text(
                     '${_months[month.month - 1]} ${month.year}',
-                    style: cl.text.displayM.copyWith(fontSize: 26, height: 1),
+                    style: cl.text.bodyStrong.copyWith(fontSize: 17),
                   ),
                 ),
               ),
@@ -104,7 +111,6 @@ class ClCalendar extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: ClSpace.s3),
           ExcludeSemantics(
             child: Row(
               children: [
@@ -115,7 +121,7 @@ class ClCalendar extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: ClSpace.s2),
+          const SizedBox(height: ClSpace.s1),
           for (var r = 0; r < rows; r++)
             Row(
               children: [
@@ -124,7 +130,7 @@ class ClCalendar extends StatelessWidget {
                     child: Builder(
                       builder: (context) {
                         final n = r * 7 + c - leading + 1;
-                        if (n < 1 || n > daysInMonth) return const SizedBox(height: ClSize.targetWorkout);
+                        if (n < 1 || n > daysInMonth) return const SizedBox(height: _cell + 2);
                         final day = DateTime(month.year, month.month, n);
                         return _DayCell(
                           day: day,
@@ -180,7 +186,7 @@ class _DayCell extends StatelessWidget {
     ].join(', ');
 
     return Padding(
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.all(1),
       child: ClPressable(
         onPressed: onTap,
         selected: isSelected,
@@ -188,7 +194,7 @@ class _DayCell extends StatelessWidget {
         builder: (context, pressed) => AnimatedContainer(
           duration: context.motion(ClMotion.fast),
           curve: ClMotion.curve,
-          height: ClSize.targetWorkout,
+          height: _cell,
           decoration: BoxDecoration(
             color: pressed && fill == null && !isSelected ? c.surfaceRaised : bg,
             borderRadius: BorderRadius.circular(ClRadius.xs + 4),
@@ -197,9 +203,9 @@ class _DayCell extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('${day.day}', style: cl.text.data.copyWith(color: fg, fontSize: 14)),
-              const SizedBox(height: 2),
-              SizedBox(height: 16, child: icon == null ? null : Icon(icon, size: 16, color: iconColor)),
+              Text('${day.day}', style: cl.text.data.copyWith(color: fg, fontSize: 13, height: 1.1)),
+              const SizedBox(height: 1),
+              SizedBox(height: 13, child: icon == null ? null : Icon(icon, size: 13, color: iconColor)),
             ],
           ),
         ),
@@ -220,10 +226,10 @@ class ClCalendarLegend extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(7)),
-          child: Icon(icon, size: 14, color: fill == null ? c.inkMuted : c.onPop),
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(6)),
+          child: Icon(icon, size: 12, color: fill == null ? c.inkMuted : c.onPop),
         ),
         const SizedBox(width: ClSpace.s1 + 2),
         Text(text, style: cl.text.label),

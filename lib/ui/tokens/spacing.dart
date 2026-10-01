@@ -1,4 +1,5 @@
 import 'package:flutter/animation.dart';
+import 'package:flutter/painting.dart';
 
 abstract final class ClSpace {
   static const double s1 = 4;
@@ -47,4 +48,18 @@ abstract final class ClMotion {
   static const base = Duration(milliseconds: 200);
   static const sheet = Duration(milliseconds: 250);
   static const curve = Curves.easeOut;
+}
+
+/// Soft shadow that lifts white cards off the warm background. Only on
+/// `surface` cards (rows, tiles, menus, calendar); pop blocks and controls
+/// stay flat.
+abstract final class ClElevation {
+  static List<BoxShadow> card(Color shadow) => [
+    BoxShadow(color: shadow, blurRadius: 18, spreadRadius: -6, offset: const Offset(0, 6)),
+    BoxShadow(
+      color: shadow.withValues(alpha: shadow.a * 0.5),
+      blurRadius: 3,
+      offset: const Offset(0, 1),
+    ),
+  ];
 }

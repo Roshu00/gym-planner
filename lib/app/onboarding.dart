@@ -5,7 +5,7 @@ import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 
-/// Name, goal, experience, where the user trains and their equipment.
+/// Name, gender, goal, experience, where the user trains and their equipment.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, this.invitedBy});
 
@@ -17,9 +17,10 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  static const _steps = 5;
+  static const _steps = 6;
   int _step = 0;
   final _name = TextEditingController();
+  Gender? _gender;
   Goal? _goal;
   Experience? _experience;
   Place? _place;
@@ -33,9 +34,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   bool get _valid => switch (_step) {
     0 => _name.text.trim().isNotEmpty,
-    1 => _goal != null,
-    2 => _experience != null,
-    3 => _place != null,
+    1 => _gender != null,
+    2 => _goal != null,
+    3 => _experience != null,
+    4 => _place != null,
     _ => true,
   };
 
@@ -48,6 +50,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     context.readStore.completeOnboarding(
       UserProfile(
         name: _name.text.trim(),
+        gender: _gender!,
         goal: _goal!,
         experience: _experience!,
         place: _place!,
@@ -69,6 +72,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final (String title, Widget body) = switch (_step) {
       0 => ('Kako se zoveš?', _nameStep(cl)),
       1 => (
+        'Pol.',
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Da bi ti se aplikacija obraćala kako treba.',
+              style: cl.text.body.copyWith(color: cl.colors.inkMuted),
+            ),
+            gapS,
+            for (final g in Gender.values)
+              ClOptionRow(
+                title: g.label,
+                selected: _gender == g,
+                onPressed: () => setState(() => _gender = g),
+              ),
+          ],
+        ),
+      ),
+      2 => (
         'Tvoj cilj.',
         Column(
           children: [
@@ -77,7 +99,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ],
         ),
       ),
-      2 => (
+      3 => (
         'Iskustvo.',
         Column(
           children: [
@@ -95,7 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ],
         ),
       ),
-      3 => (
+      4 => (
         'Gde treniraš?',
         Column(
           children: [

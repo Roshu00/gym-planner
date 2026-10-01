@@ -38,9 +38,12 @@ flutter:
           weight: 700
         - asset: assets/fonts/Bricolage-Display-800.ttf
           weight: 800
-    - family: PhosphorLight
+    - family: PhosphorRegular
       fonts:
-        - asset: assets/icons/Phosphor-Light.ttf
+        - asset: assets/icons/Phosphor-Regular.ttf
+    - family: PhosphorFill
+      fonts:
+        - asset: assets/icons/Phosphor-Fill.ttf
     - family: PhosphorBold
       fonts:
         - asset: assets/icons/Phosphor-Bold.ttf

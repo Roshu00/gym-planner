@@ -84,6 +84,7 @@ class ClOptionRow extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected ? c.lime : (pressed ? c.surfaceRaised : c.surface),
             borderRadius: BorderRadius.circular(ClRadius.sm),
+            boxShadow: selected ? null : ClElevation.card(c.shadow),
             border: Border.all(color: selected ? c.onPop : Colors.transparent, width: 1.5),
           ),
           child: Row(
@@ -184,7 +185,11 @@ class ClEmptyState extends StatelessWidget {
     final cl = context.cl;
     return Container(
       padding: const EdgeInsets.all(ClSpace.s6 - 4),
-      decoration: BoxDecoration(color: cl.colors.surface, borderRadius: BorderRadius.circular(ClRadius.lg)),
+      decoration: BoxDecoration(
+        color: cl.colors.surface,
+        borderRadius: BorderRadius.circular(ClRadius.lg),
+        boxShadow: ClElevation.card(cl.colors.shadow),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -36,13 +36,46 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     return true;
   }
 
+  Future<void> _openFilters() => showClSheet<void>(
+    context,
+    title: 'Filteri',
+    builder: (context) => StatefulBuilder(
+      builder: (context, setSheet) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: ClSpace.s2,
+            children: [
+              for (final group in _groups)
+                for (final (label, _) in group)
+                  ClFilter(
+                    label: label,
+                    selected: _filters.contains(label),
+                    onChanged: (on) {
+                      setState(() => _filters = on ? {..._filters, label} : ({..._filters}..remove(label)));
+                      setSheet(() {});
+                    },
+                  ),
+            ],
+          ),
+          gapS,
+          ClButton(label: 'Prikaži', expand: true, onPressed: () => Navigator.of(context).pop()),
+        ],
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final store = context.store;
     final programs = store.allPrograms.where((p) => p.workoutIds.isNotEmpty && _matches(p)).toList();
     final creatorIds = programs.map((p) => p.creatorId).toSet();
     final creators = store.creators.where((c) => creatorIds.contains(c.id)).toList()
-      ..sort((a, b) => b.followers.compareTo(a.followers));
+      // Creators the user already follows come first.
+      ..sort((a, b) {
+        final followed = store.isFollowing(b.id).toString().compareTo(store.isFollowing(a.id).toString());
+        return followed != 0 ? followed : b.followers.compareTo(a.followers);
+      });
 
     final header = [
       const SizedBox(height: ClSpace.s4),
@@ -67,29 +100,38 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     return AppScreen(
       children: [
         ...header,
-        ClButton(
-          label: 'Pronađi plan za sebe',
-          variant: ClButtonVariant.secondary,
-          icon: ClIcons.find,
-          expand: true,
-          onPressed: () => pushScreen(context, const PlanFinderScreen()),
-        ),
-        gap,
-        Text('Filteri', style: context.clText.label),
-        const SizedBox(height: ClSpace.s1),
-        Wrap(
-          spacing: ClSpace.s2,
+        Row(
           children: [
-            for (final group in _groups)
-              for (final (label, _) in group)
-                ClFilter(
-                  label: label,
-                  selected: _filters.contains(label),
-                  onChanged: (on) =>
-                      setState(() => _filters = on ? {..._filters, label} : ({..._filters}..remove(label))),
-                ),
+            Expanded(
+              child: ClButton(
+                label: 'Pronađi plan za sebe',
+                icon: ClIcons.find,
+                expand: true,
+                onPressed: () => pushScreen(context, const PlanFinderScreen()),
+              ),
+            ),
+            const SizedBox(width: ClSpace.s2),
+            ClButton(
+              label: _filters.isEmpty ? 'Filteri' : 'Filteri · ${_filters.length}',
+              variant: ClButtonVariant.secondary,
+              onPressed: _openFilters,
+            ),
           ],
         ),
+        if (_filters.isNotEmpty) ...[
+          const SizedBox(height: ClSpace.s2),
+          Wrap(
+            spacing: ClSpace.s2,
+            children: [
+              for (final f in _filters)
+                ClFilter(
+                  label: f,
+                  selected: true,
+                  onChanged: (_) => setState(() => _filters = {..._filters}..remove(f)),
+                ),
+            ],
+          ),
+        ],
         gap,
         ClSectionHeader(
           label: 'Treneri',
@@ -97,6 +139,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         ),
         for (final c in creators)
           ClCreatorRow(
+            status: followStatus(store, c.id),
             name: c.name,
             handle: '@${c.handle} · ${c.tagline}',
             followers: formatCompact(c.followers),

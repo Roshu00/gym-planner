@@ -108,6 +108,7 @@ Program programFromRow(Row r) => Program(
 Row profileRow(UserProfile p, String userId) => {
   'user_id': userId,
   'name': p.name,
+  'gender': p.gender.name,
   'goal': p.goal.name,
   'experience': p.experience.name,
   'place': p.place.name,
@@ -117,6 +118,7 @@ Row profileRow(UserProfile p, String userId) => {
 
 UserProfile profileFromRow(Row r) => UserProfile(
   name: r['name'] as String,
+  gender: _enum(Gender.values, r['gender'], Gender.unspecified),
   goal: _enum(Goal.values, r['goal'], Goal.general),
   experience: _enum(Experience.values, r['experience'], Experience.beginner),
   place: _enum(Place.values, r['place'], Place.gym),

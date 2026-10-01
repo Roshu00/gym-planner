@@ -49,6 +49,15 @@ void main() {
     expect(store.workoutsById.containsKey('w_m_upper'), isFalse, reason: 'subscriber workout is locked');
   });
 
+  test('gender survives the profile row and local JSON', () {
+    final p = profile.copyWith(gender: Gender.female);
+    expect(profileFromRow(profileRow(p, 'u1')).gender, Gender.female);
+    expect(UserProfile.fromJson(p.toJson()).gender, Gender.female);
+    expect(UserProfile.fromJson({'name': 'Stari'}).gender, Gender.unspecified, reason: 'older caches');
+    expect(p.says('Pojavio', 'Pojavila'), 'Pojavila');
+    expect(profile.says('Pojavio', 'Pojavila'), 'Pojavio');
+  });
+
   test('changes reach the server in order', () async {
     final store = await open();
     store.completeOnboarding(profile);

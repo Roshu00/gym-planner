@@ -47,7 +47,11 @@ class ClLineChart extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.all(ClSpace.s4),
-        decoration: BoxDecoration(color: cl.colors.surface, borderRadius: BorderRadius.circular(ClRadius.lg)),
+        decoration: BoxDecoration(
+          color: cl.colors.surface,
+          borderRadius: BorderRadius.circular(ClRadius.lg),
+          boxShadow: ClElevation.card(cl.colors.shadow),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

@@ -42,7 +42,7 @@ final _foundations = [
   GallerySection('Boje', 'Tokeni, tamna i svetla tema', (_) => const ColorsPage()),
   GallerySection('Tipografija', 'Bricolage Grotesque', (_) => const TypographyPage()),
   GallerySection('Razmaci i oblici', 'Space, radius, veličine', (_) => const SpacingPage()),
-  GallerySection('Ikone', 'Phosphor Light', (_) => const IconsPage()),
+  GallerySection('Ikone', 'Phosphor Regular i Fill', (_) => const IconsPage()),
 ];
 
 final _components = [

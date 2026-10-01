@@ -13,15 +13,27 @@ enum ClTagVariant {
 
   /// Outline in danger.
   danger,
+
+  /// Lime fill: a state the user chose, e.g. `Pratiš`.
+  active,
 }
 
 /// 20px pill, 11/800.
 class ClTag extends StatefulWidget {
-  const ClTag(this.label, {super.key, this.variant = ClTagVariant.outline, this.animateIn = false});
+  const ClTag(
+    this.label, {
+    super.key,
+    this.variant = ClTagVariant.outline,
+    this.animateIn = false,
+    this.icon,
+  });
 
-  const ClTag.pr({super.key, this.animateIn = false}) : label = 'PR', variant = ClTagVariant.pr;
+  const ClTag.pr({super.key, this.animateIn = false}) : label = 'PR', variant = ClTagVariant.pr, icon = null;
 
   final String label;
+
+  /// Small leading icon, e.g. a check on `Pratiš`.
+  final IconData? icon;
   final ClTagVariant variant;
 
   /// Scale in once (a freshly set record).
@@ -59,6 +71,7 @@ class _ClTagState extends State<ClTag> with SingleTickerProviderStateMixin {
       ClTagVariant.pr => (c.onPop, c.lime, null),
       ClTagVariant.outline => (null, c.ink, c.borderStrong),
       ClTagVariant.danger => (null, c.danger, c.danger),
+      ClTagVariant.active => (c.lime, c.onPop, null),
     };
     return ScaleTransition(
       scale: CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack),
@@ -72,7 +85,13 @@ class _ClTagState extends State<ClTag> with SingleTickerProviderStateMixin {
         ),
         child: Center(
           widthFactor: 1,
-          child: Text(widget.label, style: cl.text.tag.copyWith(color: fg)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.icon != null) ...[Icon(widget.icon, size: 12, color: fg), const SizedBox(width: 3)],
+              Text(widget.label, style: cl.text.tag.copyWith(color: fg)),
+            ],
+          ),
         ),
       ),
     );

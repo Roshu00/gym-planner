@@ -110,12 +110,33 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   }
 
   Future<void> _menu() async {
+    final i = _exercise!;
+    final sets = _store.active!.exercises[i].sets;
+    final canRemove = sets.length > 1 && !sets.last.done;
     final action = await showClSheet<String>(
       context,
       title: 'Trening',
       builder: (context) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          ClButton(
+            label: 'Dodaj set',
+            variant: ClButtonVariant.secondary,
+            icon: ClIcons.add,
+            expand: true,
+            onPressed: () => Navigator.of(context).pop('add'),
+          ),
+          if (canRemove) ...[
+            const SizedBox(height: ClSpace.s3),
+            ClButton(
+              label: 'Ukloni poslednji set',
+              variant: ClButtonVariant.secondary,
+              icon: ClIcons.remove,
+              expand: true,
+              onPressed: () => Navigator.of(context).pop('remove'),
+            ),
+          ],
+          const SizedBox(height: ClSpace.s3),
           ClButton(
             label: 'Zameni vežbu',
             variant: ClButtonVariant.secondary,
@@ -134,6 +155,8 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       ),
     );
     if (!mounted) return;
+    if (action == 'add') return _store.addSet(i);
+    if (action == 'remove') return _store.removeSet(i, sets.length - 1);
     if (action == 'swap') return _swap();
     if (action == 'discard') {
       final ok = await confirmClSheet(
@@ -223,18 +246,6 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         const SizedBox(height: ClSpace.s6),
         ClSetTable(sets: rows, onChanged: _onChanged, onToggleDone: _toggle),
         if (_notice != null) ...[const SizedBox(height: ClSpace.s2), ClNotice(_notice!, danger: true)],
-        Row(
-          children: [
-            ClButton(label: 'Dodaj set', variant: ClButtonVariant.text, onPressed: () => store.addSet(i)),
-            const Spacer(),
-            if (e.sets.length > 1 && !e.sets.last.done)
-              ClButton(
-                label: 'Ukloni set',
-                variant: ClButtonVariant.text,
-                onPressed: () => store.removeSet(i, e.sets.length - 1),
-              ),
-          ],
-        ),
         if (_resting) ...[
           gapS,
           ClRestTimer(

@@ -124,6 +124,10 @@ insert into public.profiles (user_id, name, goal, experience, place, days_per_we
   values ('00000000-0000-0000-0000-00000000000b', 'Boban B.', 'strength', 'beginner', 'home', 4)
   on conflict (user_id) do update set name = excluded.name, days_per_week = excluded.days_per_week;
 select pg_temp.check((select days_per_week from public.profiles) = 4, 'profile upsert updates');
+select pg_temp.check((select gender from public.profiles) = 'unspecified', 'gender defaults to unspecified');
+update public.profiles set gender = 'female';
+select pg_temp.check((select gender from public.profiles) = 'female', 'gender can be set');
+select pg_temp.check(pg_temp.fails($$update public.profiles set gender = 'x'$$) = '23514', 'gender is checked');
 
 -- ── Ana cannot see Boban's data; Boban cancels.
 select pg_temp.act_as('ana');

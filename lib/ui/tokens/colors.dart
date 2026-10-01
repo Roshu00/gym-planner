@@ -30,6 +30,7 @@ class ClColors {
     required this.photoEmpty,
     required this.photoScrim,
     required this.onPhoto,
+    required this.shadow,
   });
 
   final Brightness brightness;
@@ -71,6 +72,9 @@ class ClColors {
   /// Text over photos. White in both themes, always on [photoScrim].
   final Color onPhoto;
 
+  /// Soft warm shadow under white cards (see `ClElevation`).
+  final Color shadow;
+
   Color get lime => _lime;
   Color get lilac => _lilac;
   Color get peach => _peach;
@@ -103,6 +107,7 @@ class ClColors {
     photoEmpty: Color(0xFF1F1E1B),
     photoScrim: Color(0x8C000000),
     onPhoto: Color(0xFFFFFFFF),
+    shadow: Color(0x1F3B3426),
   );
 
   static const dark = ClColors(
@@ -124,6 +129,7 @@ class ClColors {
     photoEmpty: Color(0xFF2A2927),
     photoScrim: Color(0x8C000000),
     onPhoto: Color(0xFFFFFFFF),
+    shadow: Color(0x73000000),
   );
 
   /// Name/value pairs, for the gallery swatches.

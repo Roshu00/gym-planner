@@ -64,6 +64,16 @@ enum Place {
   final String label;
 }
 
+/// Used to address the user in Serbian (`Pojavio/Pojavila si se.`).
+enum Gender {
+  female('Žensko'),
+  male('Muško'),
+  unspecified('Ne želim da kažem');
+
+  const Gender(this.label);
+  final String label;
+}
+
 enum Audience {
   public('Javno'),
   subscribers('Za pretplatnike');
@@ -351,9 +361,11 @@ class UserProfile {
     required this.place,
     required this.daysPerWeek,
     required this.equipment,
+    this.gender = Gender.unspecified,
   });
 
   final String name;
+  final Gender gender;
   final Goal goal;
   final Experience experience;
   final Place place;
@@ -362,17 +374,24 @@ class UserProfile {
   final int daysPerWeek;
   final Set<Equipment> equipment;
 
-  UserProfile copyWith({int? daysPerWeek, Set<Equipment>? equipment, String? name}) => UserProfile(
-    name: name ?? this.name,
-    goal: goal,
-    experience: experience,
-    place: place,
-    daysPerWeek: daysPerWeek ?? this.daysPerWeek,
-    equipment: equipment ?? this.equipment,
-  );
+  UserProfile copyWith({int? daysPerWeek, Set<Equipment>? equipment, String? name, Gender? gender}) =>
+      UserProfile(
+        name: name ?? this.name,
+        gender: gender ?? this.gender,
+        goal: goal,
+        experience: experience,
+        place: place,
+        daysPerWeek: daysPerWeek ?? this.daysPerWeek,
+        equipment: equipment ?? this.equipment,
+      );
+
+  /// Picks the grammatical form for this user: [female] for women, [male]
+  /// otherwise (Serbian's default when gender is not given).
+  String says(String male, String female) => gender == Gender.female ? female : male;
 
   Map<String, Object?> toJson() => {
     'name': name,
+    'gender': gender.name,
     'goal': goal.name,
     'experience': experience.name,
     'place': place.name,
@@ -382,6 +401,7 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, Object?> j) => UserProfile(
     name: j['name'] as String? ?? '',
+    gender: _enum(Gender.values, j['gender'], Gender.unspecified),
     goal: _enum(Goal.values, j['goal'], Goal.general),
     experience: _enum(Experience.values, j['experience'], Experience.beginner),
     place: _enum(Place.values, j['place'], Place.gym),

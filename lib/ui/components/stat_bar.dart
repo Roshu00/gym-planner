@@ -71,6 +71,7 @@ class _StatCell extends StatelessWidget {
         decoration: BoxDecoration(
           color: stat.highlight ? c.lime : c.surface,
           borderRadius: BorderRadius.circular(ClRadius.sm),
+          boxShadow: stat.highlight ? null : ClElevation.card(c.shadow),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

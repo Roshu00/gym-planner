@@ -266,7 +266,7 @@ class IconsPage extends StatelessWidget {
     final cl = context.cl;
     return GalleryPage(
       title: 'Ikone',
-      rules: const ['Tanke, 24px, boja teksta. Koristi retko: tekst je bolji od ikone.'],
+      rules: const ['Phosphor Regular, 24px, boja teksta. Puna verzija samo za aktivnu stavku navigacije.'],
       children: [
         Specimen(
           label: 'ClIcons',
@@ -315,7 +315,8 @@ class _ButtonsPageState extends State<ButtonsPage> {
       title: 'Button',
       rules: const [
         'Jedno primary dugme po ekranu: crna pilula. 1–2 reči, glagol prvi.',
-        'Pop (limeta) samo za akciju koja mora da iskoči. Dugme samo s ikonom mora imati opis.',
+        'Pop (limeta) samo za akciju koja mora da iskoči. Text je običan crn link, bez podvlačenja.',
+        'Dugme samo s ikonom mora imati opis za čitač ekrana.',
       ],
       children: [
         Specimen(
@@ -908,7 +909,10 @@ class _ListsPageState extends State<ListsPage> {
     const tabs = ['Vežbe', 'Treninzi', 'Programi'];
     return GalleryPage(
       title: 'Liste i tabovi',
-      rules: const ['Svaki red je bela zaobljena kartica sa razmakom od 8px.'],
+      rules: const [
+        'Svaki red je bela zaobljena kartica sa razmakom od 8px.',
+        'Sporedne stvari idu u meni grupu: jedan red otvara panel ili ekran.',
+      ],
       children: [
         Specimen(
           label: 'ClTabs',
@@ -960,7 +964,7 @@ class _ListsPageState extends State<ListsPage> {
           ),
         ),
         Specimen(
-          label: 'ClCreatorRow',
+          label: 'ClCreatorRow · ne pratiš, pratiš, pretplata',
           child: Column(
             children: [
               ClCreatorRow(
@@ -970,17 +974,31 @@ class _ListsPageState extends State<ListsPage> {
                 onPressed: () {},
               ),
               ClCreatorRow(
+                status: ClFollowStatus.following,
                 name: 'Jelena Ilić',
                 handle: '@jelena.moves',
                 followers: formatCompact(126000),
                 onPressed: () {},
               ),
               ClCreatorRow(
+                status: ClFollowStatus.subscribed,
                 name: 'Nikola Jovanović',
                 handle: '@nikola.fit',
                 followers: formatCompact(9400),
                 onPressed: () {},
               ),
+            ],
+          ),
+        ),
+        Specimen(
+          label: 'ClMenuGroup · ClMenuRow',
+          child: ClMenuGroup(
+            title: 'Treniranje',
+            children: [
+              ClMenuRow(icon: ClIcons.plan, title: 'Moj plan', value: 'Snaga 8', onPressed: () {}),
+              ClMenuRow(icon: ClIcons.subscriptions, title: 'Pretplate', value: '2', onPressed: () {}),
+              ClMenuRow(icon: ClIcons.barbell, title: 'Oprema', value: '6 komada', onPressed: () {}),
+              ClMenuRow(icon: ClIcons.signOut, title: 'Odjavi se', danger: true, onPressed: () {}),
             ],
           ),
         ),
@@ -1168,7 +1186,7 @@ class _NavPageState extends State<NavPage> {
   Widget build(BuildContext context) {
     return GalleryPage(
       title: 'Navigacija',
-      rules: const ['Plutajuća crna traka, 5 stavki. Aktivna ima limeta pilulu iza ikone.'],
+      rules: const ['Mirna traka na pozadini, 5 stavki. Aktivna ima punu ikonu i crn tekst, bez boje.'],
       children: [
         Specimen(
           label: 'ClBottomNav · ${clNavItems[_index].label}',
@@ -1347,7 +1365,8 @@ class _CalendarPageState extends State<CalendarPage> {
       title: 'Kalendar',
       rules: const [
         'Danas je unapred izabran i ima okvir. Izabran dan je crn.',
-        'Urađen trening je limeta sa kvačicom, planiran lila sa šipkom, odmor mesec. Propušten dan je samo odmor.',
+        'Kompaktan: urađen trening je limeta sa kvačicom, planiran lila sa šipkom, odmor mesec.',
+        'Propušten dan je samo odmor. Statistika ne stoji iznad kalendara.',
       ],
       children: [
         Specimen(

@@ -101,6 +101,13 @@ class AppScreen extends StatelessWidget {
   }
 }
 
+/// Whether the user follows or subscribes to a creator, for creator rows.
+ClFollowStatus followStatus(AppStore store, String creatorId) => store.subscriptions.contains(creatorId)
+    ? ClFollowStatus.subscribed
+    : store.follows.contains(creatorId)
+    ? ClFollowStatus.following
+    : ClFollowStatus.none;
+
 /// Vertical rhythm between blocks.
 const gap = SizedBox(height: ClSpace.s6);
 const gapS = SizedBox(height: ClSpace.s4);

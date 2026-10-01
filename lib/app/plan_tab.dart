@@ -56,11 +56,6 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
       return plan == null ? ClDayMark.none : ClDayMark.rest;
     }
 
-    final monthSessions = store.sessions.where((s) {
-      final d = s.finishedAt!;
-      return d.year == month.year && d.month == month.month;
-    }).length;
-
     final plannedId = schedule[selected];
     final isToday = selected == today;
     final daySessions = sessionsOn(store.sessions, selected);
@@ -81,26 +76,13 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
         ClScreenTitle(
           label: plan == null
               ? 'Istorija i planirani dani'
-              : '${plan.name} · ${store.creator(plan.creatorId)?.name ?? ''}',
+              : store.weeklyGoal == 0
+              ? plan.name
+              : '${plan.name} · ${store.thisWeek} od ${store.weeklyGoal} ove nedelje',
           title: 'Plan',
           large: true,
         ),
-        const SizedBox(height: ClSpace.s6),
-        ClStatBar(
-          stats: [
-            ClStat(
-              label: 'Ova nedelja',
-              value: store.weeklyGoal == 0 ? '${store.thisWeek}' : '${store.thisWeek}/${store.weeklyGoal}',
-              highlight: true,
-            ),
-            ClStat(label: 'Niz', value: '${store.streak}', unit: 'ned.'),
-            ClStat(label: 'Ovaj mesec', value: '$monthSessions'),
-          ],
-          segments: store.weeklyGoal == 0
-              ? null
-              : ClSegmentBar(total: store.weeklyGoal, done: store.thisWeek.clamp(0, store.weeklyGoal)),
-        ),
-        gap,
+        gapS,
         ClCalendar(
           month: month,
           selected: selected,
@@ -109,8 +91,11 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
           onSelect: (d) => setState(() => _selected = d),
           onMonthChanged: (m) => setState(() => _month = m),
         ),
-        const SizedBox(height: ClSpace.s3),
-        const ClCalendarLegend(),
+        const SizedBox(height: ClSpace.s2),
+        const Padding(
+          padding: EdgeInsets.only(left: ClSpace.s1),
+          child: ClCalendarLegend(),
+        ),
         gap,
         ClSectionHeader(
           label:
@@ -119,32 +104,24 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
         ..._dayDetail(context, selected, today, daySessions, plannedId, schedule, markFor(selected)),
         if (plan != null) ...[
           gap,
-          const ClSectionHeader(label: 'Dani treninga'),
-          Wrap(
-            spacing: ClSpace.s2,
+          ClMenuGroup(
             children: [
-              for (var d = 1; d <= 7; d++)
-                ClFilter(
-                  label: _dayShort[d - 1],
-                  selected: plan.trainingDays.contains(d),
-                  onChanged: (on) {
-                    final days = on ? {...plan.trainingDays, d} : ({...plan.trainingDays}..remove(d));
-                    if (days.isNotEmpty) context.readStore.setTrainingDays(days);
-                  },
+              ClMenuRow(
+                icon: ClIcons.days,
+                title: 'Dani treninga',
+                value: [for (final d in plan.trainingDays.toList()..sort()) _dayShort[d - 1]].join(', '),
+                onPressed: () => showClSheet<void>(
+                  context,
+                  title: 'Dani treninga',
+                  builder: (_) => const _TrainingDaysSheet(),
                 ),
+              ),
+              ClMenuRow(
+                icon: ClIcons.swap,
+                title: 'Program i zamene vežbi',
+                onPressed: () => pushScreen(context, const PlanScreen()),
+              ),
             ],
-          ),
-          const SizedBox(height: ClSpace.s2),
-          ClNotice(
-            'Program predviđa ${plan.daysPerWeek}× nedeljno. Propušten dan samo pomera sledeći trening, niz se ne prekida.',
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: ClButton(
-              label: 'Program i zamene vežbi',
-              variant: ClButtonVariant.text,
-              onPressed: () => pushScreen(context, const PlanScreen()),
-            ),
           ),
         ],
       ],
@@ -237,5 +214,38 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
       ];
     }
     return [Text('Tog dana nije bilo treninga.', style: muted)];
+  }
+}
+
+class _TrainingDaysSheet extends StatelessWidget {
+  const _TrainingDaysSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final plan = context.store.plan;
+    if (plan == null) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          spacing: ClSpace.s2,
+          children: [
+            for (var d = 1; d <= 7; d++)
+              ClFilter(
+                label: _dayShort[d - 1],
+                selected: plan.trainingDays.contains(d),
+                onChanged: (on) {
+                  final days = on ? {...plan.trainingDays, d} : ({...plan.trainingDays}..remove(d));
+                  if (days.isNotEmpty) context.readStore.setTrainingDays(days);
+                },
+              ),
+          ],
+        ),
+        gapS,
+        ClNotice(
+          'Program predviđa ${plan.daysPerWeek}× nedeljno. Propušten dan samo pomera sledeći trening, niz se ne prekida.',
+        ),
+      ],
+    );
   }
 }

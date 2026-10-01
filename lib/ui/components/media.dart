@@ -82,9 +82,16 @@ class ClPhotoScrim extends StatelessWidget {
 
 /// Circle with initials on a pop color, or a photo. 28px in lists, 56px on the profile.
 class ClAvatar extends StatelessWidget {
-  const ClAvatar({super.key, required this.name, this.image, this.size = ClSize.avatarList, this.color});
+  const ClAvatar({
+    super.key,
+    required this.name,
+    this.image,
+    this.size = ClSize.avatarList,
+    this.color,
+    this.ring = false,
+  });
 
-  const ClAvatar.profile({super.key, required this.name, this.image, this.color})
+  const ClAvatar.profile({super.key, required this.name, this.image, this.color, this.ring = false})
     : size = ClSize.avatarProfile;
 
   final String name;
@@ -93,6 +100,9 @@ class ClAvatar extends StatelessWidget {
 
   /// Fill behind the initials. Defaults to a pop color picked from [name].
   final Color? color;
+
+  /// Ink ring with a gap, like a story ring: the user follows this person.
+  final bool ring;
 
   String get _initials {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
@@ -121,12 +131,21 @@ class ClAvatar extends StatelessWidget {
       image: true,
       child: SizedBox.square(
         dimension: size,
-        child: ClipOval(
-          child: ColoredBox(
-            color: color ?? cl.colors.popFor(name),
-            child: image == null
-                ? initials
-                : Image(image: image!, fit: BoxFit.cover, errorBuilder: (context, e, s) => initials),
+        child: Container(
+          padding: EdgeInsets.all(ring ? 4.5 : 0),
+          decoration: ring
+              ? BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: cl.colors.onPop, width: 2),
+                )
+              : null,
+          child: ClipOval(
+            child: ColoredBox(
+              color: color ?? cl.colors.popFor(name),
+              child: image == null
+                  ? initials
+                  : Image(image: image!, fit: BoxFit.cover, errorBuilder: (context, e, s) => initials),
+            ),
           ),
         ),
       ),

@@ -8,9 +8,12 @@ import 'auth_screen.dart';
 import 'common.dart';
 import 'creator_mode.dart';
 import 'creator_profile.dart';
+import 'plan_finder.dart';
 import 'plan_screen.dart';
+import 'shell.dart';
 
-/// The user: equipment, subscriptions, plan, creator mode, account.
+/// The user: a short header, then everything else grouped in menus that
+/// open sheets, so the screen stays easy to scan.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -19,26 +22,164 @@ class ProfileScreen extends StatelessWidget {
     final store = context.store;
     final profile = store.profile;
     if (profile == null) return const SizedBox.shrink();
-    final cl = context.cl;
     final subs = store.creators.where((c) => store.subscriptions.contains(c.id)).toList();
+    final plan = store.plan;
+    final account = store.account;
 
     return AppScreen(
       children: [
         const SizedBox(height: ClSpace.s4),
-        ClScreenTitle(
-          label: '${profile.goal.label} · ${profile.experience.label} · ${profile.place.label}',
-          title: profile.name,
+        Row(
+          children: [
+            ClAvatar.profile(name: profile.name),
+            const SizedBox(width: ClSpace.s4),
+            Expanded(
+              child: ClScreenTitle(
+                title: profile.name,
+                label: '${profile.goal.label} · ${profile.experience.label} · ${profile.place.label}',
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: ClSpace.s6),
+        gap,
         ClStatBar(
           stats: [
             ClStat(label: 'Treninzi', value: '${store.sessions.length}'),
             ClStat(label: 'Niz', value: '${store.streak}', unit: 'ned.', highlight: true),
-            ClStat(label: 'Pretplate', value: '${subs.length}'),
+            ClStat(label: 'Rekordi', value: '${store.sessions.fold(0, (n, s) => n + s.prCount)}'),
           ],
         ),
         gap,
-        const ClSectionHeader(label: 'Oprema'),
+        ClMenuGroup(
+          title: 'Treniranje',
+          children: [
+            ClMenuRow(
+              icon: ClIcons.plan,
+              title: 'Moj plan',
+              value: plan?.name ?? 'Nema',
+              onPressed: () =>
+                  pushScreen(context, plan == null ? const PlanFinderScreen() : const PlanScreen()),
+            ),
+            ClMenuRow(
+              icon: ClIcons.subscriptions,
+              title: 'Pretplate',
+              value: subs.isEmpty ? 'Nema' : '${subs.length}',
+              onPressed: () =>
+                  showClSheet<void>(context, title: 'Pretplate', builder: (_) => const _SubscriptionsSheet()),
+            ),
+            ClMenuRow(
+              icon: ClIcons.barbell,
+              title: 'Oprema',
+              value: countLabel(
+                profile.equipment.where((e) => e != Equipment.bodyweight).length,
+                'komad',
+                'komada',
+                'komada',
+              ),
+              onPressed: () =>
+                  showClSheet<void>(context, title: 'Oprema', builder: (_) => const _EquipmentSheet()),
+            ),
+          ],
+        ),
+        gap,
+        ClMenuGroup(
+          title: 'Podešavanja',
+          children: [
+            ClMenuRow(
+              icon: ClIcons.account,
+              title: 'Pol',
+              value: profile.gender.label,
+              onPressed: () => showClSheet<void>(context, title: 'Pol', builder: (_) => const _GenderSheet()),
+            ),
+            ClMenuRow(
+              icon: store.isCloud ? ClIcons.sync : ClIcons.settings,
+              title: store.isCloud ? 'Nalog i sinhronizacija' : 'Podaci',
+              value: !store.isCloud
+                  ? 'Na uređaju'
+                  : (store.pendingChanges > 0 || store.syncError != null)
+                  ? 'Čeka slanje'
+                  : (account?.isGuest ?? false)
+                  ? 'Gost'
+                  : null,
+              onPressed: () => showClSheet<void>(
+                context,
+                title: store.isCloud ? 'Nalog' : 'Podaci',
+                builder: (_) => const _DataSection(),
+              ),
+            ),
+          ],
+        ),
+        gap,
+        ClMenuGroup(
+          title: 'Za trenere',
+          children: [
+            ClMenuRow(
+              icon: ClIcons.creators,
+              title: 'Režim kreatora',
+              value: store.myCreator == null ? null : '@${store.myCreator!.handle}',
+              onPressed: () => pushScreen(context, const CreatorModeScreen(), theme: ClTheme.light),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SubscriptionsSheet extends StatelessWidget {
+  const _SubscriptionsSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final subs = store.creators.where((c) => store.subscriptions.contains(c.id)).toList();
+    if (subs.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const ClNotice(
+            'Nemaš pretplate. Sadržaj za pretplatnike je zaključan dok se ne pretplatiš kod trenera.',
+          ),
+          gapS,
+          ClButton(
+            label: 'Otkrij trenere',
+            variant: ClButtonVariant.secondary,
+            expand: true,
+            onPressed: () {
+              Navigator.of(context).pop();
+              HomeShell.goTo(context, AppTab.discover);
+            },
+          ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final c in subs)
+          ClCreatorRow(
+            status: ClFollowStatus.subscribed,
+            name: c.name,
+            handle: '${formatPrice(c.priceMonthly)} mesečno',
+            followers: formatCompact(c.followers),
+            onPressed: () => pushScreen(context, CreatorProfileScreen(creatorId: c.id), theme: ClTheme.light),
+          ),
+      ],
+    );
+  }
+}
+
+class _EquipmentSheet extends StatelessWidget {
+  const _EquipmentSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = context.store.profile!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const ClNotice('Vežbe za koje nemaš opremu dobijaju zamenu u planu.'),
+        gapS,
         Wrap(
           spacing: ClSpace.s2,
           children: [
@@ -54,43 +195,29 @@ class ProfileScreen extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(height: ClSpace.s2),
-        const ClNotice('Vežbe za koje nemaš opremu dobijaju zamenu u planu.'),
-        gap,
-        const ClSectionHeader(label: 'Plan'),
-        if (store.plan == null)
-          const ClNotice('Nemaš aktivan program.')
-        else
-          ClListRow(
-            title: store.plan!.name,
-            meta:
-                '${store.creator(store.plan!.creatorId)?.name ?? ''} · Nedelja ${store.plan!.currentWeek} / ${store.plan!.weeks}',
-            onPressed: () => pushScreen(context, const PlanScreen()),
+      ],
+    );
+  }
+}
+
+class _GenderSheet extends StatelessWidget {
+  const _GenderSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = context.store.profile!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final g in Gender.values)
+          ClOptionRow(
+            title: g.label,
+            selected: profile.gender == g,
+            onPressed: () {
+              context.readStore.updateProfile(profile.copyWith(gender: g));
+              Navigator.of(context).pop();
+            },
           ),
-        gap,
-        ClSectionHeader(
-          label: 'Pretplate',
-          trailing: Text('${subs.length}', style: cl.text.label),
-        ),
-        if (subs.isEmpty) const ClNotice('Nemaš pretplate. Sadržaj za pretplatnike je zaključan.'),
-        for (final c in subs)
-          ClCreatorRow(
-            name: c.name,
-            handle: '${formatPrice(c.priceMonthly)} mesečno',
-            followers: formatCompact(c.followers),
-            onPressed: () => pushScreen(context, CreatorProfileScreen(creatorId: c.id), theme: ClTheme.light),
-          ),
-        gap,
-        const ClSectionHeader(label: 'Za trenere'),
-        ClListRow(
-          title: 'Režim kreatora',
-          meta: store.myCreator == null
-              ? 'Objavi vežbe, treninge i programe'
-              : '@${store.myCreator!.handle} · ${countLabel(store.myPrograms.length, 'program', 'programa', 'programa')}',
-          onPressed: () => pushScreen(context, const CreatorModeScreen(), theme: ClTheme.light),
-        ),
-        gap,
-        const _DataSection(),
       ],
     );
   }
@@ -161,7 +288,6 @@ class _DataSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ClSectionHeader(label: store.isCloud ? 'Nalog' : 'Podaci'),
         if (account != null) ...[
           Text(account.isGuest ? 'Gost' : (account.email ?? ''), style: cl.text.bodyStrong),
           const SizedBox(height: ClSpace.s1),

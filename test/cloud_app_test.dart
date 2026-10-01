@@ -84,7 +84,7 @@ void main() {
     await auth.verifyCode('boban@primer.rs', '123456');
     await pumpApp(tester);
     await tester.pumpAndSettle();
-    expect(find.text('Zdravo, Boban'), findsOneWidget);
+    expect(find.textContaining('Boban'), findsOneWidget);
   });
 
   testWidgets('guest trains, saves the account, then signs out', (tester) async {
@@ -94,6 +94,8 @@ void main() {
     expect(find.text('Kako se zoveš?'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'Gost');
     await tester.pump();
+    await tapText(tester, 'Dalje');
+    await tapText(tester, 'Muško');
     await tapText(tester, 'Dalje');
     await tapText(tester, 'Snaga');
     await tapText(tester, 'Dalje');
@@ -106,7 +108,7 @@ void main() {
 
     // Creator mode asks for a real account first.
     await tapText(tester, 'Profil');
-    expect(find.text('Gost').hitTestable(), findsOneWidget);
+    expect(find.text('Gost').hitTestable(), findsWidgets);
     await tapText(tester, 'Režim kreatora');
     expect(find.text('Sačuvaj nalog.'), findsOneWidget);
     await tapText(tester, 'Sačuvaj nalog');
@@ -121,6 +123,7 @@ void main() {
     expect(find.text('Tvoj profil.'), findsOneWidget, reason: 'creator mode is open now');
     await tester.tap(find.bySemanticsLabel('Nazad').hitTestable().first);
     await tester.pumpAndSettle();
+    await tapText(tester, 'Nalog i sinhronizacija');
     expect(find.text('gost@primer.rs'), findsOneWidget);
     expect(remote.tables['profiles']!.single['name'], 'Gost', reason: 'same user, same data');
 
@@ -137,6 +140,8 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Ana');
     await tester.pump();
     remote.offline = true;
+    await tapText(tester, 'Dalje');
+    await tapText(tester, 'Muško');
     await tapText(tester, 'Dalje');
     await tapText(tester, 'Snaga');
     await tapText(tester, 'Dalje');

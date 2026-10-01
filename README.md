@@ -105,7 +105,7 @@ supabase/
   tests/                    RLS testovi za tool/test_db.sh
 assets/
   fonts/                    Bricolage Grotesque (text i display rez), OFL
-  icons/                    Phosphor Light i Bold, MIT
+  icons/                    Phosphor Regular, Fill i Bold, MIT
 ```
 
 ## Pravila za kod

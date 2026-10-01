@@ -47,7 +47,11 @@ class ClCreatorMessage extends StatelessWidget {
     final cl = context.cl;
     return Container(
       padding: const EdgeInsets.all(ClSpace.s4),
-      decoration: BoxDecoration(color: cl.colors.surface, borderRadius: BorderRadius.circular(ClRadius.sm)),
+      decoration: BoxDecoration(
+        color: cl.colors.surface,
+        borderRadius: BorderRadius.circular(ClRadius.sm),
+        boxShadow: ClElevation.card(cl.colors.shadow),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
