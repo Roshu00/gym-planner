@@ -705,14 +705,15 @@ class _Bleed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
+      // Extra room under the cards so their shadows are not cut off.
       builder: (context, box) => SizedBox(
-        height: height,
+        height: height + ClSpace.s3,
         child: OverflowBox(
           minWidth: box.maxWidth + ClSpace.s4 * 2,
           maxWidth: box.maxWidth + ClSpace.s4 * 2,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: ClSpace.s4),
+            padding: const EdgeInsets.fromLTRB(ClSpace.s4, 0, ClSpace.s4, ClSpace.s3),
             itemCount: children.length,
             separatorBuilder: (_, _) => const SizedBox(width: ClSpace.s3),
             itemBuilder: (_, i) => children[i],
@@ -813,7 +814,7 @@ class _ProgramCarousel extends StatelessWidget {
   }
 }
 
-/// Creators to follow, as white cards with their pop color avatar.
+/// Creators to follow, as portrait cards with their photo.
 class _CreatorCarousel extends StatelessWidget {
   const _CreatorCarousel();
 
@@ -829,54 +830,76 @@ class _CreatorCarousel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const ClSectionHeader(label: 'Treneri'),
+        // Portrait cards: the trainer's photo is the card, the name sits on it.
         _Bleed(
-          height: 176,
+          height: 208,
           children: [
             for (final x in creators)
               ClPressable(
                 onPressed: () => pushScreen(context, CreatorProfileScreen(creatorId: x.id)),
-                semanticLabel: '${x.name}, @${x.handle}',
+                semanticLabel: '${x.name}, @${x.handle}, ${followersLabel(x.followers)}',
                 radius: ClRadius.sm,
-                builder: (context, pressed) => Container(
-                  width: 148,
-                  padding: const EdgeInsets.all(ClSpace.s3),
-                  decoration: BoxDecoration(
-                    color: pressed ? c.surfaceRaised : c.surface,
-                    borderRadius: BorderRadius.circular(ClRadius.sm),
-                    boxShadow: ClElevation.card(c.shadow),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ClAvatar(
-                        name: x.name,
-                        image: photoOf(x.photo),
-                        size: 56,
-                        ring: followStatus(store, x.id) != ClFollowStatus.none,
+                builder: (context, pressed) => AnimatedScale(
+                  duration: context.motion(ClMotion.fast),
+                  scale: pressed ? 0.97 : 1,
+                  child: SizedBox(
+                    width: 156,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(ClRadius.sm),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ColoredBox(color: c.popFor(x.id)),
+                          if (photoOf(x.photo) case final photo?) ClPhoto(image: photo, placeholderLabel: ''),
+                          const ClPhotoScrim(coverage: 0.6),
+                          if (followStatus(store, x.id) != ClFollowStatus.none)
+                            Positioned(
+                              top: ClSpace.s2,
+                              left: ClSpace.s2,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: c.bg,
+                                  borderRadius: BorderRadius.circular(ClRadius.full),
+                                ),
+                                child: Text(
+                                  followStatus(store, x.id) == ClFollowStatus.subscribed
+                                      ? 'Pretplata'
+                                      : 'Pratiš',
+                                  style: cl.text.label.copyWith(color: c.ink, fontSize: 11),
+                                ),
+                              ),
+                            ),
+                          Positioned(
+                            left: ClSpace.s3,
+                            right: ClSpace.s3,
+                            bottom: ClSpace.s3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  x.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: cl.text.bodyStrong.copyWith(
+                                    color: c.onPhoto,
+                                    fontSize: 16,
+                                    height: 1.15,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  x.tagline,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: cl.text.label.copyWith(color: c.onPhoto.withValues(alpha: 0.85)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const Spacer(),
-                      Text(x.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: cl.text.bodyStrong),
-                      const SizedBox(height: 2),
-                      Text(
-                        '@${x.handle}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: cl.text.label,
-                      ),
-                      const SizedBox(height: ClSpace.s1),
-                      switch (followStatus(store, x.id)) {
-                        ClFollowStatus.subscribed => const ClTag('Pretplata', variant: ClTagVariant.pr),
-                        ClFollowStatus.following => const ClTag(
-                          'Pratiš',
-                          variant: ClTagVariant.active,
-                          icon: ClIcons.check,
-                        ),
-                        ClFollowStatus.none => Text(
-                          followersLabel(x.followers),
-                          style: cl.text.label.copyWith(color: c.ink),
-                        ),
-                      },
-                    ],
+                    ),
                   ),
                 ),
               ),
