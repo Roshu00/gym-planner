@@ -230,7 +230,24 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           ClIconButton(icon: ClIcons.more, semanticLabel: 'Opcije treninga', onPressed: _menu),
         ],
       ),
-      bottom: action,
+      // What needs attention right now sits right above the button, never
+      // below the fold: what to fill in, then the rest clock.
+      bottom: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_notice != null) ...[ClNotice(_notice!, danger: true), const SizedBox(height: ClSpace.s2)],
+          if (_resting) ...[
+            ClRestTimer(
+              key: ValueKey(_restRun),
+              duration: Duration(seconds: e.restSeconds),
+              onSkip: () => setState(() => _resting = false),
+            ),
+            const SizedBox(height: ClSpace.s2),
+          ],
+          action,
+        ],
+      ),
       children: [
         if (photoOf(store.resolveExercise(e.exerciseId)?.image) case final picture?) ...[
           ClipRRect(
@@ -248,22 +265,20 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           ClNotice('Zamena za ${e.swappedFrom}'),
         ],
         gapS,
-        ClCreatorLine(name: e.noteBy ?? session.creatorName, trailing: e.muscle.label),
+        ClCreatorLine(
+          name: e.noteBy ?? session.creatorName,
+          // The cue's author, found by name: the exercise may come from another creator.
+          image: photoOf(
+            store.creators.where((c) => c.name == (e.noteBy ?? session.creatorName)).firstOrNull?.photo,
+          ),
+          trailing: e.muscle.label,
+        ),
         if (e.note.isNotEmpty) ...[
           const SizedBox(height: ClSpace.s2),
           Text(e.note, style: cl.text.body.copyWith(color: cl.colors.inkMuted)),
         ],
         const SizedBox(height: ClSpace.s6),
         ClSetTable(sets: rows, onChanged: _onChanged, onToggleDone: _toggle),
-        if (_notice != null) ...[const SizedBox(height: ClSpace.s2), ClNotice(_notice!, danger: true)],
-        if (_resting) ...[
-          gapS,
-          ClRestTimer(
-            key: ValueKey(_restRun),
-            duration: Duration(seconds: e.restSeconds),
-            onSkip: () => setState(() => _resting = false),
-          ),
-        ],
         gap,
         ClSectionHeader(
           label:

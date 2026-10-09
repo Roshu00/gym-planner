@@ -10,6 +10,7 @@ import 'creator_profile.dart';
 import 'plan_finder.dart';
 import 'program_detail.dart';
 import 'shell.dart';
+import 'summary_screen.dart';
 import 'workout_session.dart';
 
 /// Every morning. Three states:
@@ -51,6 +52,47 @@ class TodayScreen extends StatelessWidget {
     void start() {
       store.startToday();
       pushScreen(context, const WorkoutSessionScreen());
+    }
+
+    // Done for today: praise and the proof, the next workout only as a line.
+    final doneToday = active == null ? sessionsOn(store.sessions, day).lastOrNull : null;
+    if (doneToday != null) {
+      final doneWorkout = store.workoutsById[doneToday.workoutId];
+      final doneBy = store.creator(doneToday.creatorId) ?? creator;
+      final upcoming = store
+          .schedule(day.add(const Duration(days: 21)))
+          .entries
+          .where((e) => e.key.isAfter(day))
+          .firstOrNull;
+      final upcomingName = upcoming == null ? null : store.workoutsById[upcoming.value]?.name;
+      void openSummary() => pushScreen(context, SummaryScreen(sessionId: doneToday.id), theme: ClTheme.light);
+      return AppScreen(
+        safeTop: false,
+        padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s12),
+        header: _TodayHero(
+          greeting: '${weekdayName(today)} · Bravo, $name',
+          title: doneToday.workoutName,
+          meta: 'Odrađeno danas · ${formatDuration(doneToday.duration)}',
+          color: cl.colors.popFor(doneToday.workoutId),
+          image: photoOf(doneWorkout?.image),
+          creator: doneBy,
+          action: 'Pogledaj rezime',
+          done: true,
+          onStart: openSummary,
+          onExercises: openSummary,
+        ),
+        children: [
+          _WeekDots(today: day),
+          if (upcoming != null && upcomingName != null) ...[
+            const SizedBox(height: ClSpace.s2),
+            Text('Sledeće: $upcomingName, ${dayInSentence(upcoming.key, day)}', style: cl.text.bodyStrong),
+          ],
+          if (doneToday.finishMessage.isNotEmpty && doneBy != null) ...[
+            gap,
+            _CreatorQuote(creator: doneBy, text: doneToday.finishMessage),
+          ],
+        ],
+      );
     }
 
     final String? status = active != null
@@ -139,7 +181,11 @@ class _TodayHero extends StatelessWidget {
     required this.onExercises,
     this.onChangeDay,
     this.onBackToPlan,
+    this.done = false,
   });
+
+  /// Today's workout is finished: a check next to the title.
+  final bool done;
 
   final String greeting;
   final String title;
@@ -252,7 +298,22 @@ class _TodayHero extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: ClSpace.s1),
-                    Text(meta, style: cl.text.body.copyWith(color: onPhoto)),
+                    Row(
+                      children: [
+                        if (done) ...[
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(color: onPhoto, shape: BoxShape.circle),
+                            child: Icon(ClIcons.check, size: 12, color: image == null ? c.bg : c.ink),
+                          ),
+                          const SizedBox(width: ClSpace.s2),
+                        ],
+                        Flexible(
+                          child: Text(meta, style: cl.text.body.copyWith(color: onPhoto)),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: ClSpace.s4),
                     _HeroButton(label: action, onPressed: onStart, dark: image == null),
                     if (onBackToPlan != null)

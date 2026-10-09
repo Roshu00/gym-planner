@@ -51,7 +51,11 @@ class SummaryScreen extends StatelessWidget {
               : s.workoutName,
           stats: [
             ClStat(label: 'Volumen', value: formatNumber(s.volume, maxDecimals: 0), unit: 'kg'),
-            ClStat(label: 'Rekordi', value: '${s.prCount}', unit: 'PR', highlight: s.prCount > 0),
+            // A zero reads like a failure; without records the sets count.
+            if (s.prCount > 0)
+              ClStat(label: 'Rekordi', value: '${s.prCount}', unit: 'PR', highlight: true)
+            else
+              ClStat(label: 'Setova', value: '${s.doneSets}'),
             if (justFinished && store.streak > 0)
               ClStat(label: 'Niz', value: '${store.streak}', unit: 'ned.'),
           ],
@@ -60,6 +64,7 @@ class SummaryScreen extends StatelessWidget {
           ],
           creatorName: s.creatorName,
           creatorHandle: store.creator(s.creatorId)?.handle,
+          creatorImage: photoOf(store.creator(s.creatorId)?.photo),
           creatorMessage: message,
         ),
       ],

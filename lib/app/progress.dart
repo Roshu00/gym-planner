@@ -26,12 +26,11 @@ class _ProgressContentState extends State<ProgressContent> {
       stats: [
         ClStat(label: 'Niz', value: '${store.streak}', unit: 'ned.'),
         ClStat(label: 'Treninzi', value: '${history.length}'),
-        ClStat(
-          label: 'Rekordi',
-          value: '${totalRecords(history)}',
-          unit: 'PR',
-          highlight: totalRecords(history) > 0,
-        ),
+        // No records yet is not a zero to stare at.
+        if (totalRecords(history) > 0)
+          ClStat(label: 'Rekordi', value: '${totalRecords(history)}', unit: 'PR', highlight: true)
+        else
+          ClStat(label: 'Rekordi', value: '—'),
       ],
     );
 

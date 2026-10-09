@@ -210,6 +210,20 @@ void main() {
     expect(find.text('Tvoj plan je spreman.'), findsNothing);
   });
 
+  testWidgets('Today after the workout praises it and only names the next one', (tester) async {
+    final store = await seasonedStore();
+    store.startToday();
+    store.updateSet(0, 0, const SetLog(kg: 40, reps: 8));
+    store.toggleSet(0, 0);
+    final done = store.finishSession();
+    await pump(tester, store, const TodayScreen(), ClTheme.light);
+    expect(find.text(done.workoutName), findsOneWidget);
+    expect(find.textContaining('Odrađeno danas'), findsOneWidget);
+    expect(find.textContaining('Sledeće: '), findsOneWidget);
+    expect(find.bySemanticsLabel('Pogledaj rezime'), findsOneWidget);
+    expect(find.bySemanticsLabel('Počni'), findsNothing);
+  });
+
   testWidgets('Discover marks followed and subscribed creators and lists them first', (tester) async {
     final store = await freshStore();
     store.toggleFollow('c_nikola');
