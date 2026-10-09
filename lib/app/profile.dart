@@ -86,6 +86,13 @@ class SettingsScreen extends StatelessWidget {
                   showClSheet<void>(context, title: 'Pretplate', builder: (_) => const _SubscriptionsSheet()),
             ),
             ClMenuRow(
+              icon: ClIcons.timer,
+              title: 'Podsetnici',
+              value: store.reminderSettings.enabled ? store.reminderSettings.timeLabel : 'Isključeni',
+              onPressed: () =>
+                  showClSheet<void>(context, title: 'Podsetnici', builder: (_) => const RemindersSheet()),
+            ),
+            ClMenuRow(
               icon: ClIcons.barbell,
               title: 'Oprema',
               value: countLabel(
@@ -139,6 +146,67 @@ class SettingsScreen extends StatelessWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+/// On or off, and at what time on training days.
+class RemindersSheet extends StatefulWidget {
+  const RemindersSheet({super.key});
+
+  @override
+  State<RemindersSheet> createState() => _RemindersSheetState();
+}
+
+class _RemindersSheetState extends State<RemindersSheet> {
+  String? _error;
+
+  static const _times = [(7, 0), (8, 0), (12, 0), (17, 0), (19, 0)];
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final r = store.reminderSettings;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'U dane treninga, poruka sa imenom treninga i rečenicom trenera.',
+          style: context.clText.body.copyWith(color: context.clColors.inkMuted),
+        ),
+        gapS,
+        ClOptionRow(
+          title: 'Uključeni',
+          selected: r.enabled,
+          onPressed: () async {
+            final ok = await store.setRemindersEnabled(true);
+            if (mounted) {
+              setState(
+                () => _error = ok
+                    ? null
+                    : 'Telefon ne dozvoljava obaveštenja. Uključi ih u podešavanjima telefona.',
+              );
+            }
+          },
+        ),
+        ClOptionRow(
+          title: 'Isključeni',
+          selected: !r.enabled,
+          onPressed: () => store.setRemindersEnabled(false),
+        ),
+        if (_error != null) ...[const SizedBox(height: ClSpace.s2), ClNotice(_error!, danger: true)],
+        if (r.enabled) ...[
+          gapS,
+          Text('Vreme', style: context.clText.label),
+          const SizedBox(height: ClSpace.s2),
+          for (final (h, m) in _times)
+            ClOptionRow(
+              title: '$h:${m.toString().padLeft(2, '0')}',
+              selected: r.hour == h && r.minute == m,
+              onPressed: () => store.setReminderTime(h, m),
+            ),
+        ],
       ],
     );
   }

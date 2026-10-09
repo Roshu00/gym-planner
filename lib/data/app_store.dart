@@ -5,10 +5,12 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import '../domain/models.dart';
+import '../domain/reminders.dart';
 import '../domain/rules.dart';
 import 'auth.dart';
 import 'rows.dart';
 import 'seed.dart';
+import 'reminder_scheduler.dart';
 import 'storage.dart';
 import 'sync.dart';
 
@@ -30,12 +32,16 @@ class AppStore extends ChangeNotifier {
     this.account,
     DateTime Function()? clock,
     math.Random? random,
+    this.reminders = const NoReminders(),
   }) : _clock = clock ?? DateTime.now,
        _random = random ?? math.Random();
 
   static const storageKey = 'chalkline.state.v1';
 
   final KeyValueStore storage;
+
+  /// Puts training-day reminders on the phone.
+  final ReminderScheduler reminders;
   final Remote? remote;
   final AuthService? auth;
 
@@ -79,6 +85,7 @@ class AppStore extends ChangeNotifier {
   UserPlan? plan;
   List<Session> sessions = [];
   Session? active;
+  ReminderSettings reminderSettings = const ReminderSettings();
 
   // Catalog from other creators: the seed locally, the server in cloud mode.
   List<Creator> _baseCreators = SeedCatalog.creators;
@@ -126,11 +133,67 @@ class AppStore extends ChangeNotifier {
     }
     loaded = true;
     notifyListeners();
+    _syncReminders();
+  }
+
+  // ───────────────────────── Reminders
+
+  /// What is on the phone now, so unchanged reminders are not rescheduled.
+  List<Reminder> _scheduled = const [];
+
+  /// Reminders for the next two weeks of the plan.
+  List<Reminder> get upcomingReminders {
+    final today = dateOnly(now);
+    final until = today.add(const Duration(days: 14));
+    final days = <PlannedDay>[
+      for (final e in schedule(until).entries)
+        if (workoutsById[e.value] case final w?)
+          (
+            day: e.key,
+            workout: w.name,
+            creator: creator(w.creatorId)?.name ?? '',
+            minutes: w.estimatedMinutes,
+            intro: w.intro,
+          ),
+    ];
+    return remindersFor(days, reminderSettings, now, doneToday: sessionsOn(sessions, today).isNotEmpty);
+  }
+
+  void _syncReminders() {
+    final next = upcomingReminders;
+    if (listEquals(next, _scheduled)) return;
+    _scheduled = next;
+    unawaited(reminders.replaceAll(next).catchError((Object e) => debugPrint('Reminders not scheduled: $e')));
+  }
+
+  /// Turns reminders on (after asking the phone) or off. False when the
+  /// phone does not allow notifications.
+  Future<bool> setRemindersEnabled(bool on) async {
+    if (on && !await reminders.requestPermission()) {
+      reminderSettings = reminderSettings.copyWith(asked: true);
+      _commit();
+      return false;
+    }
+    reminderSettings = reminderSettings.copyWith(enabled: on, asked: true);
+    _commit();
+    return true;
+  }
+
+  void setReminderTime(int hour, int minute) {
+    reminderSettings = reminderSettings.copyWith(hour: hour, minute: minute);
+    _commit();
+  }
+
+  /// "Ne sada" on the offer.
+  void dismissReminderOffer() {
+    reminderSettings = reminderSettings.copyWith(asked: true);
+    _commit();
   }
 
   void _commit() {
     notifyListeners();
     _persist();
+    _syncReminders();
     if (remote != null) unawaited(_flush());
   }
 
@@ -254,6 +317,7 @@ class AppStore extends ChangeNotifier {
     'plan': plan?.toJson(),
     'sessions': sessions.map((s) => s.toJson()).toList(),
     'active': active?.toJson(),
+    'reminders': reminderSettings.toJson(),
     if (remote != null) ...{
       'outbox': _outbox.toJson(),
       'catalog': {
@@ -269,6 +333,7 @@ class AppStore extends ChangeNotifier {
     Map<String, Object?> m(Object? o) => o as Map<String, Object?>;
     List<Object?> l(Object? o) => (o as List?) ?? const [];
     profile = j['profile'] == null ? null : UserProfile.fromJson(m(j['profile']));
+    if (j['reminders'] != null) reminderSettings = ReminderSettings.fromJson(m(j['reminders']));
     myCreator = j['myCreator'] == null ? null : Creator.fromJson(m(j['myCreator']));
     myExercises = [for (final e in l(j['myExercises'])) Exercise.fromJson(m(e))];
     myWorkouts = [for (final e in l(j['myWorkouts'])) Workout.fromJson(m(e))];

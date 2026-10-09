@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
 import 'app/app.dart';
 import 'data/app_store.dart';
+import 'data/reminder_scheduler.dart';
 import 'data/storage.dart';
 import 'data/supabase_backend.dart';
 
@@ -11,9 +13,11 @@ import 'data/supabase_backend.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final handle = creatorHandleFromUri(Uri.base);
+  // Local notifications on phones; nothing on web.
+  final ReminderScheduler reminders = kIsWeb ? const NoReminders() : LocalReminderScheduler();
 
   if (!SupabaseConfig.isConfigured) {
-    final store = AppStore(storage: SharedPrefsStore());
+    final store = AppStore(storage: SharedPrefsStore(), reminders: reminders);
     await store.load();
     runApp(ChalklineApp(store: store, initialCreatorHandle: handle));
     return;
@@ -28,6 +32,7 @@ Future<void> main() async {
       initialCreatorHandle: handle,
       storeFor: (user) => AppStore(
         storage: SharedPrefsStore(),
+        reminders: reminders,
         remote: SupabaseRemote(client, user.id),
         auth: auth,
         account: user,

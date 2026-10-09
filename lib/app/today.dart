@@ -91,6 +91,11 @@ class TodayScreen extends StatelessWidget {
             gap,
             _CreatorQuote(creator: doneBy, text: doneToday.finishMessage),
           ],
+          // The best moment to offer reminders: right after showing up.
+          if (!store.reminderSettings.enabled && !store.reminderSettings.asked && upcoming != null) ...[
+            gap,
+            const _ReminderOffer(),
+          ],
         ],
       );
     }
@@ -445,6 +450,64 @@ class _WeekDots extends StatelessWidget {
             Text(summary, style: cl.text.body.copyWith(color: c.inkMuted)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "Podseti me" once, after a finished workout. Asks the phone for
+/// permission only when the user says yes.
+class _ReminderOffer extends StatelessWidget {
+  const _ReminderOffer();
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final cl = context.cl;
+    return Container(
+      padding: const EdgeInsets.all(ClSpace.s4),
+      decoration: BoxDecoration(
+        color: cl.colors.surface,
+        borderRadius: BorderRadius.circular(ClRadius.sm),
+        boxShadow: ClElevation.card(cl.colors.shadow),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Da te podsetimo na sledeći trening?', style: cl.text.bodyStrong),
+          const SizedBox(height: ClSpace.s1),
+          Text(
+            'U ${store.reminderSettings.timeLabel} na dan treninga. Vreme menjaš u podešavanjima.',
+            style: cl.text.body.copyWith(color: cl.colors.inkMuted),
+          ),
+          gapS,
+          Row(
+            children: [
+              Expanded(
+                child: ClButton(
+                  label: 'Podseti me',
+                  expand: true,
+                  onPressed: () async {
+                    final ok = await store.setRemindersEnabled(true);
+                    if (!context.mounted) return;
+                    showUndoToast(
+                      context,
+                      ok
+                          ? 'Podsetnik u ${store.reminderSettings.timeLabel} na dan treninga.'
+                          : 'Telefon ne dozvoljava obaveštenja. Uključi ih u podešavanjima telefona.',
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: ClSpace.s2),
+              ClButton(
+                label: 'Ne sada',
+                variant: ClButtonVariant.text,
+                onPressed: store.dismissReminderOffer,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
