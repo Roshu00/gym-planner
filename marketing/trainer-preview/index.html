@@ -202,6 +202,8 @@ const TRAINER = {
   .num { font-variant-numeric: tabular-nums; }
 
   .photo { background: #1F1E1B center / cover no-repeat; }
+  /* The scrim follows the photo's rounded corners. */
+  .scrim, .topscrim { overflow: hidden; }
   .scrim::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 30%, var(--scrim) 70%); }
   .topscrim::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 160px; background: linear-gradient(var(--scrim), transparent); z-index: 1; }
   .round-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--scrim); color: #fff; display: grid; place-items: center; }
