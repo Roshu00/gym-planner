@@ -7,6 +7,10 @@ import '../domain/models.dart';
 const _exerciseDb = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises';
 const _unsplash = 'https://images.unsplash.com/photo-';
 
+/// Demo clips of how exercises are done, from Pexels (Pexels License),
+/// in the small 360p size so they load fast on a phone.
+const _pexels = 'https://videos.pexels.com/video-files';
+
 /// Demo catalog until the backend exists. Creators, their exercises,
 /// workouts and programs. Ids are stable so saved plans and history keep working.
 class SeedCatalog {
@@ -49,6 +53,7 @@ class SeedCatalog {
     // Marko
     Exercise(
       id: 'm_bench',
+      video: '$_pexels/5320001/5320001-sd_640_360_25fps.mp4',
       image: '$_exerciseDb/Barbell_Bench_Press_-_Medium_Grip/0.jpg',
       creatorId: 'c_marko',
       name: 'Bench press',
@@ -103,6 +108,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_deadlift',
+      video: '$_pexels/9778003/9778003-sd_640_360_25fps.mp4',
       image: '$_exerciseDb/Barbell_Deadlift/0.jpg',
       creatorId: 'c_marko',
       name: 'Mrtvo dizanje',
@@ -112,6 +118,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_pullup',
+      video: '$_pexels/14293451/14293451-sd_640_360_30fps.mp4',
       image: '$_exerciseDb/Pullups/0.jpg',
       creatorId: 'c_marko',
       name: 'Zgibovi',
@@ -148,6 +155,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_squat',
+      video: '$_pexels/5319759/5319759-sd_640_360_25fps.mp4',
       image: '$_exerciseDb/Barbell_Squat/0.jpg',
       creatorId: 'c_marko',
       name: 'Čučanj',
@@ -166,6 +174,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_lunge',
+      video: '$_pexels/5510124/5510124-sd_360_640_25fps.mp4',
       image: '$_exerciseDb/Dumbbell_Lunges/0.jpg',
       creatorId: 'c_marko',
       name: 'Iskorak',
@@ -213,6 +222,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_hip_thrust',
+      video: '$_pexels/6525487/6525487-sd_640_360_25fps.mp4',
       image: '$_exerciseDb/Barbell_Hip_Thrust/0.jpg',
       creatorId: 'c_jelena',
       name: 'Hip thrust sa trakom',
@@ -231,6 +241,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_pushup',
+      video: '$_pexels/4367576/4367576-sd_640_360_30fps.mp4',
       image: '$_exerciseDb/Pushups/0.jpg',
       creatorId: 'c_jelena',
       name: 'Sklekovi',
@@ -258,6 +269,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_split_squat',
+      video: '$_pexels/4488004/4488004-sd_360_640_25fps.mp4',
       image: '$_exerciseDb/Split_Squat_with_Dumbbells/0.jpg',
       creatorId: 'c_jelena',
       name: 'Bugarski čučanj',
@@ -267,6 +279,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_bridge',
+      video: '$_pexels/6525487/6525487-sd_640_360_25fps.mp4',
       image: '$_exerciseDb/Butt_Lift_Bridge/0.jpg',
       creatorId: 'c_jelena',
       name: 'Glute bridge',
@@ -305,6 +318,7 @@ class SeedCatalog {
     // Nikola
     Exercise(
       id: 'n_pullup',
+      video: '$_pexels/7187450/7187450-sd_360_640_24fps.mp4',
       image: '$_exerciseDb/Pullups/0.jpg',
       creatorId: 'c_nikola',
       name: 'Zgibovi',
@@ -314,6 +328,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'n_pushup',
+      video: '$_pexels/4367576/4367576-sd_640_360_30fps.mp4',
       image: '$_exerciseDb/Pushups/0.jpg',
       creatorId: 'c_nikola',
       name: 'Sklekovi',
@@ -369,6 +384,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'n_chinup',
+      video: '$_pexels/14293451/14293451-sd_640_360_30fps.mp4',
       image: '$_exerciseDb/Chin-Up/0.jpg',
       creatorId: 'c_nikola',
       name: 'Zgibovi podhvatom',

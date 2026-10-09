@@ -48,6 +48,7 @@ Row exerciseRow(Exercise e) => {
   'note': e.note,
   'audience': e.visibility.name,
   'image_url': e.image,
+  'video_url': e.video,
 };
 
 Exercise exerciseFromRow(Row r) => Exercise(
@@ -59,6 +60,7 @@ Exercise exerciseFromRow(Row r) => Exercise(
   note: r['note'] as String? ?? '',
   visibility: _enum(Audience.values, r['audience'], Audience.public),
   image: r['image_url'] as String?,
+  video: r['video_url'] as String?,
 );
 
 Row workoutRow(Workout w) => {

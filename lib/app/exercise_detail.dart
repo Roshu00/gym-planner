@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../domain/models.dart';
 import '../domain/rules.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
+import 'exercise_media.dart';
 import 'subscribe_sheet.dart';
 
 /// One exercise: the creator's cue, the user's record and recent sets.
@@ -41,26 +43,30 @@ class ExerciseDetailScreen extends StatelessWidget {
       safeTop: false,
       padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s12),
       collapsed: Text(e.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.clText.bodyStrong),
-      header: SizedBox(
-        height: 260,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(ClRadius.lg)),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ClPhoto(image: photoOf(e.image), placeholderLabel: 'Video vežbe', semanticLabel: e.name),
-              Positioned(
-                top: 0,
-                left: 0,
-                child: SafeArea(
-                  child: ClIconButton.onMedia(
-                    icon: ClIcons.back,
-                    semanticLabel: 'Nazad',
-                    onPressed: () => Navigator.of(context).maybePop(),
+      // A clip under the status bar: light text on it.
+      header: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: SizedBox(
+          height: 320,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(ClRadius.lg)),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ExerciseMedia(exercise: e),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  child: SafeArea(
+                    child: ClIconButton.onMedia(
+                      icon: ClIcons.back,
+                      semanticLabel: 'Nazad',
+                      onPressed: () => Navigator.of(context).maybePop(),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

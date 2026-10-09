@@ -201,6 +201,7 @@ class _ExerciseEditorState extends State<ExerciseEditor> {
         note: _note.text.trim(),
         visibility: _audience,
         image: _existing?.image,
+        video: _existing?.video,
       ),
     );
     Navigator.of(context).pop();

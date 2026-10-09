@@ -161,6 +161,7 @@ class Exercise {
     this.note = '',
     this.visibility = Audience.public,
     this.image,
+    this.video,
   });
 
   final String id;
@@ -170,6 +171,9 @@ class Exercise {
 
   /// Picture of the movement; null shows the muscle group instead.
   final String? image;
+
+  /// A short clip of how it is done, looped without sound.
+  final String? video;
 
   /// Everything needed at once. Empty or [Equipment.bodyweight] means none.
   final Set<Equipment> equipment;
@@ -193,6 +197,7 @@ class Exercise {
     'note': note,
     'visibility': visibility.name,
     'image': image,
+    'video': video,
   };
 
   factory Exercise.fromJson(Map<String, Object?> j) => Exercise(
@@ -206,6 +211,7 @@ class Exercise {
     note: j['note'] as String? ?? '',
     visibility: _enum(Audience.values, j['visibility'], Audience.public),
     image: j['image'] as String?,
+    video: j['video'] as String?,
   );
 }
 

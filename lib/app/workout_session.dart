@@ -8,6 +8,7 @@ import '../domain/models.dart';
 import '../domain/rules.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
+import 'exercise_media.dart';
 import 'summary_screen.dart';
 import 'swap_sheet.dart';
 
@@ -159,7 +160,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   }
 
   /// The picture big, with the trainer's whole cue.
-  Future<void> _showHowTo(SessionExercise e, ImageProvider? picture, Creator? author) {
+  Future<void> _showHowTo(SessionExercise e, Exercise? exercise, Creator? author) {
     final cl = context.cl;
     return showClSheet<void>(
       context,
@@ -168,13 +169,11 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       builder: (context) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (picture != null)
+          // The clip of how it is done, or its pictures taking turns.
+          if (exercise != null)
             ClipRRect(
               borderRadius: BorderRadius.circular(ClRadius.lg),
-              child: AspectRatio(
-                aspectRatio: 3 / 2,
-                child: ClPhoto(image: picture, placeholderLabel: '', semanticLabel: e.name),
-              ),
+              child: SizedBox(height: 320, child: ExerciseMedia(exercise: exercise)),
             ),
           if (e.note.isNotEmpty) ...[
             gapS,
@@ -375,7 +374,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         // The exercise: a small picture (tap for the big one and the whole
         // cue), the name and what to do.
         ClPressable(
-          onPressed: () => _showHowTo(e, picture, author),
+          onPressed: () => _showHowTo(e, store.resolveExercise(e.exerciseId), author),
           semanticLabel: '${e.name}, kako se radi',
           radius: ClRadius.sm,
           builder: (context, pressed) => Row(
@@ -384,12 +383,28 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                 borderRadius: BorderRadius.circular(ClRadius.sm - 6),
                 child: SizedBox.square(
                   dimension: 64,
-                  child: picture == null
-                      ? ColoredBox(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (picture == null)
+                        ColoredBox(
                           color: c.popFor(e.exerciseId),
                           child: Icon(ClIcons.barbell, color: c.onPop),
                         )
-                      : ClPhoto(image: picture, placeholderLabel: ''),
+                      else
+                        ClPhoto(image: picture, placeholderLabel: ''),
+                      // A play mark: the tap shows the clip.
+                      if (store.resolveExercise(e.exerciseId)?.video != null)
+                        Center(
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(color: c.photoScrim, shape: BoxShape.circle),
+                            child: Icon(ClIcons.play, size: 14, color: c.onPhoto),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: ClSpace.s3),
