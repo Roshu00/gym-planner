@@ -32,7 +32,7 @@ class CreatorProfileScreen extends StatelessWidget {
         const ClNotice('Ovako pratioci vide tvoj profil.'),
         gapS,
         ClButton(
-          label: 'Režim kreatora',
+          label: 'Studio',
           variant: ClButtonVariant.secondary,
           expand: true,
           onPressed: () => pushScreen(context, const CreatorModeScreen(), theme: ClTheme.light),

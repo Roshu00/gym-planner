@@ -7,9 +7,11 @@ import 'creator_profile.dart';
 import 'discover.dart';
 import 'plan_tab.dart';
 import 'profile.dart';
+import 'creator_mode.dart';
 import 'library.dart';
 import 'today.dart';
 
+/// The fourth tab is Biblioteka, or Studio for a trainer.
 enum AppTab { today, plan, discover, library, profile }
 
 /// Bottom-nav shell. All tabs use the light theme.
@@ -51,7 +53,9 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
-    HomeShell.tab.value = AppTab.today;
+    // A new trainer without a profile starts in Studio, everyone else on Today.
+    final store = context.readStore;
+    HomeShell.tab.value = store.isCoach && store.myCreator == null ? AppTab.library : AppTab.today;
     HomeShell.tab.addListener(_onTab);
     final id = widget.openCreatorId;
     if (id != null) {
@@ -63,7 +67,14 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    const tabs = [TodayScreen(), PlanTabScreen(), DiscoverScreen(), LibraryScreen(), ProfileScreen()];
+    final coach = context.store.isCoach;
+    final tabs = [
+      const TodayScreen(),
+      const PlanTabScreen(),
+      const DiscoverScreen(),
+      if (coach) const CreatorModeScreen() else const LibraryScreen(),
+      const ProfileScreen(),
+    ];
     return ClThemeScope(
       theme: ClTheme.light,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -81,7 +92,7 @@ class _HomeShellState extends State<HomeShell> {
                 ),
               ),
               const _SyncBanner(),
-              ClBottomNav(selected: _index, onChanged: _select),
+              ClBottomNav(selected: _index, onChanged: _select, items: coach ? clCoachNavItems : clNavItems),
             ],
           ),
         ),

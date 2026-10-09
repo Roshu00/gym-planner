@@ -331,8 +331,12 @@ void main() {
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
     }
 
-    expect(find.text('Kako se zoveš?'), findsOneWidget);
+    expect(find.text('Šta želiš?'), findsOneWidget, reason: 'trainer or not comes first');
     expect(find.text('Jelena Ilić'), findsOneWidget, reason: 'invited by the creator link');
+    await tapText('Da treniram');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    expect(find.text('Kako se zoveš?'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'Ana');
     await tester.pump();
     await tapText('Dalje');
@@ -388,6 +392,28 @@ void main() {
       reason: 'the plan moved to the next workout',
     );
     expect(store.thisWeek, 1);
+  });
+
+  testWidgets('a trainer signs up in two steps and lands in their Studio', (tester) async {
+    final store = AppStore(storage: MemoryStore(), clock: () => _clock);
+    await store.load();
+    tester.view.physicalSize = const Size(360, 780);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(ChalklineApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Da pravim programe za druge'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    expect(find.text('Korak 2 / 2'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Boban');
+    await tester.pump();
+    await tester.tap(find.text('Napravi Studio'));
+    await tester.pumpAndSettle();
+    expect(store.profile!.coaches, isTrue);
+    expect(store.isCoach, isTrue);
+    expect(find.bySemanticsLabel('Studio'), findsWidgets, reason: 'Studio is a tab');
+    expect(find.text('Tvoj profil trenera.'), findsOneWidget, reason: 'the Studio tab starts with the profile');
   });
 
   test('creator link parsing', () {

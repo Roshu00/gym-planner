@@ -447,6 +447,15 @@ class AppStore extends ChangeNotifier {
 
   void completeOnboarding(UserProfile p) => updateProfile(p);
 
+  /// Makes programs for others: has a creator profile or chose to at sign-up.
+  bool get isCoach => (profile?.coaches ?? false) || myCreator != null;
+
+  /// "Postani trener" from the settings.
+  void becomeCoach() {
+    final p = profile;
+    if (p != null && !p.coaches) updateProfile(p.copyWith(coaches: true));
+  }
+
   void updateProfile(UserProfile p) {
     profile = p;
     if (isCloud) _send(Mutation.upsert('profiles', profileRow(p, _uid)));

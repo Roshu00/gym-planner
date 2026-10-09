@@ -7,8 +7,9 @@ import 'common.dart';
 import 'creator_editors.dart';
 import 'creator_profile.dart';
 
-/// Where a creator builds their system once: exercises, workouts, programs,
-/// what is public and what is for subscribers.
+/// Studio: where a trainer builds their system once (exercises, workouts,
+/// programs, what is public and what is for subscribers). A tab for
+/// trainers; also opened from a trainer's own profile.
 class CreatorModeScreen extends StatefulWidget {
   const CreatorModeScreen({super.key});
 
@@ -26,7 +27,7 @@ class _CreatorModeScreenState extends State<CreatorModeScreen> {
     final me = store.myCreator;
     if (store.account?.isGuest ?? false) {
       return AppScreen(
-        topBar: const ClTopBar(label: 'Režim kreatora'),
+        topBar: const ClTopBar(label: 'Studio'),
         children: [
           ClEmptyState(
             title: 'Sačuvaj nalog.',
@@ -89,7 +90,7 @@ class _CreatorModeScreenState extends State<CreatorModeScreen> {
 
     return AppScreen(
       topBar: ClTopBar(
-        label: 'Režim kreatora',
+        label: 'Studio',
         actions: [
           ClButton(
             label: 'Uredi profil',

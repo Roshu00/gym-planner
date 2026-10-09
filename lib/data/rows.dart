@@ -125,6 +125,7 @@ Row profileRow(UserProfile p, String userId) => {
   'experience': p.experience.name,
   'place': p.place.name,
   'days_per_week': p.daysPerWeek,
+  'coaches': p.coaches,
   'equipment': _names(p.equipment),
 };
 
@@ -135,6 +136,7 @@ UserProfile profileFromRow(Row r) => UserProfile(
   experience: _enum(Experience.values, r['experience'], Experience.beginner),
   place: _enum(Place.values, r['place'], Place.gym),
   daysPerWeek: (r['days_per_week'] as num?)?.toInt() ?? 3,
+  coaches: r['coaches'] as bool? ?? false,
   equipment: {for (final e in _list(r['equipment'])) _enum(Equipment.values, e, Equipment.bodyweight)},
 );
 

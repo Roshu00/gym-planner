@@ -140,7 +140,7 @@ class _CreatorProfileEditorState extends State<CreatorProfileEditor> {
         onPressed: valid && !_checking ? _save : null,
       ),
       children: [
-        ClScreenTitle(label: 'Režim kreatora', title: _me == null ? 'Tvoj profil.' : 'Uredi profil.'),
+        ClScreenTitle(label: 'Studio', title: _me == null ? 'Tvoj profil trenera.' : 'Uredi profil.'),
         const SizedBox(height: ClSpace.s3),
         Text(
           'Napravi sistem jednom: vežbe, treninge i programe. Pratioci ga pretvaraju u svoj plan.',

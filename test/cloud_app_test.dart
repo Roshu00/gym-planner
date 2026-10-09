@@ -71,7 +71,7 @@ void main() {
     await tester.pump();
     await tapText(tester, 'Prijavi se');
     await tester.pumpAndSettle();
-    expect(find.text('Kako se zoveš?'), findsOneWidget, reason: 'no profile on the server yet');
+    expect(find.text('Šta želiš?'), findsOneWidget, reason: 'no profile on the server yet');
   });
 
   testWidgets('a returning user on a new device goes straight to Today', (tester) async {
@@ -98,7 +98,8 @@ void main() {
     await pumpApp(tester);
     await tapText(tester, 'Probaj bez naloga');
     await tester.pumpAndSettle();
-    expect(find.text('Kako se zoveš?'), findsOneWidget);
+    expect(find.text('Šta želiš?'), findsOneWidget);
+    await choose(tester, 'Da treniram');
     await tester.enterText(find.byType(TextField), 'Gost');
     await tester.pump();
     await tapText(tester, 'Dalje');
@@ -112,10 +113,10 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profil'));
     await tester.pumpAndSettle();
     expect(find.text('Gost').hitTestable(), findsWidgets);
-    // Creator mode lives in the settings, behind the icon on the profile.
+    // Anyone can become a trainer from the settings; Studio becomes a tab.
     await tester.tap(find.bySemanticsLabel('Podešavanja'));
     await tester.pumpAndSettle();
-    await tapText(tester, 'Režim kreatora');
+    await tapText(tester, 'Postani trener');
     expect(find.text('Sačuvaj nalog.'), findsOneWidget);
     await tapText(tester, 'Sačuvaj nalog');
     await tester.enterText(find.byType(TextField), 'gost@primer.rs');
@@ -126,8 +127,10 @@ void main() {
     await tapText(tester, 'Sačuvaj nalog');
     await tester.pumpAndSettle();
     expect(auth.current!.isGuest, isFalse);
-    expect(find.text('Tvoj profil.'), findsOneWidget, reason: 'creator mode is open now');
-    await tester.tap(find.bySemanticsLabel('Nazad').hitTestable().first);
+    expect(find.text('Tvoj profil trenera.'), findsOneWidget, reason: 'the Studio tab is open now');
+    await tester.tap(find.bySemanticsLabel('Profil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Podešavanja'));
     await tester.pumpAndSettle();
     await tapText(tester, 'Nalog i sinhronizacija');
     expect(find.text('gost@primer.rs'), findsOneWidget);
@@ -143,6 +146,7 @@ void main() {
     await auth.verifyCode('ana@primer.rs', '123456');
     await pumpApp(tester);
     await tester.pumpAndSettle();
+    await choose(tester, 'Da treniram');
     await tester.enterText(find.byType(TextField), 'Ana');
     await tester.pump();
     remote.offline = true;

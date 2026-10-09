@@ -5,9 +5,10 @@ import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 
-/// Name, goal, experience, where and how often the user trains. One question
-/// per step; picking an answer moves on by itself. Equipment follows from the
-/// place and gender is optional in Profile, so neither is asked here.
+/// First what the user wants (to train, or to make programs for others), then
+/// the name. Someone who trains also answers goal, experience, place and days;
+/// a trainer goes straight to their Studio. One question per step; picking
+/// an answer moves on by itself.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, this.invitedBy});
 
@@ -19,8 +20,11 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  static const _steps = 5;
   int _step = 0;
+  bool? _coaches;
+
+  /// A trainer answers two questions; someone who trains six.
+  int get _steps => _coaches == true ? 2 : 6;
   bool _advancing = false;
   final _name = TextEditingController();
   Goal? _goal;
@@ -40,14 +44,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       setState(() => _step++);
       return;
     }
+    // A trainer's own training answers can wait; the defaults fit a gym.
+    final coach = _coaches == true;
+    final place = _place ?? Place.gym;
     context.readStore.completeOnboarding(
       UserProfile(
         name: _name.text.trim(),
-        goal: _goal!,
-        experience: _experience!,
-        place: _place!,
-        daysPerWeek: _days!,
-        equipment: {...(_place == Place.gym ? Equipment.gym : Equipment.home)},
+        goal: _goal ?? Goal.general,
+        experience: _experience ?? Experience.intermediate,
+        place: place,
+        daysPerWeek: _days ?? 3,
+        equipment: {...(place == Place.gym ? Equipment.gym : Equipment.home)},
+        coaches: coach,
       ),
     );
   }
@@ -82,8 +90,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     final cl = context.cl;
     final (String title, String? hint, Widget body) = switch (_step) {
-      0 => ('Kako se zoveš?', null, _nameStep(cl)),
-      1 => (
+      0 => (
+        'Šta želiš?',
+        null,
+        _options(
+          [
+            (false, 'Da treniram', 'Po programu trenera kog pratiš'),
+            (true, 'Da pravim programe za druge', 'Za trenere: tvoj Studio, tvoji pratioci'),
+          ],
+          _coaches,
+          (c) => _coaches = c,
+        ),
+      ),
+      1 => ('Kako se zoveš?', null, _nameStep(cl)),
+      2 => (
         'Šta ti je cilj?',
         null,
         _options(
@@ -97,7 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           (g) => _goal = g,
         ),
       ),
-      2 => (
+      3 => (
         'Koliko dugo treniraš?',
         null,
         _options(
@@ -110,7 +130,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           (e) => _experience = e,
         ),
       ),
-      3 => (
+      4 => (
         'Gde treniraš?',
         'Prema tome biramo vežbe. Opremu menjaš u profilu.',
         _options(
@@ -144,13 +164,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         onBack: _step == 0 || _advancing ? null : () => setState(() => _step--),
       ),
       // Choices move on by themselves; only the name needs a button.
-      bottom: _step == 0
-          ? ClButton.block(label: 'Dalje', onPressed: _name.text.trim().isEmpty ? null : _next)
+      bottom: _step == 1
+          ? ClButton.block(
+              label: _step == _steps - 1 ? 'Napravi Studio' : 'Dalje',
+              onPressed: _name.text.trim().isEmpty ? null : _next,
+            )
           : null,
       children: [
         ClSegmentBar(total: _steps, done: _step + 1),
         const SizedBox(height: ClSpace.s6),
-        if (_step == 0 && widget.invitedBy != null) ...[
+        if (_step <= 1 && widget.invitedBy != null) ...[
           ClCreatorLine(
             name: widget.invitedBy!.name,
             image: photoOf(widget.invitedBy!.photo),
@@ -173,7 +196,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Text(
-        widget.invitedBy == null
+        _coaches == true
+            ? 'Ovo ime vide tvoji pratioci. Posle praviš profil, vežbe i prvi program.'
+            : widget.invitedBy == null
             ? 'Treniraš po programu trenera kog pratiš. Aplikacija beleži svaki set i pokazuje napredak.'
             : 'Treniraš po programu koji je ${widget.invitedBy!.name} objavio. Prvo četiri kratka pitanja.',
         style: cl.text.body.copyWith(color: cl.colors.inkMuted),

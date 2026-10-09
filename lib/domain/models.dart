@@ -399,9 +399,13 @@ class UserProfile {
     required this.daysPerWeek,
     required this.equipment,
     this.gender = Gender.unspecified,
+    this.coaches = false,
   });
 
   final String name;
+
+  /// Chose "Da pravim programe za druge" at sign-up: gets the Studio tab.
+  final bool coaches;
   final Gender gender;
   final Goal goal;
   final Experience experience;
@@ -419,7 +423,9 @@ class UserProfile {
     Goal? goal,
     Experience? experience,
     Place? place,
+    bool? coaches,
   }) => UserProfile(
+    coaches: coaches ?? this.coaches,
     name: name ?? this.name,
     gender: gender ?? this.gender,
     goal: goal ?? this.goal,
@@ -445,6 +451,7 @@ class UserProfile {
     'place': place.name,
     'daysPerWeek': daysPerWeek,
     'equipment': equipment.map((e) => e.name).toList(),
+    'coaches': coaches,
   };
 
   factory UserProfile.fromJson(Map<String, Object?> j) => UserProfile(
@@ -454,6 +461,7 @@ class UserProfile {
     experience: _enum(Experience.values, j['experience'], Experience.beginner),
     place: _enum(Place.values, j['place'], Place.gym),
     daysPerWeek: j['daysPerWeek'] as int? ?? 3,
+    coaches: j['coaches'] as bool? ?? false,
     equipment: {
       for (final e in (j['equipment'] as List? ?? const [])) _enum(Equipment.values, e, Equipment.bodyweight),
     },

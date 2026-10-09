@@ -6,7 +6,6 @@ import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
 import 'auth_screen.dart';
 import 'common.dart';
-import 'creator_mode.dart';
 import 'creator_profile.dart';
 import 'plan_finder.dart';
 import 'plan_screen.dart';
@@ -138,11 +137,15 @@ class SettingsScreen extends StatelessWidget {
         ClMenuGroup(
           title: 'Za trenere',
           children: [
+            // Trainers have Studio as a tab; anyone else can become one here.
             ClMenuRow(
               icon: ClIcons.creators,
-              title: 'Režim kreatora',
+              title: store.isCoach ? 'Studio' : 'Postani trener',
               value: store.myCreator == null ? null : '@${store.myCreator!.handle}',
-              onPressed: () => pushScreen(context, const CreatorModeScreen(), theme: ClTheme.light),
+              onPressed: () {
+                store.becomeCoach();
+                HomeShell.goTo(context, AppTab.library);
+              },
             ),
           ],
         ),
