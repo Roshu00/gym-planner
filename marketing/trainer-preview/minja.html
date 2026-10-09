@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chalkline za trenere</title>
+<title>Chalkline · Minja Varsaković</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
 
@@ -14,10 +14,7 @@
   2. Promeni samo blok TRAINER ispod: tekst, brojeve i linkove ka slikama.
      Slike mogu biti linkovi (https://...) ili fajlovi pored ovog fajla
      (npr. "slike/jelena.jpg").
-  3. Otvori fajl u Chrome-u. "Prezentacija" je stranica za trenera: šta je
-     Chalkline, kako ga nalaze, kako pratioci treniraju i koliko može da
-     zaradi. "Samo ekrani" su ekrani za izvoz; tamo dugmad biraju ekran i
-     pozadinu.
+  3. Otvori fajl u Chrome-u. Dugmad gore biraju ekran i pozadinu.
      "Story 9:16" je sama kartica za Instagram story, bez telefona; uvećaj
      sliku 2× pri izvozu da dobiješ 1080 × 1920.
   4. Za sliku jednog ekrana: "Samo jedan ekran" + "Bez pozadine", pa
@@ -29,36 +26,32 @@
 -->
 <script>
 const TRAINER = {
-  name: "Jelena Ilić",
-  handle: "jelena.moves",
-  tagline: "Treninzi kod kuće",
-  bio: "Bučice, trake i 40 minuta. Programi za one koji treniraju u dnevnoj sobi i žele da vide napredak.",
-  photo: "https://images.unsplash.com/photo-1620862657760-72a639a2daef?w=900&q=75&auto=format&fit=crop",
-  followers: "126K",
-  followersCount: 126000,   // za računicu zarade
+  name: "Minja Varsaković",
+  handle: "minjavarsakovicc",
+  tagline: "Glutelab",
+  bio: "Personalni treninzi u Beauty & Beast womens gym. Glutelab je moj program za snažne noge i gluteus, trening po trening, kao da sam sa tobom u teretani.",
+  photo: "slike/minja/profil.jpg",
+  avatar: "slike/minja/avatar.jpg",   // mala okrugla slika; ako je nema, koristi se photo
+  followers: "142K",                  // Instagram 41,5K + TikTok 101K
   priceMonthly: "4,99 €",
-  price: 4.99,              // ista cena kao broj, za računicu
 
   // Programi redom kako treba da stoje na profilu. Prvi je i "preporučen".
   programs: [
     {
-      name: "Kuća 30",
-      weeks: 6, perWeek: 3, level: "Početnik", place: "Kod kuće",
-      cover: "https://images.unsplash.com/photo-1714646442330-9068099f5521?w=900&q=75&auto=format&fit=crop",
+      name: "Glutelab",
+      weeks: 8, perWeek: 4, level: "Srednji", place: "Teretana",
+      cover: "slike/minja/glutelab.jpg",
       forSubscribers: false,
       workouts: [
-        { name: "Donji deo", minutes: 35, exercises: 5,
-          cover: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=70&auto=format&fit=crop" },
-        { name: "Gornji deo", minutes: 30, exercises: 5,
-          cover: "https://images.unsplash.com/photo-1714646442330-9068099f5521?w=600&q=70&auto=format&fit=crop" },
-        { name: "Celo telo", minutes: 40, exercises: 6,
-          cover: "https://images.unsplash.com/photo-1620862657760-72a639a2daef?w=600&q=70&auto=format&fit=crop" }
+        { name: "Quad day", minutes: 45, exercises: 5, cover: "slike/minja/quad-day.jpg" },
+        { name: "Gornji deo", minutes: 40, exercises: 5, cover: "slike/minja/gornji-deo.jpg" },
+        { name: "Leđa i ramena", minutes: 40, exercises: 5, cover: "slike/minja/ledja.jpg" }
       ]
     },
     {
-      name: "Gluteus plan",
-      weeks: 8, perWeek: 4, level: "Srednji nivo", place: "Kod kuće",
-      cover: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=900&q=75&auto=format&fit=crop",
+      name: "Glutelab 2",
+      weeks: 8, perWeek: 4, level: "Svi nivoi", place: "Kod kuće",
+      cover: "slike/minja/glutelab2.jpg",
       forSubscribers: true,
       workouts: []
     }
@@ -66,54 +59,35 @@ const TRAINER = {
 
   // Ekran "Danas": trening dana i jedna rečenica trenera.
   today: {
-    workout: "Donji deo",
-    minutes: 35,
-    intro: "Četrdeset minuta, samo ti i bučice. Idemo.",
-    cover: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&q=75&auto=format&fit=crop",
+    workout: "Leđa i ramena",
+    minutes: 40,
+    intro: "Leđa danas. Kontrolisano na povlačenju, jako do poslednjeg seta.",
+    cover: "slike/minja/danas.jpg",
     followerName: "Ana"
   },
 
   // Ekran treninga: vežba koja se radi.
   exercise: {
     name: "Gobl čučanj",
-    sets: 3, reps: "10–12", rest: "1:30", kg: "12", repsNow: 12,
-    cue: "Lakti unutar kolena, grudi gore.",
-    picture: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Goblet_Squat/0.jpg"
-  },
-
-  // Ekran "Otkrij": šta pratilac ukuca u pretragu i koji treneri se vide.
-  search: {
-    query: "jelena",
-    others: [
-      { name: "Marko Petrović", handle: "marko.lifts", tagline: "Snaga i hipertrofija", followers: "48,2K",
-        photo: "https://images.unsplash.com/photo-1704223523169-52feeed90365?w=400&q=75&auto=format&fit=crop" },
-      { name: "Nikola Jovanović", handle: "nikola.fit", tagline: "Kalistenika", followers: "9.400",
-        photo: "https://images.unsplash.com/photo-1634225251578-d5f6ffced78a?w=400&q=75&auto=format&fit=crop" }
-    ]
-  },
-
-  // Računica zarade. VAŽNO: model naplate još nije konačan (vidi
-  // docs/VISION.md). platformShare je pretpostavka; promeni je pre slanja.
-  earnings: {
-    platformShare: 0.2,          // deo pretplate koji zadržava platforma
-    conversion: 1,               // % pratilaca koji se pretplate, početna vrednost klizača
-    disclaimer: "Primer računice, ne obećanje. Udeo platforme i naknade prodavnica još nisu konačni."
+    sets: 4, reps: "12–10–8–6", rest: "1:30", kg: "16", repsNow: 10,
+    cue: "Pete na pločicama, grudi gore, spusti se duboko.",
+    picture: "slike/minja/gobl-cucanj.jpg"
   },
 
   // Rezime posle treninga i story kartica koju pratilac deli.
   summary: {
-    workout: "Donji deo",
-    duration: "34 min",
+    workout: "Quad day",
+    duration: "46 min",
     headline: "Odrađeno.",
-    volume: "2.880 kg",
+    volume: "4.120 kg",
     records: 2,
-    streak: "4 ned.",
-    finishMessage: "Svaki čučanj danas je bio bolji od prošle nedelje. Vidimo se u ponedeljak.",
+    streak: "3 ned.",
+    finishMessage: "Ovako se grade noge. Odmori se, vidimo se na sledećem Glutelab treningu.",
     exercises: [
-      { name: "Gobl čučanj", detail: "3 seta · najbolji 14 kg × 12", pr: true },
-      { name: "Rumunsko mrtvo bučicama", detail: "3 seta · najbolji 12 kg × 10", pr: true },
-      { name: "Bugarski čučanj", detail: "3 seta · najbolji 8 kg × 10", pr: false },
-      { name: "Glute bridge", detail: "3 seta · 15 ponavljanja", pr: false }
+      { name: "Leg press", detail: "4 seta · najbolji 80 kg × 6", pr: true },
+      { name: "Gobl čučanj", detail: "4 seta · najbolji 16 kg × 10", pr: true },
+      { name: "Iskoraci u hodu", detail: "3 seta · 10 po nozi", pr: false },
+      { name: "Opružanje nogu", detail: "4 seta · 30 s izdržaj + 10", pr: false }
     ]
   }
 };
@@ -184,35 +158,6 @@ const TRAINER = {
   .tile .v { font-size: 26px; line-height: 28px; font-weight: 800; letter-spacing: -.03em; margin-top: 4px; }
   .pill { font: 700 10px var(--font); border: 1px solid var(--ink); border-radius: 999px; padding: 2px 7px; }
   .tag-pr { font: 800 11px var(--font); background: var(--ink); color: var(--lime); border-radius: 999px; padding: 3px 8px; }
-  /* Prezentacija */
-  .deck { width: 100%; max-width: 1380px; margin: 0 auto; display: grid; gap: 96px; }
-  .sec { display: grid; gap: 28px; }
-  .sec-head { max-width: 680px; display: grid; gap: 12px; }
-  .eyebrow { font: 700 14px var(--font); color: var(--muted); }
-  .h1 { font-size: clamp(44px, 6vw, 76px); line-height: .95; font-weight: 800; letter-spacing: -.04em; font-variation-settings: "opsz" 96; text-wrap: balance; }
-  .h2 { font-size: clamp(32px, 4vw, 48px); line-height: 1; font-weight: 800; letter-spacing: -.035em; font-variation-settings: "opsz" 96; text-wrap: balance; }
-  .lead { font-size: 19px; line-height: 28px; color: var(--muted); max-width: 62ch; }
-  .row { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; justify-content: center; }
-  .hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; align-items: center; }
-  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; justify-items: center; } }
-  .points { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-  .point { background: var(--surface); border-radius: 24px; padding: 22px; box-shadow: var(--shadow); display: grid; gap: 8px; align-content: start; }
-  .point .n { width: 32px; height: 32px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; font: 800 15px var(--font); }
-  .point b { font-size: 19px; line-height: 24px; font-weight: 800; letter-spacing: -.01em; }
-  .point p { color: var(--muted); font-size: 15px; line-height: 22px; }
-  .step { display: grid; gap: 14px; justify-items: center; max-width: 422px; }
-  .step .txt { display: grid; gap: 4px; text-align: center; }
-  .step .txt b { font-size: 19px; font-weight: 800; }
-  .step .txt span { color: var(--muted); font-size: 15px; line-height: 22px; }
-  .linkcard { background: var(--ink); color: var(--bg); border-radius: 24px; padding: 22px 26px; display: grid; gap: 6px; max-width: 520px; }
-  .linkcard .u { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
-  .calc { background: var(--surface); border-radius: 32px; padding: 32px; box-shadow: var(--shadow); display: grid; gap: 24px; }
-  .calc input[type=range] { width: 100%; accent-color: var(--ink); }
-  .money { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-  .money div { border-radius: 20px; padding: 18px; display: grid; gap: 6px; }
-  .money .big { font-size: 40px; line-height: 42px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-  .note { font-size: 13px; line-height: 18px; color: var(--muted); }
-
   /* Story kartica: Instagram story je 1080 × 1920, ovde u pola veličine. */
   .story-frame { width: 540px; height: 960px; background: var(--bg); border-radius: 0; padding: 72px 40px; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 30px 60px -20px rgba(0,0,0,.35); flex: none; }
   body.clean .story-frame { box-shadow: none; }
@@ -251,7 +196,7 @@ const status = (light) => `<div class="island"></div><div class="status ${light 
 
 const nav = (active) => `<div class="nav">${["sun", "cal", "compass", "books", "user"].map((k, i) => `<span class="${i === active ? "on" : ""}">${icon[k]}</span>`).join("")}</div>`;
 
-const avatar = (size) => `<span class="avatar" style="width:${size}px;height:${size}px;${bg(T.photo)}"></span>`;
+const avatar = (size) => `<span class="avatar" style="width:${size}px;height:${size}px;${bg(T.avatar || T.photo)}"></span>`;
 
 // ───────── Ekran 1: profil trenera
 function profileScreen() {
@@ -424,7 +369,7 @@ function shareCard(scale = 1) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:${8 * scale}px">${second}${tile("Niz", m.streak, "var(--ink)", "#fff")}</div>
     </div>
     <div style="display:flex;align-items:center;gap:${8 * scale}px;margin-top:${24 * scale}px">
-      <span class="avatar" style="width:${28 * scale}px;height:${28 * scale}px;${bg(T.photo)}"></span>
+      <span class="avatar" style="width:${28 * scale}px;height:${28 * scale}px;${bg(T.avatar || T.photo)}"></span>
       <span class="strong" style="flex:1;font-size:${13 * scale}px">@${esc(T.handle)}</span>
       <span class="strong" style="font-size:${13 * scale}px">Chalkline</span>
     </div>
@@ -462,169 +407,7 @@ function storyFrame() {
   return `<div class="story-frame" id="story">${shareCard(1.6)}</div>`;
 }
 
-// ───────── Ekran: Otkrij, kako trener izgleda u pretrazi
-function discoverScreen() {
-  const q = T.search;
-  const row = (c, me) => `<div class="tile" style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:8px">
-      <span class="avatar" style="width:44px;height:44px;${bg(c.photo)}"></span>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px"><span class="strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>${me ? '<span class="pill">Pratiš</span>' : ""}</div>
-        <div class="body" style="font-size:13px;line-height:18px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${esc(c.handle)} · ${esc(c.tagline)}</div>
-      </div>
-      <div style="text-align:right"><div class="strong num">${esc(c.followers)}</div><div class="label">pratilaca</div></div>
-    </div>`;
-  const p = T.programs[0];
-  return `${status(false)}
-  <div class="content">
-    <div class="pad" style="padding-top:72px;display:grid;gap:12px">
-      <div><div class="label">Treneri i programi</div><div class="display-l" style="margin-top:2px">Otkrij</div></div>
-      <div style="display:flex;align-items:center;gap:10px;background:var(--raised);border-radius:12px;height:52px;padding:0 16px">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        <span class="body">${esc(q.query)}</span><span style="width:2px;height:22px;background:var(--ink)"></span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px"><span class="display-m" style="font-size:22px">Treneri</span><span class="label">1</span></div>
-      ${row({ name: T.name, handle: T.handle, tagline: T.tagline, followers: T.followers, photo: T.photo }, false)}
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px"><span class="display-m" style="font-size:22px">Programi</span><span class="label">${T.programs.length}</span></div>
-      <div class="photo scrim" style="position:relative;height:200px;border-radius:28px;${bg(p.cover)}">
-        <div style="position:absolute;left:16px;right:16px;bottom:14px;z-index:1;color:#fff">
-          <div class="strong" style="font-size:13px">${esc(p.weeks)} nedelja · ${esc(p.perWeek)}× nedeljno</div>
-          <div class="display-m" style="margin-top:2px">${esc(p.name)}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  ${nav(2)}`;
-}
-
-// Bez upita: trener među ostalima na početku ekrana Otkrij.
-function discoverBrowseScreen() {
-  const all = [{ name: T.name, handle: T.handle, tagline: T.tagline, followers: T.followers, photo: T.photo }, ...T.search.others];
-  const rows = all.map((c) => `<div class="tile" style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:8px">
-      <span class="avatar" style="width:44px;height:44px;${bg(c.photo)}"></span>
-      <div style="flex:1;min-width:0"><div class="strong">${esc(c.name)}</div><div class="body" style="font-size:13px;line-height:18px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${esc(c.handle)} · ${esc(c.tagline)}</div></div>
-      <div style="text-align:right"><div class="strong num">${esc(c.followers)}</div><div class="label">pratilaca</div></div>
-    </div>`).join("");
-  return `${status(false)}
-  <div class="content">
-    <div class="pad" style="padding-top:72px;display:grid;gap:12px">
-      <div><div class="label">Treneri i programi</div><div class="display-l" style="margin-top:2px">Otkrij</div></div>
-      <div style="display:flex;align-items:center;gap:10px;background:var(--raised);border-radius:12px;height:52px;padding:0 16px">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        <span class="body" style="color:var(--muted)">Pretraži trenere i programe</span>
-      </div>
-      <div class="btn dark" style="height:48px;font-size:16px">Pronađi plan za sebe</div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px"><span class="display-m" style="font-size:22px">Treneri</span><span class="label">${all.length}</span></div>
-      ${rows}
-    </div>
-  </div>
-  ${nav(2)}`;
-}
-
-const phone = (fn, id) => `<div class="phone" ${id ? `id="${id}"` : ""}><div class="screen">${fn()}</div></div>`;
-const money = (n) => new Intl.NumberFormat("sr-RS", { maximumFractionDigits: 0 }).format(n) + " €";
-
-// ───────── Prezentacija za trenera
-function deck() {
-  const first = T.name.split(" ")[0];
-  return `<div class="deck">
-    <section class="sec hero">
-      <div style="display:grid;gap:20px">
-        <span class="eyebrow">Chalkline · za ${esc(T.name)}</span>
-        <h1 class="h1">Tvoj program, u telefonu tvojih pratilaca.</h1>
-        <p class="lead">Ljudi te gledaju na Instagramu i TikToku, ali posle dve nedelje odustanu jer nemaju plan. U Chalkline-u tvoj program postaje njihova dnevna rutina: znaju šta rade danas, treniraju set po set uz tvoj video i savet, i vide napredak. Ti dobijaš pretplatnike, a ne samo lajkove.</p>
-      </div>
-      ${phone(profileScreen)}
-    </section>
-
-    <section class="sec">
-      <div class="sec-head"><span class="eyebrow">Šta je Chalkline</span><h2 class="h2">Ti praviš sistem jednom. Oni ga rade svaki dan.</h2></div>
-      <div class="points">
-        <div class="point"><span class="n">1</span><b>Objaviš vežbe, treninge i programe</b><p>Uz svaku vežbu tvoj video i kratak savet, tvojim glasom.</p></div>
-        <div class="point"><span class="n">2</span><b>Pratilac ih pretvori u svoj plan</b><p>Kaže koliko dana trenira, a aplikacija mu složi nedelju po tvom programu.</p></div>
-        <div class="point"><span class="n">3</span><b>Trenira set po set</b><p>Vidi prošli rezultat, odmor se meri sam, svaki rekord se beleži.</p></div>
-        <div class="point"><span class="n">4</span><b>Ti zarađuješ mesečno</b><p>Pratioci se pretplaćuju na tebe, ne na aplikaciju.</p></div>
-      </div>
-    </section>
-
-    <section class="sec">
-      <div class="sec-head"><span class="eyebrow">Kako te nalaze</span><h2 class="h2">Link u biografiji, pretraga u aplikaciji.</h2>
-        <p class="lead">Pratilac koji klikne tvoj link ide pravo na tvoj profil. Ko već koristi aplikaciju, nađe te u pretrazi po imenu ili @nalogu.</p></div>
-      <div class="linkcard"><span class="label" style="color:rgba(250,248,244,.7)">Tvoj link za biografiju</span><span class="u">chalkline.app/c/${esc(T.handle)}</span></div>
-      <div class="row">
-        <div class="step">${phone(discoverBrowseScreen)}<div class="txt"><b>Među trenerima</b><span>Profil sa tvojom slikom, opisom i brojem pratilaca.</span></div></div>
-        <div class="step">${phone(discoverScreen)}<div class="txt"><b>U pretrazi</b><span>„${esc(T.search.query)}“ i odmah si tu, sa svojim programima.</span></div></div>
-        <div class="step">${phone(profileScreen)}<div class="txt"><b>Tvoj profil</b><span>Programi poređani kako ti želiš, pretplata jednim dodirom.</span></div></div>
-      </div>
-    </section>
-
-    <section class="sec">
-      <div class="sec-head"><span class="eyebrow">Kako treniraju po tebi</span><h2 class="h2">Svaki dan, tvoje lice i tvoj trening.</h2></div>
-      <div class="row">
-        <div class="step">${phone(programScreen)}<div class="txt"><b>Izaberu tvoj program</b><span>Nedelje, dani i treninzi u rotaciji.</span></div></div>
-        <div class="step">${phone(todayScreen)}<div class="txt"><b>Svako jutro: Danas</b><span>Tvoja fotografija, trening dana i tvoja rečenica.</span></div></div>
-        <div class="step">${phone(workoutScreen)}<div class="txt"><b>Set po set</b><span>Tvoj video vežbe, prošli rezultat i odmor.</span></div></div>
-      </div>
-    </section>
-
-    <section class="sec">
-      <div class="sec-head"><span class="eyebrow">Kako se širi</span><h2 class="h2">Svaki trening je mala reklama za tebe.</h2>
-        <p class="lead">Posle treninga pratilac dobija karticu sa tvojim @nalogom i deli je na story. Njegovi prijatelji vide tebe.</p></div>
-      <div class="row">
-        <div class="step">${phone(summaryScreen)}<div class="txt"><b>Rezime i tvoja poruka</b><span>Pohvala, brojke i tvoja poruka posle treninga.</span></div></div>
-        <div class="step">${storyFrame()}<div class="txt"><b>Story sa tvojim imenom</b><span>Jedan dodir, pa Instagram.</span></div></div>
-      </div>
-    </section>
-
-    <section class="sec">
-      <div class="sec-head"><span class="eyebrow">Kako zarađuješ</span><h2 class="h2">Pretplata od ${esc(T.priceMonthly)} mesečno, svaki mesec.</h2>
-        <p class="lead">Ti određuješ cenu i šta je javno, a šta samo za pretplatnike. Pomeri klizač: koliko tvojih pratilaca se pretplati.</p></div>
-      <div class="calc">
-        <div style="display:grid;gap:8px">
-          <div style="display:flex;justify-content:space-between" class="strong"><span>Pretplati se <span id="pct"></span> od ${esc(T.followers)} pratilaca</span><span id="subs" class="num"></span></div>
-          <input id="rate" type="range" min="0.1" max="5" step="0.1" value="${T.earnings.conversion}" aria-label="Procenat pratilaca koji se pretplate">
-        </div>
-        <div class="money">
-          <div style="background:var(--lime)"><span class="label" style="color:var(--ink)">Tebi mesečno</span><span class="big" id="month"></span></div>
-          <div style="background:var(--peach)"><span class="label" style="color:var(--ink)">Tebi godišnje</span><span class="big" id="year"></span></div>
-          <div style="background:var(--raised)"><span class="label">Ukupno od pretplata mesečno</span><span class="big" id="gross" style="font-size:30px"></span></div>
-        </div>
-        <p class="note">${esc(T.earnings.disclaimer)} Računica: pratioci × procenat × ${esc(T.priceMonthly)} × ${Math.round((1 - T.earnings.platformShare) * 100)}% tebi.</p>
-      </div>
-    </section>
-
-    <section class="sec">
-      <div class="sec-head"><span class="eyebrow">Kako počinješ</span><h2 class="h2">Za jedno popodne, ${esc(first)}.</h2></div>
-      <div class="points">
-        <div class="point"><span class="n">1</span><b>Napraviš profil</b><p>Ime, @nalog, slika, opis i cena pretplate.</p></div>
-        <div class="point"><span class="n">2</span><b>Snimiš vežbe</b><p>Telefonom, sa strane, 5–15 sekundi po vežbi. Uz svaku savet.</p></div>
-        <div class="point"><span class="n">3</span><b>Složiš treninge i program</b><p>Redosled treninga kroz nedelje. Odlučiš šta je javno.</p></div>
-        <div class="point"><span class="n">4</span><b>Staviš link u biografiju</b><p>chalkline.app/c/${esc(T.handle)} i pozoveš pratioce u reelu.</p></div>
-      </div>
-    </section>
-  </div>`;
-}
-
-function wireCalc() {
-  const input = document.getElementById("rate");
-  if (!input) return;
-  const update = () => {
-    const rate = Number(input.value) / 100;
-    const subs = Math.round(T.followersCount * rate);
-    const gross = subs * T.price;
-    const mine = gross * (1 - T.earnings.platformShare);
-    document.getElementById("pct").textContent = `${String(input.value).replace(".", ",")}%`;
-    document.getElementById("subs").textContent = `${new Intl.NumberFormat("sr-RS").format(subs)} pretplatnika`;
-    document.getElementById("month").textContent = money(mine);
-    document.getElementById("year").textContent = money(mine * 12);
-    document.getElementById("gross").textContent = money(gross);
-  };
-  input.addEventListener("input", update);
-  update();
-}
-
 const SCREENS = [
-  { id: "otkrij", title: "Otkrij", render: discoverBrowseScreen },
-  { id: "pretraga", title: "Pretraga", render: discoverScreen },
   { id: "profil", title: "Profil trenera", render: profileScreen },
   { id: "program", title: "Program", render: programScreen },
   { id: "danas", title: "Danas, kod pratioca", render: todayScreen },
@@ -634,22 +417,14 @@ const SCREENS = [
 ];
 
 let only = null;
-let mode = "deck";
 function draw() {
-  const modes = `<button class="${mode === "deck" ? "on" : ""}" data-mode="deck">Prezentacija</button><button class="${mode === "screens" ? "on" : ""}" data-mode="screens">Samo ekrani</button><span style="width:16px"></span>`;
-  if (mode === "deck") {
-    document.getElementById("stage").innerHTML = deck();
-    document.getElementById("toolbar").innerHTML = modes;
-    wireCalc();
-    return;
-  }
   document.getElementById("stage").innerHTML = SCREENS
     .filter((s) => !only || s.id === only)
     .map((s) => s.bare
       ? `<div class="slot">${s.render()}<div class="caption">${s.title}</div></div>`
       : `<div class="slot"><div class="phone" id="${s.id}"><div class="screen">${s.render()}</div></div><div class="caption">${s.title}</div></div>`)
     .join("");
-  document.getElementById("toolbar").innerHTML = modes +
+  document.getElementById("toolbar").innerHTML =
     `<button class="${only ? "" : "on"}" data-only="">Svi ekrani</button>` +
     SCREENS.map((s) => `<button class="${only === s.id ? "on" : ""}" data-only="${s.id}">${s.title}</button>`).join("") +
     `<button data-clean>${document.body.classList.contains("clean") ? "Sa pozadinom" : "Bez pozadine"}</button>`;
@@ -657,8 +432,7 @@ function draw() {
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
-  if (b.dataset.mode) mode = b.dataset.mode;
-  else if (b.hasAttribute("data-clean")) document.body.classList.toggle("clean");
+  if (b.hasAttribute("data-clean")) document.body.classList.toggle("clean");
   else only = b.dataset.only || null;
   draw();
 });
