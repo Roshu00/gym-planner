@@ -136,6 +136,9 @@ const TRAINER = {
   summary: {
     workout: "Donji deo",
     duration: "34 min",
+    sets: 15,
+    // Slika pratioca ispod nalepnice: iz teretane, posle treninga ili form check.
+    storyPhoto: "https://images.unsplash.com/photo-1770026136861-0150317a4389?w=1080&q=80&auto=format&fit=crop",
     headline: "Odrađeno.",
     volume: "2.880 kg",
     records: 2,
@@ -266,7 +269,9 @@ const TRAINER = {
   .note { font-size: 13px; line-height: 18px; color: var(--muted); }
 
   /* Story kartica: Instagram story je 1080 × 1920, ovde u pola veličine. */
-  .story-frame { width: 540px; height: 960px; background: var(--bg); border-radius: 0; padding: 72px 40px; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 30px 60px -20px rgba(0,0,0,.35); flex: none; }
+  .story-frame { position: relative; width: 540px; height: 960px; background: #1F1E1B center / cover no-repeat; overflow: hidden; box-shadow: 0 30px 60px -20px rgba(0,0,0,.35); flex: none; }
+  .story-frame::after { content: ""; position: absolute; inset: 50% 0 0; background: linear-gradient(transparent, var(--scrim)); }
+  .sticker-text { color: #fff; text-shadow: 0 0 12px rgba(0,0,0,.4); }
   body.clean .story-frame { box-shadow: none; }
   .sticker { position: absolute; top: -8px; right: 14px; background: var(--ink); color: var(--lime); font: 800 12px var(--font); padding: 6px 12px; border-radius: 999px; rotate: 6deg; z-index: 2; }
 </style>
@@ -510,8 +515,45 @@ function summaryScreen() {
 }
 
 // ───────── Story za Instagram: samo kartica, 9:16
-function storyFrame() {
-  return `<div class="story-frame" id="story">${shareCard(1.6)}</div>`;
+// Nalepnica preko slike pratioca, ista kao u aplikaciji (lib/app/story_share.dart):
+// beli tekst bez pozadine, sa senkom. [scale] je 1 za story širok 360 pt.
+function sticker(scale = 1) {
+  const m = T.summary;
+  const stat = (label, value) => `<div style="flex:1;min-width:0"><div style="font:700 ${11 * scale}px var(--font)">${label}</div><div class="num" style="font-weight:800;letter-spacing:-.03em;font-size:${24 * scale}px;line-height:1.1;white-space:nowrap">${esc(value)}</div></div>`;
+  const third = m.records > 0 ? stat("Rekordi", m.records) : stat("Setova", m.sets ?? "—");
+  return `<div class="sticker-text" style="display:grid;gap:${12 * scale}px">
+    <div style="font-size:${40 * scale}px;line-height:1;font-weight:800;letter-spacing:-.035em;font-variation-settings:'opsz' 96">${esc(m.workout)}</div>
+    <div style="display:flex;gap:${12 * scale}px">${stat("Vreme", m.duration)}${stat("Volumen", m.volume)}${third}</div>
+    <div style="display:flex;align-items:center;gap:${8 * scale}px"><span class="avatar" style="width:${22 * scale}px;height:${22 * scale}px;${bg(T.photo)}"></span><span style="font:700 ${13 * scale}px var(--font)">@${esc(T.handle)} · Chalkline</span></div>
+  </div>`;
+}
+
+// 540 px wide is half of 1080 × 1920; the presentation shows it phone-sized.
+function storyFrame(width = 540) {
+  const k = width / 360;
+  return `<div class="story-frame" id="story" style="width:${width}px;height:${Math.round(width * 16 / 9)}px;${bg(T.summary.storyPhoto)}">
+    <div style="position:absolute;left:${22 * k}px;right:${22 * k}px;bottom:${48 * k}px;z-index:1">${sticker(k)}</div>
+  </div>`;
+}
+
+// ───────── Ekran: Podeli na story (pratilac doda svoju sliku)
+function composerScreen() {
+  return `${status(false)}
+  <div class="content">
+    <div style="display:flex;align-items:center;gap:8px;padding:56px 8px 0"><span style="width:48px;height:48px;display:grid;place-items:center"><span style="width:24px;height:24px">${icon.back}</span></span><span class="label" style="font-size:14px">Podeli na story</span></div>
+    <div style="display:grid;justify-items:center;gap:8px;margin-top:8px">
+      <div style="position:relative;width:296px;height:526px;border-radius:28px;overflow:hidden" class="photo" >
+        <div class="photo" style="position:absolute;inset:0;${bg(T.summary.storyPhoto)}"></div>
+        <div style="position:absolute;inset:50% 0 0;background:linear-gradient(transparent,var(--scrim))"></div>
+        <div style="position:absolute;left:20px;right:20px;bottom:30px">${sticker(296 / 360)}</div>
+      </div>
+      <span class="label">Nalepnicu pomeraš prstom gore-dole.</span>
+    </div>
+  </div>
+  <div class="pad" style="display:grid;gap:4px;padding-bottom:30px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="btn outline">Druga slika</div><div class="btn pop">Podeli</div></div>
+    <div class="strong" style="text-align:center;padding:10px">Samo nalepnica, providna</div>
+  </div>`;
 }
 
 // ───────── Ekran: Otkrij, kako trener izgleda u pretrazi
@@ -625,10 +667,11 @@ function deck() {
 
     <section class="sec">
       <div class="sec-head"><span class="eyebrow">Kako se širi</span><h2 class="h2">Svaki trening je mala reklama za tebe.</h2>
-        <p class="lead">Posle treninga pratilac dobija karticu sa tvojim @nalogom i deli je na story. Njegovi prijatelji vide tebe.</p></div>
+        <p class="lead">Posle treninga pratilac doda svoju sliku iz teretane, a preko nje ide nalepnica sa treningom i tvojim @nalogom, kao na Stravi. Njegovi prijatelji vide njega, trening i tebe.</p></div>
       <div class="row">
         <div class="step">${phone(summaryScreen)}<div class="txt"><b>Rezime i tvoja poruka</b><span>Pohvala, brojke i tvoja poruka posle treninga.</span></div></div>
-        <div class="step">${storyFrame()}<div class="txt"><b>Story sa tvojim imenom</b><span>Jedan dodir, pa Instagram.</span></div></div>
+        <div class="step">${phone(composerScreen)}<div class="txt"><b>Njegova slika, tvoje ime</b><span>Slika iz teretane ili form check, preko nje nalepnica.</span></div></div>
+        <div class="step">${storyFrame(422)}<div class="txt"><b>Story na Instagramu</b><span>Jedan dodir, pa Instagram.</span></div></div>
       </div>
     </section>
 
@@ -723,6 +766,7 @@ const SCREENS = [
   { id: "danas", title: "Danas, kod pratioca", render: todayScreen },
   { id: "trening", title: "Trening", render: workoutScreen },
   { id: "rezime", title: "Rezime", render: summaryScreen },
+  { id: "podeli", title: "Podeli na story", render: composerScreen },
   { id: "story", title: "Story 9:16", render: storyFrame, bare: true }
 ];
 
