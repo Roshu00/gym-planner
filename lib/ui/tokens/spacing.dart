@@ -48,6 +48,10 @@ abstract final class ClMotion {
   static const base = Duration(milliseconds: 200);
   static const sheet = Duration(milliseconds: 250);
   static const curve = Curves.easeOut;
+
+  /// Tab changes: the nav pill and the screen move together.
+  static const tab = Duration(milliseconds: 320);
+  static const tabCurve = Curves.easeOutCubic;
 }
 
 /// Soft shadow that lifts white cards off the warm background. Only on

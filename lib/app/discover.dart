@@ -4,11 +4,10 @@ import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'creator_profile.dart';
-import 'library.dart';
 import 'plan_finder.dart';
 import 'program_detail.dart';
 
-/// Creators and their programs. Filters combine across groups.
+/// Creators and their programs. Search by name; filters combine across groups.
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
 
@@ -18,7 +17,22 @@ class DiscoverScreen extends StatefulWidget {
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
   Set<String> _filters = {};
-  int _section = 0;
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  /// Case- and accent-insensitive: "jovanovic" finds "Jovanović".
+  static String _fold(String s) => s
+      .toLowerCase()
+      .replaceAll('č', 'c')
+      .replaceAll('ć', 'c')
+      .replaceAll('š', 's')
+      .replaceAll('ž', 'z')
+      .replaceAll('đ', 'dj');
 
   static final _groups = <List<(String, bool Function(Program))>>[
     [for (final p in Place.values) (p.label, (x) => x.place == p)],
@@ -68,38 +82,48 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   @override
   Widget build(BuildContext context) {
     final store = context.store;
-    final programs = store.allPrograms.where((p) => p.workoutIds.isNotEmpty && _matches(p)).toList();
-    final creatorIds = programs.map((p) => p.creatorId).toSet();
-    final creators = store.creators.where((c) => creatorIds.contains(c.id)).toList()
-      // Creators the user already follows come first.
-      ..sort((a, b) {
-        final followed = store.isFollowing(b.id).toString().compareTo(store.isFollowing(a.id).toString());
-        return followed != 0 ? followed : b.followers.compareTo(a.followers);
-      });
-
-    final header = [
-      const SizedBox(height: ClSpace.s4),
-      const ClScreenTitle(label: 'Treneri i programi', title: 'Otkrij', large: true),
-      gapS,
-      ClTabs(
-        tabs: const ['Otkrij', 'Biblioteka'],
-        selected: _section,
-        onChanged: (i) => setState(() => _section = i),
-      ),
-      gapS,
-    ];
-    if (_section == 1) {
-      return AppScreen(
-        children: [
-          ...header,
-          LibraryContent(onDiscover: () => setState(() => _section = 0)),
-        ],
-      );
+    final query = _fold(_search.text.trim());
+    bool found(String text) => query.isEmpty || _fold(text).contains(query);
+    bool creatorFound(String id) {
+      final c = store.creator(id);
+      return c != null && (found(c.name) || found(c.handle));
     }
+
+    final programs = store.allPrograms
+        .where((p) => p.workoutIds.isNotEmpty && _matches(p) && (found(p.name) || creatorFound(p.creatorId)))
+        .toList();
+    final withPrograms = store.allPrograms
+        .where((p) => p.workoutIds.isNotEmpty)
+        .map((p) => p.creatorId)
+        .toSet();
+    final filtered = programs.map((p) => p.creatorId).toSet();
+    final creators =
+        store.creators
+            .where(
+              (c) =>
+                  withPrograms.contains(c.id) &&
+                  (_filters.isEmpty || filtered.contains(c.id)) &&
+                  (creatorFound(c.id) || filtered.contains(c.id)),
+            )
+            .toList()
+          // Creators the user already follows come first.
+          ..sort((a, b) {
+            final followed = store.isFollowing(b.id).toString().compareTo(store.isFollowing(a.id).toString());
+            return followed != 0 ? followed : b.followers.compareTo(a.followers);
+          });
 
     return AppScreen(
       children: [
-        ...header,
+        const SizedBox(height: ClSpace.s4),
+        const ClScreenTitle(label: 'Treneri i programi', title: 'Otkrij', large: true),
+        gapS,
+        ClTextField(
+          hint: 'Pretraži trenere i programe',
+          icon: ClIcons.search,
+          controller: _search,
+          onChanged: (_) => setState(() {}),
+        ),
+        gapS,
         Row(
           children: [
             Expanded(
@@ -141,6 +165,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           ClCreatorRow(
             status: followStatus(store, c.id),
             name: c.name,
+            image: photoOf(c.photo),
             handle: '@${c.handle} · ${c.tagline}',
             followers: formatCompact(c.followers),
             onPressed: () => pushScreen(context, CreatorProfileScreen(creatorId: c.id), theme: ClTheme.light),
@@ -151,7 +176,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           trailing: Text('${programs.length}', style: context.clText.label),
         ),
         if (programs.isEmpty)
-          const ClNotice('Nijedan program ne odgovara ovim filterima.')
+          ClNotice(
+            query.isEmpty
+                ? 'Nijedan program ne odgovara ovim filterima.'
+                : 'Nema programa za „${_search.text.trim()}”.',
+          )
         else
           for (final p in programs) ...[ProgramTile(program: p), const SizedBox(height: ClSpace.s8)],
       ],
@@ -172,6 +201,8 @@ class ProgramTile extends StatelessWidget {
     final fit = store.fitOf(program);
     return ClProgramCard(
       title: program.name,
+      image: photoOf(program.image),
+      creatorImage: photoOf(c?.photo),
       color: context.clColors.popFor(program.id),
       meta: programMeta(program),
       creatorName: c?.name ?? '',

@@ -88,14 +88,29 @@ class CreatorProfileScreen extends StatelessWidget {
     return AppScreen(
       safeTop: false,
       padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s12),
+      collapsed: Row(
+        children: [
+          ClAvatar(name: c.name, image: photoOf(c.photo)),
+          const SizedBox(width: ClSpace.s2),
+          Expanded(
+            child: Text(
+              c.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.clText.bodyStrong,
+            ),
+          ),
+        ],
+      ),
       header: ClWorkoutHero(
         title: c.name,
+        image: photoOf(c.photo),
         color: context.clColors.popFor(c.id),
         label: '@${c.handle} · ${c.tagline}',
         height: 320,
         topBar: Row(
           children: [
-            ClIconButton(
+            ClIconButton.onMedia(
               icon: ClIcons.back,
               semanticLabel: 'Nazad',
               onPressed: () => Navigator.of(context).maybePop(),

@@ -10,12 +10,51 @@ import 'creator_mode.dart';
 import 'creator_profile.dart';
 import 'plan_finder.dart';
 import 'plan_screen.dart';
+import 'progress.dart';
 import 'shell.dart';
 
-/// The user: a short header, then everything else grouped in menus that
-/// open sheets, so the screen stays easy to scan.
+/// The user, like a social profile: who they are and their numbers
+/// (progress, records, history). Everything else lives one tap away in
+/// [SettingsScreen], behind the icon in the corner.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final profile = store.profile;
+    if (profile == null) return const SizedBox.shrink();
+    return AppScreen(
+      children: [
+        const SizedBox(height: ClSpace.s2),
+        Row(
+          children: [
+            ClAvatar.profile(name: profile.name),
+            const SizedBox(width: ClSpace.s4),
+            Expanded(
+              child: ClScreenTitle(
+                title: profile.name,
+                label: store.plan == null ? profile.goal.label : store.plan!.name,
+              ),
+            ),
+            ClIconButton(
+              icon: ClIcons.settings,
+              semanticLabel: 'Podešavanja',
+              onPressed: () => pushScreen(context, const SettingsScreen()),
+            ),
+          ],
+        ),
+        gap,
+        const ProgressContent(),
+      ],
+    );
+  }
+}
+
+/// The secondary things: plan, subscriptions, equipment, account, creator
+/// mode. Each row opens a sheet or a screen.
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,29 +66,8 @@ class ProfileScreen extends StatelessWidget {
     final account = store.account;
 
     return AppScreen(
+      topBar: const ClTopBar(label: 'Podešavanja'),
       children: [
-        const SizedBox(height: ClSpace.s4),
-        Row(
-          children: [
-            ClAvatar.profile(name: profile.name),
-            const SizedBox(width: ClSpace.s4),
-            Expanded(
-              child: ClScreenTitle(
-                title: profile.name,
-                label: '${profile.goal.label} · ${profile.experience.label} · ${profile.place.label}',
-              ),
-            ),
-          ],
-        ),
-        gap,
-        ClStatBar(
-          stats: [
-            ClStat(label: 'Treninzi', value: '${store.sessions.length}'),
-            ClStat(label: 'Niz', value: '${store.streak}', unit: 'ned.', highlight: true),
-            ClStat(label: 'Rekordi', value: '${store.sessions.fold(0, (n, s) => n + s.prCount)}'),
-          ],
-        ),
-        gap,
         ClMenuGroup(
           title: 'Treniranje',
           children: [
@@ -83,7 +101,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         gap,
         ClMenuGroup(
-          title: 'Podešavanja',
+          title: 'Nalog',
           children: [
             ClMenuRow(
               icon: ClIcons.account,
@@ -160,6 +178,7 @@ class _SubscriptionsSheet extends StatelessWidget {
           ClCreatorRow(
             status: ClFollowStatus.subscribed,
             name: c.name,
+            image: photoOf(c.photo),
             handle: '${formatPrice(c.priceMonthly)} mesečno',
             followers: formatCompact(c.followers),
             onPressed: () => pushScreen(context, CreatorProfileScreen(creatorId: c.id), theme: ClTheme.light),

@@ -6,10 +6,25 @@ import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'exercise_detail.dart';
 import 'program_detail.dart';
+import 'shell.dart';
 import 'workout_detail.dart';
 
-/// Programs, workouts and exercises from followed creators. Shown as the
-/// "Biblioteka" tab of Otkrij.
+/// The "Biblioteka" tab: everything from the creators the user follows.
+class LibraryScreen extends StatelessWidget {
+  const LibraryScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => AppScreen(
+    children: [
+      const SizedBox(height: ClSpace.s4),
+      const ClScreenTitle(label: 'Od trenera koje pratiš', title: 'Biblioteka', large: true),
+      gapS,
+      LibraryContent(onDiscover: () => HomeShell.goTo(context, AppTab.discover)),
+    ],
+  );
+}
+
+/// Programs, workouts and exercises from followed creators.
 class LibraryContent extends StatefulWidget {
   const LibraryContent({super.key, required this.onDiscover});
 
@@ -48,12 +63,11 @@ class _LibraryContentState extends State<LibraryContent> {
         for (final p in programs)
           ClListRow(
             title: p.name,
-            meta: '${programMeta(p)} · ${by(p.creatorId)}',
-            tags: [
-              ClTag(p.level.label),
-              ClTag(p.place.label),
-              if (store.plan?.programId == p.id) const ClTag('Tvoj plan'),
-            ],
+            meta: [
+              if (store.plan?.programId == p.id) 'Tvoj plan',
+              programMeta(p),
+              by(p.creatorId),
+            ].join(' · '),
             trailing: lock(p.visibility, p.creatorId),
             onPressed: () => pushScreen(context, ProgramDetailScreen(programId: p.id)),
           ),
@@ -90,24 +104,14 @@ class _LibraryContentState extends State<LibraryContent> {
             action: ClButton(label: 'Otkrij trenere', expand: true, onPressed: widget.onDiscover),
           )
         else ...[
-          Text(
-            '${countLabel(creators.length, 'trener', 'trenera', 'trenera')} koje pratiš',
-            style: context.clText.label,
-          ),
-          const SizedBox(height: ClSpace.s2),
-          Wrap(
-            spacing: ClSpace.s2,
-            children: [
-              for (final (i, name) in ['Programi', 'Treninzi', 'Vežbe'].indexed)
-                ClFilter(
-                  label: '$name ${counts[i]}',
-                  selected: _tab == i,
-                  onChanged: (_) => setState(() => _tab = i),
-                ),
+          ClTabs(
+            tabs: [
+              for (final (i, name) in ['Programi', 'Treninzi', 'Vežbe'].indexed) '$name ${counts[i]}',
             ],
+            selected: _tab,
+            onChanged: (i) => setState(() => _tab = i),
           ),
-          const SizedBox(height: ClSpace.s2),
-          const ClDivider(),
+          gapS,
           ...rows,
         ],
       ],

@@ -1,4 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 
 import '../data/app_store.dart';
 import '../domain/models.dart';
@@ -43,7 +47,12 @@ class AppWidth extends StatelessWidget {
 
 /// Standard screen: top bar, scrolling content with the 16px gutter, and an
 /// optional action pinned to the bottom (the one primary button).
-class AppScreen extends StatelessWidget {
+///
+/// Without a bottom action the list runs to the very bottom of the screen and
+/// only its last item keeps clear of the home indicator. With a [header],
+/// pulling down at the top stretches the header instead of showing the
+/// background above it.
+class AppScreen extends StatefulWidget {
   const AppScreen({
     super.key,
     required this.children,
@@ -52,6 +61,7 @@ class AppScreen extends StatelessWidget {
     this.padding = const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s2, ClSpace.s4, ClSpace.s12),
     this.header,
     this.safeTop = true,
+    this.collapsed,
   });
 
   final Widget? topBar;
@@ -63,41 +73,200 @@ class AppScreen extends StatelessWidget {
   final EdgeInsets padding;
   final bool safeTop;
 
+  /// With a [header]: what the pinned bar shows once the header has scrolled
+  /// away, next to a back button (e.g. the creator's avatar and name).
+  final Widget? collapsed;
+
+  @override
+  State<AppScreen> createState() => _AppScreenState();
+}
+
+class _AppScreenState extends State<AppScreen> {
+  final _scroll = ScrollController();
+
+  /// Measured after layout; read while scrolling.
+  double _headerHeight = 300;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        top: safeTop,
-        bottom: bottom == null,
-        child: AppWidth(
-          child: Column(
-            children: [
-              ?topBar,
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    ?header,
-                    Padding(
-                      padding: padding,
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-                    ),
-                  ],
+    final w = widget;
+    final insetBottom = w.bottom == null ? MediaQuery.paddingOf(context).bottom : 0.0;
+    final header = w.header == null
+        ? null
+        : AnimatedBuilder(
+            animation: _scroll,
+            child: _MeasureHeight(
+              // Only the resting height counts, not a stretched one.
+              onHeight: (h) {
+                if (!_scroll.hasClients || _scroll.offset >= 0) _headerHeight = h;
+              },
+              child: w.header!,
+            ),
+            builder: (context, child) {
+              // Pulled past the top: the header gets taller upwards, so its
+              // photo zooms to fill the gap while the text at its bottom stays
+              // the same size. The list itself does not move.
+              final pulled = _scroll.hasClients ? math.max(0.0, -_scroll.offset) : 0.0;
+              final stretched = pulled > 0;
+              return SizedBox(
+                height: stretched ? _headerHeight : null,
+                child: OverflowBox(
+                  alignment: Alignment.bottomCenter,
+                  // At rest the header keeps its own height.
+                  fit: stretched ? OverflowBoxFit.max : OverflowBoxFit.deferToChild,
+                  minHeight: stretched ? _headerHeight + pulled : null,
+                  maxHeight: stretched ? _headerHeight + pulled : null,
+                  child: child,
                 ),
-              ),
-              if (bottom != null)
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s2, ClSpace.s4, ClSpace.s3),
-                    child: bottom,
+              );
+            },
+          );
+    // Dark status bar text on the light screens; a photo header switches it
+    // to light while it sits under the status bar.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        body: SafeArea(
+          top: w.safeTop,
+          bottom: false,
+          child: AppWidth(
+            child: Column(
+              children: [
+                ?w.topBar,
+                Expanded(
+                  child: Stack(
+                    children: [
+                      ListView(
+                        controller: _scroll,
+                        padding: EdgeInsets.zero,
+                        children: [
+                          ?header,
+                          Padding(
+                            padding: w.padding.copyWith(bottom: w.padding.bottom + insetBottom),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: w.children,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Once the header has scrolled away, a bar with the
+                      // screen's background takes over the top: the status bar
+                      // gets dark text back and, with [collapsed], a back button
+                      // and a short title stay in reach.
+                      if (header != null && !w.safeTop)
+                        AnimatedBuilder(
+                          animation: _scroll,
+                          builder: (context, _) {
+                            final top = MediaQuery.paddingOf(context).top;
+                            final barHeight = w.collapsed == null ? 0.0 : ClSize.target + ClSpace.s2;
+                            final covered =
+                                _scroll.hasClients && _scroll.offset > _headerHeight - top - barHeight;
+                            final duration = context.motion(ClMotion.base);
+                            final bar = Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: top + barHeight,
+                              child: IgnorePointer(
+                                ignoring: !covered,
+                                child: AnimatedOpacity(
+                                  opacity: covered ? 1 : 0,
+                                  duration: duration,
+                                  curve: ClMotion.curve,
+                                  child: ColoredBox(
+                                    color: context.clColors.bg,
+                                    child: w.collapsed == null
+                                        ? null
+                                        : Padding(
+                                            padding: EdgeInsets.only(
+                                              top: top,
+                                              left: ClSpace.s1,
+                                              right: ClSpace.s4,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                ClIconButton(
+                                                  icon: ClIcons.back,
+                                                  semanticLabel: 'Nazad',
+                                                  onPressed: () => Navigator.of(context).maybePop(),
+                                                ),
+                                                Expanded(
+                                                  child: AnimatedSlide(
+                                                    offset: Offset(0, covered ? 0 : 0.4),
+                                                    duration: duration,
+                                                    curve: ClMotion.tabCurve,
+                                                    child: w.collapsed,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            );
+                            return covered
+                                ? AnnotatedRegion<SystemUiOverlayStyle>(
+                                    value: SystemUiOverlayStyle.dark,
+                                    child: Stack(children: [bar]),
+                                  )
+                                : Stack(children: [bar]);
+                          },
+                        ),
+                    ],
                   ),
                 ),
-            ],
+                if (w.bottom != null)
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s2, ClSpace.s4, ClSpace.s3),
+                      child: w.bottom,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+}
+
+/// Reports its child's height after each layout that changes it.
+class _MeasureHeight extends SingleChildRenderObjectWidget {
+  const _MeasureHeight({required this.onHeight, required super.child});
+
+  final ValueChanged<double> onHeight;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderMeasureHeight(onHeight);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderMeasureHeight renderObject) =>
+      renderObject.onHeight = onHeight;
+}
+
+class _RenderMeasureHeight extends RenderProxyBox {
+  _RenderMeasureHeight(this.onHeight);
+
+  ValueChanged<double> onHeight;
+  double? _last;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    if (size.height != _last) {
+      _last = size.height;
+      onHeight(size.height);
+    }
   }
 }
 
@@ -138,3 +307,27 @@ String setLabel(SetLog s) {
 
 String sessionMeta(Session s) =>
     '${formatDate(s.finishedAt ?? s.startedAt)} · ${formatDuration(s.duration)} · ${formatKg(s.volume)}';
+
+/// A picture from a link, or null when there is none.
+ImageProvider? photoOf(String? url) => url == null || url.isEmpty ? null : NetworkImage(url);
+
+/// What just changed, as a dark message near the bottom with "Poništi". It
+/// goes away by itself after a few seconds, so it never pushes content down.
+void showUndoToast(BuildContext context, String message, {VoidCallback? onUndo}) {
+  final cl = context.cl;
+  final c = cl.colors;
+  final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+  messenger.showSnackBar(
+    SnackBar(
+      behavior: SnackBarBehavior.floating,
+      // Clear of the navigation bar on the tabs.
+      margin: const EdgeInsets.fromLTRB(ClSpace.s4, 0, ClSpace.s4, ClSpace.s12 + ClSpace.s8),
+      backgroundColor: c.ink,
+      elevation: 0,
+      duration: const Duration(seconds: 5),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ClRadius.sm)),
+      content: Text(message, style: cl.text.body.copyWith(color: c.bg, fontSize: 14)),
+      action: onUndo == null ? null : SnackBarAction(label: 'Poništi', textColor: c.bg, onPressed: onUndo),
+    ),
+  );
+}

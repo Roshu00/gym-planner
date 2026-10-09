@@ -106,6 +106,29 @@ void main() {
       expect(store.plannedOn(thu)!.custom!.note, 'Kraća verzija');
     });
 
+    test('dragging a workout to a free day moves exactly that workout', () {
+      expect(store.canMoveTraining(wed, thu), isTrue);
+      store.moveTraining(wed, thu);
+      expect(week(), {thu: a, fri: b, mon: a, wedNext: b});
+      expect(store.dayPlan(wed)!.train, isFalse);
+      // Back again: the usual week, no leftover changes.
+      store.moveTraining(thu, wed);
+      expect(week(), {wed: a, fri: b, mon: a, wedNext: b});
+      expect(store.dayPlan(thu), isNull);
+    });
+
+    test('a workout cannot jump over another one, onto one or into the past', () {
+      expect(store.canMoveTraining(wed, DateTime(2026, 10, 3)), isFalse, reason: 'Friday is in between');
+      expect(store.canMoveTraining(wed, fri), isFalse, reason: 'Friday has a workout');
+      expect(store.canMoveTraining(wed, DateTime(2026, 9, 29)), isFalse, reason: 'the past');
+    });
+
+    test('a moved day keeps its own changes', () {
+      store.quickVersionOn(wed);
+      store.moveTraining(wed, thu);
+      expect(store.plannedOn(thu)!.custom!.note, 'Kraća verzija');
+    });
+
     test('back to the plan', () {
       store.restOn(wed);
       store.setDayPlan(wed, null);

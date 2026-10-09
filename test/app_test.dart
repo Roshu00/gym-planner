@@ -11,7 +11,7 @@ import 'package:chalkline/app/plan_screen.dart';
 import 'package:chalkline/app/plan_tab.dart';
 import 'package:chalkline/app/profile.dart';
 import 'package:chalkline/app/program_detail.dart';
-import 'package:chalkline/app/progress.dart';
+import 'package:chalkline/app/library.dart';
 import 'package:chalkline/app/summary_screen.dart';
 import 'package:chalkline/app/today.dart';
 import 'package:chalkline/app/workout_detail.dart';
@@ -21,6 +21,7 @@ import 'package:chalkline/data/seed.dart';
 import 'package:chalkline/data/storage.dart';
 import 'package:chalkline/domain/models.dart';
 import 'package:chalkline/ui/chalkline_ui.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -123,6 +124,15 @@ Future<void> tapLabel(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
 }
 
+/// Taps a row in a sheet; its label also carries the row's description.
+Future<void> tapOption(WidgetTester tester, String title) async {
+  final target = find.bySemanticsLabel(RegExp('^${RegExp.escape(title)}')).last;
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
+  await tester.tap(target);
+  await tester.pumpAndSettle();
+}
+
 Future<void> scrollThrough(WidgetTester tester) async {
   final scrollables = find.byType(Scrollable);
   for (var i = 0; i < 15 && scrollables.evaluate().isNotEmpty; i++) {
@@ -137,7 +147,8 @@ void main() {
     'plan tab': ((_) => const PlanTabScreen(), ClTheme.dark),
     'plan finder': ((_) => const PlanFinderScreen(), ClTheme.dark),
     'discover': ((_) => const DiscoverScreen(), ClTheme.dark),
-    'progress': ((_) => const ProgressScreen(), ClTheme.dark),
+    'settings': ((_) => const SettingsScreen(), ClTheme.dark),
+    'library': ((_) => const LibraryScreen(), ClTheme.dark),
     'profile': ((_) => const ProfileScreen(), ClTheme.dark),
     'plan': ((_) => const PlanScreen(), ClTheme.dark),
     'plan workout': ((_) => const PlanWorkoutScreen(index: 1), ClTheme.dark),
@@ -172,7 +183,8 @@ void main() {
     ('today', const TodayScreen()),
     ('plan tab', const PlanTabScreen()),
     ('discover', const DiscoverScreen()),
-    ('progress', const ProgressScreen()),
+    ('profile', const ProfileScreen()),
+    ('library', const LibraryScreen()),
     ('plan', const PlanScreen()),
     ('creator mode', const CreatorModeScreen()),
   ]) {
@@ -186,8 +198,8 @@ void main() {
   testWidgets('Today greets a new user differently from one between plans', (tester) async {
     final store = await freshStore();
     await pump(tester, store, const TodayScreen(), ClTheme.light);
-    expect(find.text('Tvoj trener.\nTvoj plan.'), findsOneWidget);
-    expect(find.text('Programi za tebe'), findsOneWidget);
+    expect(find.text('Tvoj plan je spreman.'), findsOneWidget);
+    expect(find.text('Najbolje se uklapa'), findsOneWidget);
     expect(find.text('Nova nedelja.'), findsNothing);
 
     final seasoned = await seasonedStore();
@@ -195,7 +207,7 @@ void main() {
     await pump(tester, seasoned, const TodayScreen(), ClTheme.light);
     expect(find.text('Nova nedelja.'), findsOneWidget);
     expect(find.textContaining('Do sada 4 treninga'), findsOneWidget);
-    expect(find.text('Tvoj trener.\nTvoj plan.'), findsNothing);
+    expect(find.text('Tvoj plan je spreman.'), findsNothing);
   });
 
   testWidgets('Discover marks followed and subscribed creators and lists them first', (tester) async {
@@ -203,16 +215,26 @@ void main() {
     store.toggleFollow('c_nikola');
     store.subscribe('c_marko');
     await pump(tester, store, const DiscoverScreen(), ClTheme.light);
-    expect(find.text('Pratiš'), findsOneWidget);
-    expect(find.text('Pretplata'), findsOneWidget);
+    // A small mark next to the name, announced to screen readers.
+    expect(find.bySemanticsLabel(RegExp(r'^Nikola Jovanović, pratiš')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Marko Petrović, pretplaćen si')), findsOneWidget);
     double y(String name) => tester.getTopLeft(find.text(name).first).dy;
     expect(y('Nikola Jovanović'), lessThan(y('Jelena Ilić')), reason: 'followed before more popular');
     expect(y('Marko Petrović'), lessThan(y('Jelena Ilić')));
   });
 
-  testWidgets('profile menus open their sheets, gender can be changed', (tester) async {
+  testWidgets('Discover searches creators and programs by name, without accents', (tester) async {
+    await pump(tester, await freshStore(), const DiscoverScreen(), ClTheme.light);
+    await tester.enterText(find.byType(TextField), 'jovanovic');
+    await tester.pump();
+    expect(find.text('Nikola Jovanović'), findsWidgets);
+    expect(find.text('Jelena Ilić'), findsNothing);
+    expect(find.text('Marko Petrović'), findsNothing);
+  });
+
+  testWidgets('settings menus open their sheets, gender can be changed', (tester) async {
     final store = await seasonedStore();
-    await pump(tester, store, const ProfileScreen(), ClTheme.light);
+    await pump(tester, store, const SettingsScreen(), ClTheme.light);
     for (final row in ['Oprema', 'Pretplate', 'Podaci']) {
       await tester.tap(find.text(row).hitTestable());
       await tester.pumpAndSettle();
@@ -270,16 +292,15 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Ana');
     await tester.pump();
     await tapText('Dalje');
-    await tapText('Žensko');
-    await tapText('Dalje');
-    await tapText('Opšta forma');
-    await tapText('Dalje');
-    await tapText('Početnik');
-    await tapText('Dalje');
-    await tapText('Kod kuće');
-    await tapText('Dalje');
-    await tapText('Počni');
-    expect(store.profile!.gender, Gender.female);
+    // Answers move on by themselves; gender and equipment are not asked.
+    for (final answer in ['Opšta forma', 'Tek počinjem', 'Kod kuće', '3 dana']) {
+      await tapText(answer);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+    }
+    expect(store.profile!.gender, Gender.unspecified);
+    expect(store.profile!.daysPerWeek, 3);
+    expect(store.profile!.equipment, Equipment.home);
 
     // The creator link opens the creator's profile.
     expect(find.text('Jelena Ilić'), findsWidgets);
@@ -289,7 +310,9 @@ void main() {
     expect(store.plan!.programId, 'p_j_home');
     expect(find.text('Donji deo'), findsOneWidget);
 
-    await tapText('Počni trening');
+    // Today: one button on the trainer's photo.
+    await tester.tap(find.bySemanticsLabel('Počni'));
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
     expect(find.text('Gobl čučanj'), findsWidgets);
     await tester.enterText(find.byType(TextField).first, '12');
     await tapText('Završi set');
@@ -299,7 +322,7 @@ void main() {
     await tapText('Sledeća vežba');
     await tapText('Završi trening');
     await tapText('Završi trening');
-    expect(find.text('Pojavila si se.'), findsOneWidget);
+    expect(find.text('Odrađeno.'), findsOneWidget, reason: 'neutral praise without gender');
     await tapText('Gotovo');
     expect(find.text('Gornji deo'), findsOneWidget, reason: 'the plan moved to the next workout');
     expect(store.thisWeek, 1);
@@ -311,7 +334,13 @@ void main() {
     expect(creatorHandleFromUri(Uri.parse('https://x.app/')), isNull);
   });
 
-  testWidgets('Plan tab: change a day in one tap and undo it', (tester) async {
+  /// Opens today's card on the Plan tab (its label ends with "danas").
+  Future<void> openToday(WidgetTester tester) async {
+    await tester.tap(find.bySemanticsLabel(RegExp(r', danas$')));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('Plan tab: change a day from its card and undo it', (tester) async {
     final store = await seasonedStore();
     _clock = DateTime(2026, 9, 30, 18); // Wednesday, a training day
     store.setTrainingDays({1, 3, 5});
@@ -320,29 +349,57 @@ void main() {
     await pump(tester, store, const PlanTabScreen(), ClTheme.light);
     expect(store.plannedOn(wed), isNotNull);
 
-    await tapLabel(tester, 'Odmor');
+    // Every change goes through one sheet, "Promeni dan", from the day's card.
+    await openToday(tester);
+    await tapLabel(tester, 'Promeni današnji dan');
+    await tapOption(tester, 'Dan odmora');
     expect(store.dayPlan(wed)!.train, isFalse);
     expect(find.textContaining('Odmor danas'), findsOneWidget);
     await tapLabel(tester, 'Poništi');
     expect(store.dayPlan(wed), isNull);
 
-    await tapLabel(tester, 'Pomeri za dan');
+    await openToday(tester);
+    await tapLabel(tester, 'Promeni današnji dan');
+    await tapOption(tester, 'Danas ne mogu');
     expect(store.plannedOn(thu), isNotNull, reason: 'Thursday was the next rest day');
-    expect(find.textContaining('pomereni za jedan dan'), findsOneWidget);
+    expect(find.textContaining('je sada sutra'), findsOneWidget);
     await tapLabel(tester, 'Poništi');
     expect(store.plannedOn(thu), isNull);
 
-    await tapLabel(tester, 'Kraća verzija');
+    await openToday(tester);
+    await tapLabel(tester, 'Promeni današnji dan');
+    await tapOption(tester, 'Kraća verzija');
     expect(store.dayPlan(wed)!.note, 'Kraća verzija');
-    expect(find.text('Kraća verzija'), findsWidgets, reason: 'sticker on the day');
 
-    await tapLabel(tester, 'Pauza');
-    await tapLabel(tester, 'Uzmi pauzu');
-    expect(store.dayPlan(DateTime(2026, 10, 2))!.note, 'Pauza');
-    expect(store.plannedOn(wed), isNull);
-
+    await openToday(tester);
     await tapLabel(tester, 'Vrati na plan');
     expect(store.dayPlan(wed), isNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Plan tab: hold a workout and drag it to a free day', (tester) async {
+    final store = await seasonedStore();
+    _clock = DateTime(2026, 9, 30, 18);
+    store.setTrainingDays({1, 3, 5});
+    final wed = DateTime(2026, 9, 30);
+    final thu = DateTime(2026, 10, 1);
+    final name = store.plannedOn(wed)!.workout.name;
+    await pump(tester, store, const PlanTabScreen(), ClTheme.light);
+
+    final gesture = await tester.startGesture(tester.getCenter(find.bySemanticsLabel(RegExp(r', danas$'))));
+    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+    await gesture.moveBy(const Offset(0, 40));
+    await tester.pump();
+    await gesture.moveTo(tester.getCenter(find.text('Slobodan dan').first));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(store.plannedOn(thu)!.workout.name, name);
+    expect(store.plannedOn(wed), isNull);
+    expect(find.textContaining('je sada sutra'), findsOneWidget);
+    await tapLabel(tester, 'Poništi');
+    expect(store.plannedOn(wed)!.workout.name, name);
     expect(tester.takeException(), isNull);
   });
 
@@ -353,7 +410,9 @@ void main() {
     final wed = DateTime(2026, 9, 30);
     final before = store.plannedOn(wed)!.exercises.length;
     await pump(tester, store, const PlanTabScreen(), ClTheme.light);
-    await tapLabel(tester, 'Izmeni vežbe');
+    await openToday(tester);
+    await tapLabel(tester, 'Promeni današnji dan');
+    await tapOption(tester, 'Izmeni vežbe');
     await tester.tap(find.bySemanticsLabel(RegExp(r'^Ukloni ')).first);
     await tester.pump();
     await tapLabel(tester, 'Sačuvaj za ovaj dan');
@@ -362,41 +421,50 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Plan tab: today is selected, a rest day and training days', (tester) async {
+  testWidgets('Plan tab: the week, other weeks and training days', (tester) async {
     final store = await seasonedStore();
     _clock = DateTime(2026, 9, 30, 18); // Wednesday
     store.setTrainingDays({1, 3, 5});
+    final thu = DateTime(2026, 10, 1);
     await pump(tester, store, const PlanTabScreen(), ClTheme.dark);
-    expect(find.text('Septembar 2026'), findsOneWidget);
-    expect(find.textContaining('· Danas'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp(r'^30\. 9\., sreda, danas')), findsOneWidget);
+    expect(find.text('Ova nedelja'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r', danas$')), findsOneWidget);
+    expect(store.plannedOn(thu), isNull, reason: 'Thursday is a rest day');
 
-    // Thursday is a rest day now.
-    await tester.tap(find.bySemanticsLabel('Sledeći mesec'));
+    await tester.tap(find.bySemanticsLabel('Sledeća nedelja'));
     await tester.pump();
-    expect(find.text('Oktobar 2026'), findsOneWidget);
-    await tester.tap(find.bySemanticsLabel(RegExp(r'^1\. 10\., četvrtak')));
+    expect(find.text('Kasnije'), findsOneWidget);
+    expect(find.textContaining('5.–11. okt'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Prethodna nedelja'));
     await tester.pump();
-    expect(find.text('Odmor.'), findsOneWidget);
 
     // Making Thursday a training day plans a workout on it.
     await tapVisible(tester, 'Dani treninga');
     await tester.pumpAndSettle();
-    await tapVisible(tester, 'Čet');
+    await tapVisible(tester, 'Četvrtak');
     await tester.pump();
     expect(store.plan!.trainingDays, {1, 3, 4, 5});
-    expect(find.text('Odmor.'), findsNothing);
+    expect(store.plannedOn(thu), isNotNull);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('Plan tab without a plan offers the plan finder', (tester) async {
-    await pump(tester, await freshStore(), const PlanTabScreen(), ClTheme.dark);
+    final store = await freshStore();
+    await pump(tester, store, const PlanTabScreen(), ClTheme.dark);
     await tapVisible(tester, 'Pronađi plan');
     await tester.pumpAndSettle();
-    expect(find.text('Plan za tebe.'), findsOneWidget);
-    await tester.tap(find.text('Pronađi'));
+    // No form: the answers from onboarding are shown with the best program.
+    expect(find.textContaining('Biramo prema'), findsOneWidget);
+    expect(find.text('Najbolje se uklapa'), findsOneWidget);
+    expect(find.text('Počni ovaj plan'), findsOneWidget);
+
+    // "Promeni" edits the answers and the recommendation follows.
+    await tester.tap(find.text('Promeni'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Najbolje se uklapa'), findsOneWidget);
+    await tapVisible(tester, 'Teretana');
+    await tester.pumpAndSettle();
+    expect(store.profile!.place, Place.gym);
+    expect(store.profile!.equipment, Equipment.gym, reason: 'equipment follows the place');
     expect(tester.takeException(), isNull);
   });
 }

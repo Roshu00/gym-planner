@@ -6,101 +6,218 @@ import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'program_detail.dart';
 
-/// "Find a plan for me": goal, level, place and days per week, then
-/// programs ranked by how well they fit, with the reasons.
-class PlanFinderScreen extends StatefulWidget {
-  const PlanFinderScreen({super.key});
-
-  @override
-  State<PlanFinderScreen> createState() => _PlanFinderScreenState();
+/// Programs ranked for the user's profile, best first. Nothing to fill in:
+/// the answers from onboarding are already known.
+List<({Program program, int score, List<String> reasons})> rankedPrograms(BuildContext context) {
+  final store = context.store;
+  final profile = store.profile;
+  if (profile == null) return const [];
+  final PlanCriteria criteria = (
+    goal: profile.goal,
+    level: profile.experience,
+    place: profile.place,
+    daysPerWeek: profile.daysPerWeek,
+  );
+  return [
+    for (final p in store.allPrograms.where((p) => p.workoutIds.isNotEmpty))
+      if (matchProgram(p, criteria, store.fitOf(p)) case final m)
+        (program: p, score: m.score, reasons: m.reasons),
+  ]..sort((a, b) => b.score.compareTo(a.score));
 }
 
-class _PlanFinderScreenState extends State<PlanFinderScreen> {
-  late final _profile = context.readStore.profile;
-  late Goal _goal = _profile?.goal ?? Goal.general;
-  late Experience _level = _profile?.experience ?? Experience.beginner;
-  late Place _place = _profile?.place ?? Place.gym;
-  int _days = 3;
-  bool _searched = false;
+/// "Snaga · Početnik · Teretana · 3× nedeljno".
+String criteriaLabel(UserProfile p) =>
+    '${p.goal.label} · ${p.experience.label} · ${p.place.label} · ${p.daysPerWeek}× nedeljno';
 
-  Widget _choice<T>(
-    String label,
-    List<T> values,
-    T selected,
-    String Function(T) name,
-    ValueChanged<T> onChanged,
-  ) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(label, style: context.clText.label),
-      const SizedBox(height: ClSpace.s1),
-      Wrap(
-        spacing: ClSpace.s2,
-        children: [
-          for (final v in values)
-            ClFilter(
-              label: name(v),
-              selected: v == selected,
-              onChanged: (_) => setState(() {
-                onChanged(v);
-                _searched = false;
-              }),
-            ),
-        ],
-      ),
-    ],
-  );
+/// The best program for the user: one recommendation, two alternatives and
+/// one button. "Promeni" edits the answers in place.
+class PlanFinderScreen extends StatelessWidget {
+  const PlanFinderScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final store = context.store;
-    final criteria = (goal: _goal, level: _level, place: _place, daysPerWeek: _days);
-    final results = [
-      for (final p in store.allPrograms.where((p) => p.workoutIds.isNotEmpty))
-        (program: p, match: matchProgram(p, criteria, store.fitOf(p))),
-    ]..sort((a, b) => b.match.score.compareTo(a.match.score));
-
+    final profile = store.profile;
+    final ranked = rankedPrograms(context);
+    if (profile == null || ranked.isEmpty) {
+      return AppScreen(
+        topBar: const ClTopBar(label: 'Tvoj plan'),
+        children: const [
+          ClEmptyState(title: 'Nema programa.', message: 'Treneri još nisu objavili programe.'),
+        ],
+      );
+    }
+    final best = ranked.first.program;
     return AppScreen(
-      topBar: const ClTopBar(label: 'Pronađi plan'),
-      bottom: _searched
-          ? null
-          : ClButton.block(label: 'Pronađi', onPressed: () => setState(() => _searched = true)),
+      topBar: const ClTopBar(label: 'Tvoj plan'),
+      bottom: PlanStartButton(program: best),
       children: [
-        const ClScreenTitle(label: 'Četiri pitanja', title: 'Plan za tebe.'),
-        const SizedBox(height: ClSpace.s6),
-        _choice('Cilj', Goal.values, _goal, (g) => g.label, (g) => _goal = g),
-        gapS,
-        _choice('Nivo', Experience.values, _level, (e) => e.label, (e) => _level = e),
-        gapS,
-        _choice('Gde treniraš', Place.values, _place, (p) => p.label, (p) => _place = p),
-        gapS,
-        _choice('Dana nedeljno', const [2, 3, 4, 5, 6], _days, (d) => '$d×', (d) => _days = d),
-        const SizedBox(height: ClSpace.s2),
-        const ClNotice('Opremu uzimamo iz tvog profila.'),
-        if (_searched) ...[
+        CriteriaRow(profile: profile),
+        gap,
+        PlanRecommendation(program: best, reasons: ranked.first.reasons),
+        if (ranked.length > 1) ...[
           gap,
-          ClSectionHeader(label: 'Najbolje se uklapa · ${results.length}'),
-          for (final r in results)
+          ClSectionHeader(
+            label: 'Još ${ranked.length > 2 ? 2 : 1} ${ranked.length > 2 ? 'opcije' : 'opcija'}',
+          ),
+          for (final r in ranked.skip(1).take(2))
             ClListRow(
               title: r.program.name,
               meta: '${store.creator(r.program.creatorId)?.name ?? ''} · ${programMeta(r.program)}',
-              tags: [
-                for (final reason in r.match.reasons) ClTag(reason),
-                if (!store.canAccess(r.program.visibility, r.program.creatorId))
-                  const ClTag('Za pretplatnike'),
-              ],
-              leading: SizedBox(
-                width: 52,
-                child: Text(
-                  '${r.match.score}%',
-                  style: context.clText.data.copyWith(
-                    color: r == results.first ? context.clColors.ink : context.clColors.inkMuted,
-                  ),
-                ),
-              ),
+              trailing: Icon(ClIcons.chevron, size: 18, color: context.clColors.inkMuted),
               onPressed: () => pushScreen(context, ProgramDetailScreen(programId: r.program.id)),
             ),
         ],
+      ],
+    );
+  }
+}
+
+/// What the recommendation is based on, with "Promeni".
+class CriteriaRow extends StatelessWidget {
+  const CriteriaRow({super.key, required this.profile});
+
+  final UserProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.cl;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s3, ClSpace.s2, ClSpace.s3),
+      decoration: BoxDecoration(
+        color: cl.colors.surface,
+        borderRadius: BorderRadius.circular(ClRadius.sm),
+        boxShadow: ClElevation.card(cl.colors.shadow),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Biramo prema', style: cl.text.label),
+                const SizedBox(height: 2),
+                Text(criteriaLabel(profile), style: cl.text.bodyStrong),
+              ],
+            ),
+          ),
+          ClButton(
+            label: 'Promeni',
+            variant: ClButtonVariant.text,
+            onPressed: () =>
+                showClSheet<void>(context, title: 'Tvoji odgovori', builder: (_) => const _CriteriaSheet()),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The one program to start with, as a big pop block.
+class PlanRecommendation extends StatelessWidget {
+  const PlanRecommendation({super.key, required this.program, this.reasons = const []});
+
+  final Program program;
+  final List<String> reasons;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final cl = context.cl;
+    final creator = store.creator(program.creatorId);
+    final locked = !store.canAccess(program.visibility, program.creatorId);
+    return ClPhotoBlock(
+      color: cl.colors.popFor(program.id),
+      image: photoOf(program.image),
+      height: 320,
+      sticker: const ClSticker('Najbolje se uklapa'),
+      avatar: ClAvatar(name: creator?.name ?? '', image: photoOf(creator?.photo), color: cl.colors.surface),
+      label: creator?.name,
+      title: program.name,
+      meta: [programMeta(program), if (locked) 'za pretplatnike'].join(' · '),
+      onPressed: () => pushScreen(context, ProgramDetailScreen(programId: program.id)),
+    );
+  }
+}
+
+/// "Počni ovaj plan", or the step before it when the program is locked or
+/// already the plan.
+class PlanStartButton extends StatelessWidget {
+  const PlanStartButton({super.key, required this.program});
+
+  final Program program;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    if (store.plan?.programId == program.id) {
+      return ClButton.block(label: 'Ovo je tvoj plan', onPressed: null);
+    }
+    if (!store.canAccess(program.visibility, program.creatorId)) {
+      return ClButton.block(
+        label: 'Pogledaj program',
+        onPressed: () => pushScreen(context, ProgramDetailScreen(programId: program.id)),
+      );
+    }
+    return ClButton.block(label: 'Počni ovaj plan', onPressed: () => startProgramFlow(context, program.id));
+  }
+}
+
+/// The onboarding answers, one list per question. Saved to the profile.
+class _CriteriaSheet extends StatelessWidget {
+  const _CriteriaSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final profile = store.profile!;
+    void save(UserProfile p) => store.updateProfile(p);
+
+    Widget group<T>(String label, List<(T, String)> options, T selected, UserProfile Function(T) apply) =>
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(label, style: context.clText.label),
+            const SizedBox(height: ClSpace.s2),
+            for (final (value, title) in options)
+              ClOptionRow(title: title, selected: value == selected, onPressed: () => save(apply(value))),
+          ],
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        group(
+          'Cilj',
+          [for (final g in Goal.values) (g, g.label)],
+          profile.goal,
+          (g) => profile.copyWith(goal: g),
+        ),
+        gapS,
+        group(
+          'Iskustvo',
+          [for (final e in Experience.values) (e, e.label)],
+          profile.experience,
+          (e) => profile.copyWith(experience: e),
+        ),
+        gapS,
+        group(
+          'Gde treniraš',
+          [for (final p in Place.values) (p, p.label)],
+          profile.place,
+          (p) => p == profile.place
+              ? profile
+              : profile.copyWith(place: p, equipment: {...(p == Place.gym ? Equipment.gym : Equipment.home)}),
+        ),
+        gapS,
+        group(
+          'Dana nedeljno',
+          [(2, '2 dana'), (3, '3 dana'), (4, '4 dana'), (5, '5 i više')],
+          profile.daysPerWeek.clamp(2, 5),
+          (d) => profile.copyWith(daysPerWeek: d),
+        ),
+        gapS,
+        ClButton(label: 'Gotovo', expand: true, onPressed: () => Navigator.of(context).pop()),
       ],
     );
   }

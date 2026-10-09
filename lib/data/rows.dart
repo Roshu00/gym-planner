@@ -24,6 +24,7 @@ Row creatorRow(Creator c, {String? userId}) => {
   'bio': c.bio,
   'followers': c.followers,
   'price_monthly': c.priceMonthly,
+  'photo_url': c.photo,
 };
 
 Creator creatorFromRow(Row r, {String? currentUserId}) => Creator(
@@ -35,6 +36,7 @@ Creator creatorFromRow(Row r, {String? currentUserId}) => Creator(
   followers: (r['followers'] as num?)?.toInt() ?? 0,
   priceMonthly: (r['price_monthly'] as num?)?.toDouble() ?? 4.99,
   isMine: currentUserId != null && r['user_id'] == currentUserId,
+  photo: r['photo_url'] as String?,
 );
 
 Row exerciseRow(Exercise e) => {
@@ -45,6 +47,7 @@ Row exerciseRow(Exercise e) => {
   'equipment': _names(e.equipment),
   'note': e.note,
   'audience': e.visibility.name,
+  'image_url': e.image,
 };
 
 Exercise exerciseFromRow(Row r) => Exercise(
@@ -55,6 +58,7 @@ Exercise exerciseFromRow(Row r) => Exercise(
   equipment: {for (final e in _list(r['equipment'])) _enum(Equipment.values, e, Equipment.bodyweight)},
   note: r['note'] as String? ?? '',
   visibility: _enum(Audience.values, r['audience'], Audience.public),
+  image: r['image_url'] as String?,
 );
 
 Row workoutRow(Workout w) => {
@@ -64,6 +68,8 @@ Row workoutRow(Workout w) => {
   'exercises': [for (final e in w.exercises) e.toJson()],
   'finish_message': w.finishMessage,
   'audience': w.visibility.name,
+  'image_url': w.image,
+  'intro': w.intro,
 };
 
 Workout workoutFromRow(Row r) => Workout(
@@ -73,6 +79,8 @@ Workout workoutFromRow(Row r) => Workout(
   exercises: [for (final e in _list(r['exercises'])) WorkoutExercise.fromJson((e as Map).cast())],
   finishMessage: r['finish_message'] as String? ?? '',
   visibility: _enum(Audience.values, r['audience'], Audience.public),
+  image: r['image_url'] as String?,
+  intro: r['intro'] as String? ?? '',
 );
 
 Row programRow(Program p) => {
@@ -87,6 +95,7 @@ Row programRow(Program p) => {
   'goal': p.goal.name,
   'place': p.place.name,
   'audience': p.visibility.name,
+  'image_url': p.image,
 };
 
 Program programFromRow(Row r) => Program(
@@ -101,6 +110,7 @@ Program programFromRow(Row r) => Program(
   goal: _enum(Goal.values, r['goal'], Goal.general),
   place: _enum(Place.values, r['place'], Place.gym),
   visibility: _enum(Audience.values, r['audience'], Audience.public),
+  image: r['image_url'] as String?,
 );
 
 // ───────────────────────── Follower data

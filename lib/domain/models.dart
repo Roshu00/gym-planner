@@ -95,6 +95,7 @@ class Creator {
     this.followers = 0,
     this.priceMonthly = 4.99,
     this.isMine = false,
+    this.photo,
   });
 
   final String id;
@@ -110,6 +111,9 @@ class Creator {
   /// Created in this app's creator mode.
   final bool isMine;
 
+  /// Portrait URL; null shows initials on a pop color.
+  final String? photo;
+
   Creator copyWith({String? name, String? handle, String? tagline, String? bio}) => Creator(
     id: id,
     name: name ?? this.name,
@@ -119,6 +123,7 @@ class Creator {
     followers: followers,
     priceMonthly: priceMonthly,
     isMine: isMine,
+    photo: photo,
   );
 
   Map<String, Object?> toJson() => {
@@ -130,6 +135,7 @@ class Creator {
     'followers': followers,
     'priceMonthly': priceMonthly,
     'isMine': isMine,
+    'photo': photo,
   };
 
   factory Creator.fromJson(Map<String, Object?> j) => Creator(
@@ -141,6 +147,7 @@ class Creator {
     followers: j['followers'] as int? ?? 0,
     priceMonthly: (j['priceMonthly'] as num?)?.toDouble() ?? 4.99,
     isMine: j['isMine'] as bool? ?? false,
+    photo: j['photo'] as String?,
   );
 }
 
@@ -153,12 +160,16 @@ class Exercise {
     required this.equipment,
     this.note = '',
     this.visibility = Audience.public,
+    this.image,
   });
 
   final String id;
   final String creatorId;
   final String name;
   final Muscle muscle;
+
+  /// Picture of the movement; null shows the muscle group instead.
+  final String? image;
 
   /// Everything needed at once. Empty or [Equipment.bodyweight] means none.
   final Set<Equipment> equipment;
@@ -181,6 +192,7 @@ class Exercise {
     'equipment': equipment.map((e) => e.name).toList(),
     'note': note,
     'visibility': visibility.name,
+    'image': image,
   };
 
   factory Exercise.fromJson(Map<String, Object?> j) => Exercise(
@@ -193,6 +205,7 @@ class Exercise {
     },
     note: j['note'] as String? ?? '',
     visibility: _enum(Audience.values, j['visibility'], Audience.public),
+    image: j['image'] as String?,
   );
 }
 
@@ -254,12 +267,20 @@ class Workout {
     required this.exercises,
     this.finishMessage = '',
     this.visibility = Audience.public,
+    this.image,
+    this.intro = '',
   });
 
   final String id;
   final String creatorId;
   final String name;
   final List<WorkoutExercise> exercises;
+
+  /// One sentence from the creator before the workout, shown on Today.
+  final String intro;
+
+  /// Cover photo; null shows the workout's pop color.
+  final String? image;
 
   /// Shown on the summary, in the creator's voice.
   final String finishMessage;
@@ -280,6 +301,8 @@ class Workout {
     'exercises': exercises.map((e) => e.toJson()).toList(),
     'finishMessage': finishMessage,
     'visibility': visibility.name,
+    'image': image,
+    'intro': intro,
   };
 
   factory Workout.fromJson(Map<String, Object?> j) => Workout(
@@ -292,6 +315,8 @@ class Workout {
     ],
     finishMessage: j['finishMessage'] as String? ?? '',
     visibility: _enum(Audience.values, j['visibility'], Audience.public),
+    image: j['image'] as String?,
+    intro: j['intro'] as String? ?? '',
   );
 }
 
@@ -308,6 +333,7 @@ class Program {
     this.goal = Goal.general,
     this.place = Place.gym,
     this.visibility = Audience.public,
+    this.image,
   });
 
   final String id;
@@ -324,6 +350,9 @@ class Program {
   final Place place;
   final Audience visibility;
 
+  /// Cover photo; null shows the program's pop color.
+  final String? image;
+
   Map<String, Object?> toJson() => {
     'id': id,
     'creatorId': creatorId,
@@ -336,6 +365,7 @@ class Program {
     'goal': goal.name,
     'place': place.name,
     'visibility': visibility.name,
+    'image': image,
   };
 
   factory Program.fromJson(Map<String, Object?> j) => Program(
@@ -350,6 +380,7 @@ class Program {
     goal: _enum(Goal.values, j['goal'], Goal.general),
     place: _enum(Place.values, j['place'], Place.gym),
     visibility: _enum(Audience.values, j['visibility'], Audience.public),
+    image: j['image'] as String?,
   );
 }
 
@@ -374,20 +405,31 @@ class UserProfile {
   final int daysPerWeek;
   final Set<Equipment> equipment;
 
-  UserProfile copyWith({int? daysPerWeek, Set<Equipment>? equipment, String? name, Gender? gender}) =>
-      UserProfile(
-        name: name ?? this.name,
-        gender: gender ?? this.gender,
-        goal: goal,
-        experience: experience,
-        place: place,
-        daysPerWeek: daysPerWeek ?? this.daysPerWeek,
-        equipment: equipment ?? this.equipment,
-      );
+  UserProfile copyWith({
+    int? daysPerWeek,
+    Set<Equipment>? equipment,
+    String? name,
+    Gender? gender,
+    Goal? goal,
+    Experience? experience,
+    Place? place,
+  }) => UserProfile(
+    name: name ?? this.name,
+    gender: gender ?? this.gender,
+    goal: goal ?? this.goal,
+    experience: experience ?? this.experience,
+    place: place ?? this.place,
+    daysPerWeek: daysPerWeek ?? this.daysPerWeek,
+    equipment: equipment ?? this.equipment,
+  );
 
   /// Picks the grammatical form for this user: [female] for women, [male]
-  /// otherwise (Serbian's default when gender is not given).
-  String says(String male, String female) => gender == Gender.female ? female : male;
+  /// for men, and [neutral] when gender is not given (onboarding doesn't ask).
+  String says(String male, String female, [String? neutral]) => switch (gender) {
+    Gender.female => female,
+    Gender.male => male,
+    Gender.unspecified => neutral ?? male,
+  };
 
   Map<String, Object?> toJson() => {
     'name': name,

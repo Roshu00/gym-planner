@@ -138,7 +138,17 @@ class ClIconButton extends StatelessWidget {
     required this.semanticLabel,
     required this.onPressed,
     this.color,
-  });
+  }) : onMedia = false;
+
+  /// White icon on a dark translucent circle: stays readable on any photo or
+  /// pop color. Use it for buttons over a hero.
+  const ClIconButton.onMedia({
+    super.key,
+    required this.icon,
+    required this.semanticLabel,
+    required this.onPressed,
+  }) : color = null,
+       onMedia = true;
 
   final IconData icon;
   final String semanticLabel;
@@ -146,6 +156,7 @@ class ClIconButton extends StatelessWidget {
 
   /// Defaults to `ink`; pass `onPhoto` over media.
   final Color? color;
+  final bool onMedia;
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +168,16 @@ class ClIconButton extends StatelessWidget {
         dimension: ClSize.target,
         child: Opacity(
           opacity: onPressed == null ? 0.4 : (pressed ? 0.6 : 1),
-          child: Icon(icon, size: ClSize.icon, color: color ?? c.ink),
+          child: onMedia
+              ? Center(
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(color: c.photoScrim, shape: BoxShape.circle),
+                    child: Icon(icon, size: 20, color: c.onPhoto),
+                  ),
+                )
+              : Icon(icon, size: ClSize.icon, color: color ?? c.ink),
         ),
       ),
     );

@@ -40,6 +40,13 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
   }
 
+  /// Onboarding answers move on by themselves after a short pause.
+  Future<void> choose(WidgetTester tester, String text) async {
+    await tapText(tester, text);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+  }
+
   setUp(() {
     auth = FakeAuth();
     remote = FakeRemote();
@@ -95,20 +102,19 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Gost');
     await tester.pump();
     await tapText(tester, 'Dalje');
-    await tapText(tester, 'Muško');
-    await tapText(tester, 'Dalje');
-    await tapText(tester, 'Snaga');
-    await tapText(tester, 'Dalje');
-    await tapText(tester, 'Početnik');
-    await tapText(tester, 'Dalje');
-    await tapText(tester, 'Teretana');
-    await tapText(tester, 'Dalje');
-    await tapText(tester, 'Počni');
+    for (final answer in ['Snaga', 'Tek počinjem', 'Teretana', '3 dana']) {
+      await choose(tester, answer);
+    }
     expect(remote.tables['profiles']!.single['name'], 'Gost');
 
     // Creator mode asks for a real account first.
-    await tapText(tester, 'Profil');
+    // Idle nav items show only an icon; tap by their label for screen readers.
+    await tester.tap(find.bySemanticsLabel('Profil'));
+    await tester.pumpAndSettle();
     expect(find.text('Gost').hitTestable(), findsWidgets);
+    // Creator mode lives in the settings, behind the icon on the profile.
+    await tester.tap(find.bySemanticsLabel('Podešavanja'));
+    await tester.pumpAndSettle();
     await tapText(tester, 'Režim kreatora');
     expect(find.text('Sačuvaj nalog.'), findsOneWidget);
     await tapText(tester, 'Sačuvaj nalog');
@@ -141,15 +147,9 @@ void main() {
     await tester.pump();
     remote.offline = true;
     await tapText(tester, 'Dalje');
-    await tapText(tester, 'Muško');
-    await tapText(tester, 'Dalje');
-    await tapText(tester, 'Snaga');
-    await tapText(tester, 'Dalje');
-    await tapText(tester, 'Početnik');
-    await tapText(tester, 'Dalje');
-    await tapText(tester, 'Teretana');
-    await tapText(tester, 'Dalje');
-    await tapText(tester, 'Počni');
+    for (final answer in ['Snaga', 'Tek počinjem', 'Teretana', '3 dana']) {
+      await choose(tester, answer);
+    }
     expect(find.text('Nije sačuvano na serveru. Proveri internet.'), findsOneWidget);
     remote.offline = false;
     await tapText(tester, 'Ponovo');

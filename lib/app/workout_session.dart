@@ -232,6 +232,16 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       ),
       bottom: action,
       children: [
+        if (photoOf(store.resolveExercise(e.exerciseId)?.image) case final picture?) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(ClRadius.lg),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: ClPhoto(image: picture, placeholderLabel: '', semanticLabel: e.name),
+            ),
+          ),
+          gapS,
+        ],
         ClScreenTitle(label: prescription(e.target, e.rir, e.restSeconds), title: e.name),
         if (e.swappedFrom != null) ...[
           const SizedBox(height: ClSpace.s2),

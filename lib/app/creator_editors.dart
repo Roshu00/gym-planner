@@ -200,6 +200,7 @@ class _ExerciseEditorState extends State<ExerciseEditor> {
         equipment: _equipment.isEmpty ? const {Equipment.bodyweight} : _equipment,
         note: _note.text.trim(),
         visibility: _audience,
+        image: _existing?.image,
       ),
     );
     Navigator.of(context).pop();
@@ -327,6 +328,8 @@ class _WorkoutEditorState extends State<WorkoutEditor> {
         exercises: _items,
         finishMessage: _message.text.trim(),
         visibility: _audience,
+        image: _existing?.image,
+        intro: _existing?.intro ?? '',
       ),
     );
     Navigator.of(context).pop();
@@ -504,6 +507,7 @@ class _ProgramEditorState extends State<ProgramEditor> {
         goal: _goal,
         place: _place,
         visibility: _audience,
+        image: _existing?.image,
       ),
     );
     Navigator.of(context).pop();

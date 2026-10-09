@@ -54,15 +54,17 @@ class WorkoutDetailScreen extends StatelessWidget {
     return AppScreen(
       safeTop: false,
       padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s8),
+      collapsed: Text(w.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.clText.bodyStrong),
       header: ClWorkoutHero(
         title: w.name,
+        image: photoOf(w.image),
         color: context.clColors.popFor(w.id),
         label: '${c?.name ?? ''} · ${workoutMeta(w)}',
         height: 320,
         compact: true,
         topBar: Row(
           children: [
-            ClIconButton(
+            ClIconButton.onMedia(
               icon: ClIcons.back,
               semanticLabel: 'Nazad',
               onPressed: () => Navigator.of(context).maybePop(),

@@ -20,9 +20,17 @@ class ClListRow extends StatelessWidget {
     this.trailing,
     this.onPressed,
     this.divider = true,
+    this.titleBadge,
+    this.badgeLabel,
   });
 
   final String title;
+
+  /// Small mark right after the title (e.g. "you follow this creator").
+  final Widget? titleBadge;
+
+  /// What [titleBadge] means, for screen readers.
+  final String? badgeLabel;
   final String? meta;
   final List<Widget> tags;
   final Widget? leading;
@@ -53,7 +61,23 @@ class ClListRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: cl.text.bodyStrong),
+                  if (titleBadge == null)
+                    Text(title, style: cl.text.bodyStrong)
+                  else
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: cl.text.bodyStrong,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        ExcludeSemantics(child: titleBadge!),
+                      ],
+                    ),
                   if (meta != null) ...[
                     const SizedBox(height: 2),
                     Text(
@@ -85,7 +109,7 @@ class ClListRow extends StatelessWidget {
       child: ClPressable(
         onPressed: onPressed,
         radius: ClRadius.sm,
-        semanticLabel: meta == null ? title : '$title, $meta',
+        semanticLabel: [title, ?badgeLabel, ?meta].join(', '),
         builder: (context, pressed) => row(pressed),
       ),
     );
@@ -96,8 +120,8 @@ class ClListRow extends StatelessWidget {
 enum ClFollowStatus { none, following, subscribed }
 
 /// Discover row: avatar, name, followers (right-aligned label). A followed
-/// creator gets a ring on the avatar and a `Pratiš` tag; a subscription
-/// shows `Pretplata` instead.
+/// creator gets a small `Pratiš` pill next to the name, a subscription a
+/// filled `Pretplata` one, so every row keeps the same height.
 class ClCreatorRow extends StatelessWidget {
   const ClCreatorRow({
     super.key,
@@ -125,15 +149,16 @@ class ClCreatorRow extends StatelessWidget {
       title: name,
       meta: handle,
       onPressed: onPressed,
-      leading: ClAvatar(name: name, image: image, size: 44, ring: status != ClFollowStatus.none),
-      tags: switch (status) {
-        ClFollowStatus.none => const [],
-        ClFollowStatus.following => const [
-          ClTag('Pratiš', variant: ClTagVariant.active, icon: ClIcons.check),
-        ],
-        ClFollowStatus.subscribed => const [
-          ClTag('Pretplata', variant: ClTagVariant.pr, icon: ClIcons.subscriptions),
-        ],
+      leading: ClAvatar(name: name, image: image, size: 44),
+      titleBadge: switch (status) {
+        ClFollowStatus.none => null,
+        ClFollowStatus.following => const _MiniPill('Pratiš'),
+        ClFollowStatus.subscribed => const _MiniPill('Pretplata', filled: true),
+      },
+      badgeLabel: switch (status) {
+        ClFollowStatus.none => null,
+        ClFollowStatus.following => 'pratiš',
+        ClFollowStatus.subscribed => 'pretplaćen si',
       },
       trailing: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -146,17 +171,47 @@ class ClCreatorRow extends StatelessWidget {
   }
 }
 
+/// A small pill next to a name: `Pratiš` outlined, `Pretplata` filled ink.
+class _MiniPill extends StatelessWidget {
+  const _MiniPill(this.label, {this.filled = false});
+
+  final String label;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.cl;
+    final c = cl.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: filled ? c.ink : null,
+        borderRadius: BorderRadius.circular(ClRadius.full),
+        border: Border.all(color: c.ink, width: 1),
+      ),
+      child: Text(
+        label,
+        style: cl.text.label.copyWith(fontSize: 10, height: 14 / 10, color: filled ? c.bg : c.ink),
+      ),
+    );
+  }
+}
+
 /// Exercise line in the Today preview and the Summary list.
-/// `Bench press` · `4 × 8 · 80 kg` · optional PR tag.
+/// `Bench press` · `4 × 8 · 80 kg` · optional PR tag. With [image], a small
+/// picture of the movement leads the row instead of the number.
 class ClExerciseRow extends StatelessWidget {
   const ClExerciseRow({
     super.key,
     required this.name,
     required this.detail,
     this.index,
+    this.image,
     this.isPr = false,
     this.onPressed,
   });
+
+  final ImageProvider? image;
 
   final String name;
 
@@ -173,7 +228,15 @@ class ClExerciseRow extends StatelessWidget {
       title: name,
       meta: detail,
       onPressed: onPressed,
-      leading: index == null
+      leading: image != null
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(ClRadius.xs),
+              child: SizedBox.square(
+                dimension: 52,
+                child: ClPhoto(image: image, placeholderLabel: ''),
+              ),
+            )
+          : index == null
           ? null
           : SizedBox(
               width: 24,
@@ -360,13 +423,14 @@ const clNavItems = [
   ClNavItem(label: 'Danas', icon: ClIcons.today, activeIcon: ClIcons.todayFilled),
   ClNavItem(label: 'Plan', icon: ClIcons.plan, activeIcon: ClIcons.planFilled),
   ClNavItem(label: 'Otkrij', icon: ClIcons.discover, activeIcon: ClIcons.discoverFilled),
-  ClNavItem(label: 'Napredak', icon: ClIcons.progress, activeIcon: ClIcons.progressFilled),
+  ClNavItem(label: 'Biblioteka', icon: ClIcons.library, activeIcon: ClIcons.libraryFilled),
   ClNavItem(label: 'Profil', icon: ClIcons.profile, activeIcon: ClIcons.profileFilled),
 ];
 
-/// Quiet bar on `bg` with a hairline on top, 5 items. Active = solid icon and
-/// an ink label; inactive = outline icon in `ink-muted`. No color, so the
-/// screen above keeps the attention.
+/// A quiet bar on `bg`: icons only, no line and no fill, so the screen's own
+/// black button stays the strongest thing at the bottom. The selected icon is
+/// solid ink, lifts a little and gets a dot below it; the others are muted.
+/// Labels are for screen readers.
 class ClBottomNav extends StatelessWidget {
   const ClBottomNav({super.key, required this.selected, required this.onChanged, this.items = clNavItems});
 
@@ -376,53 +440,75 @@ class ClBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cl = context.cl;
-    final c = cl.colors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: c.bg,
-        border: Border(top: BorderSide(color: c.border)),
-      ),
+    return ColoredBox(
+      color: context.clColors.bg,
       child: SafeArea(
         top: false,
+        minimum: const EdgeInsets.only(bottom: ClSpace.s2),
         child: SizedBox(
-          height: 60,
+          height: 56,
           child: Row(
             children: [
               for (var i = 0; i < items.length; i++)
                 Expanded(
-                  child: ClPressable(
-                    selected: i == selected,
-                    semanticLabel: items[i].label,
-                    radius: ClRadius.xs,
-                    onPressed: () => onChanged(i),
-                    builder: (context, pressed) {
-                      final active = i == selected;
-                      final color = active || pressed ? c.ink : c.inkMuted;
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(active ? items[i].activeIcon : items[i].icon, size: ClSize.icon, color: color),
-                          const SizedBox(height: 3),
-                          Text(
-                            items[i].label,
-                            maxLines: 1,
-                            overflow: TextOverflow.clip,
-                            style: cl.text.label.copyWith(
-                              fontSize: 11,
-                              height: 1.2,
-                              color: color,
-                              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                  child: _NavItem(item: items[i], selected: i == selected, onPressed: () => onChanged(i)),
                 ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({required this.item, required this.selected, required this.onPressed});
+
+  final ClNavItem item;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.clColors;
+    final duration = context.motion(ClMotion.tab);
+    return ClPressable(
+      selected: selected,
+      semanticLabel: item.label,
+      radius: ClRadius.sm,
+      onPressed: onPressed,
+      builder: (context, pressed) => Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedSlide(
+            duration: duration,
+            curve: ClMotion.tabCurve,
+            offset: Offset(0, selected ? -0.08 : 0),
+            child: AnimatedScale(
+              duration: context.motion(ClMotion.fast),
+              curve: ClMotion.curve,
+              scale: pressed ? 0.88 : 1,
+              child: TweenAnimationBuilder<Color?>(
+                duration: duration,
+                curve: ClMotion.tabCurve,
+                tween: ColorTween(end: selected || pressed ? c.ink : c.inkMuted),
+                builder: (context, color, _) =>
+                    Icon(selected ? item.activeIcon : item.icon, size: ClSize.icon, color: color),
+              ),
+            ),
+          ),
+          const SizedBox(height: ClSpace.s1),
+          AnimatedScale(
+            duration: duration,
+            curve: selected ? Curves.easeOutBack : ClMotion.tabCurve,
+            scale: selected ? 1 : 0,
+            child: Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(color: c.ink, shape: BoxShape.circle),
+            ),
+          ),
+        ],
       ),
     );
   }

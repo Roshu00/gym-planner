@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
@@ -6,10 +7,10 @@ import 'creator_profile.dart';
 import 'discover.dart';
 import 'plan_tab.dart';
 import 'profile.dart';
-import 'progress.dart';
+import 'library.dart';
 import 'today.dart';
 
-enum AppTab { today, plan, discover, progress, profile }
+enum AppTab { today, plan, discover, library, profile }
 
 /// Bottom-nav shell. All tabs use the light theme.
 class HomeShell extends StatefulWidget {
@@ -33,7 +34,11 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int get _index => HomeShell.tab.value.index;
 
-  void _select(int i) => HomeShell.tab.value = AppTab.values[i];
+  void _select(int i) {
+    if (i == _index) return;
+    HapticFeedback.selectionClick();
+    HomeShell.tab.value = AppTab.values[i];
+  }
 
   void _onTab() => setState(() {});
 
@@ -58,29 +63,91 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    const tabs = [TodayScreen(), PlanTabScreen(), DiscoverScreen(), ProgressScreen(), ProfileScreen()];
+    const tabs = [TodayScreen(), PlanTabScreen(), DiscoverScreen(), LibraryScreen(), ProfileScreen()];
     return ClThemeScope(
       theme: ClTheme.light,
-      child: Scaffold(
-        body: Column(
-          children: [
-            Expanded(
-              child: IndexedStack(
-                index: _index,
-                children: [
-                  for (var i = 0; i < tabs.length; i++)
-                    ClThemeScope(
-                      theme: ClTheme.light,
-                      child: TickerMode(enabled: i == _index, child: tabs[i]),
-                    ),
-                ],
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark,
+        child: Scaffold(
+          body: Column(
+            children: [
+              Expanded(
+                // The nav bar below already keeps clear of the home indicator,
+                // so the tabs must not add that inset again above it.
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeBottom: true,
+                  child: _TabStack(index: _index, tabs: tabs),
+                ),
               ),
-            ),
-            const _SyncBanner(),
-            ClBottomNav(selected: _index, onChanged: _select),
-          ],
+              const _SyncBanner(),
+              ClBottomNav(selected: _index, onChanged: _select),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// Keeps every tab alive (like an [IndexedStack]) but moves between them:
+/// the new tab fades in while sliding a little from the side of its nav item,
+/// the old one fades out towards the other side.
+class _TabStack extends StatefulWidget {
+  const _TabStack({required this.index, required this.tabs});
+
+  final int index;
+  final List<Widget> tabs;
+
+  @override
+  State<_TabStack> createState() => _TabStackState();
+}
+
+class _TabStackState extends State<_TabStack> {
+  /// The tab animating out; it stays on stage until its fade ends.
+  int? _leaving;
+
+  @override
+  void didUpdateWidget(_TabStack old) {
+    super.didUpdateWidget(old);
+    if (old.index != widget.index) _leaving = old.index;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final index = widget.index;
+    final duration = context.motion(ClMotion.tab);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (var i = 0; i < widget.tabs.length; i++)
+          Offstage(
+            offstage: i != index && i != _leaving,
+            child: IgnorePointer(
+              ignoring: i != index,
+              child: ExcludeSemantics(
+                excluding: i != index,
+                child: AnimatedSlide(
+                  duration: duration,
+                  curve: ClMotion.tabCurve,
+                  offset: Offset(i == index ? 0 : (i < index ? -0.06 : 0.06), 0),
+                  child: AnimatedOpacity(
+                    duration: duration,
+                    curve: ClMotion.tabCurve,
+                    opacity: i == index ? 1 : 0,
+                    onEnd: () {
+                      if (i == _leaving && mounted) setState(() => _leaving = null);
+                    },
+                    child: ClThemeScope(
+                      theme: ClTheme.light,
+                      child: TickerMode(enabled: i == index, child: widget.tabs[i]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

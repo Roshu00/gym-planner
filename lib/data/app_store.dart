@@ -573,6 +573,40 @@ class AppStore extends ChangeNotifier {
     return taken;
   }
 
+  /// Whether the workout planned on [from] can be dragged to [to]: both today
+  /// or later, [to] free, and no other training day in between, so the
+  /// rotation keeps its order and the same workout lands where it was dropped.
+  bool canMoveTraining(DateTime from, DateTime to) {
+    final current = plan;
+    if (current == null) return false;
+    final f = dateOnly(from), t = dateOnly(to), today = dateOnly(now);
+    if (f == t || f.isBefore(today) || t.isBefore(today)) return false;
+    if (plannedOn(f) == null || sessionsOn(sessions, f).isNotEmpty) return false;
+    if (isTrainingDay(current, t)) return false;
+    final step = t.isAfter(f) ? 1 : -1;
+    for (
+      var d = DateTime(f.year, f.month, f.day + step);
+      d != t;
+      d = DateTime(d.year, d.month, d.day + step)
+    ) {
+      if (isTrainingDay(current, d)) return false;
+    }
+    return true;
+  }
+
+  /// Moves the workout planned on [from] to the free day [to], with its own
+  /// changes (shorter version, other exercises).
+  void moveTraining(DateTime from, DateTime to) {
+    if (!canMoveTraining(from, to)) return;
+    final current = plan!;
+    final moved = dayPlan(from);
+    final f = dateOnly(from), t = dateOnly(to);
+    // Back to the usual week where that is what the day already is.
+    setDayPlan(f, current.trainingDays.contains(f.weekday) ? const DayPlan.rest() : null);
+    final usual = current.trainingDays.contains(t.weekday);
+    setDayPlan(t, moved != null && moved.train ? moved : (usual ? null : const DayPlan.train()));
+  }
+
   /// A break of [count] days from [from] (travel, illness, a busy week).
   /// The plan continues where it stopped afterwards.
   void pause(DateTime from, int count) {

@@ -5,7 +5,9 @@ import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 
-/// Name, gender, goal, experience, where the user trains and their equipment.
+/// Name, goal, experience, where and how often the user trains. One question
+/// per step; picking an answer moves on by itself. Equipment follows from the
+/// place and gender is optional in Profile, so neither is asked here.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, this.invitedBy});
 
@@ -17,29 +19,20 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  static const _steps = 6;
+  static const _steps = 5;
   int _step = 0;
+  bool _advancing = false;
   final _name = TextEditingController();
-  Gender? _gender;
   Goal? _goal;
   Experience? _experience;
   Place? _place;
-  Set<Equipment> _equipment = {};
+  int? _days;
 
   @override
   void dispose() {
     _name.dispose();
     super.dispose();
   }
-
-  bool get _valid => switch (_step) {
-    0 => _name.text.trim().isNotEmpty,
-    1 => _gender != null,
-    2 => _goal != null,
-    3 => _experience != null,
-    4 => _place != null,
-    _ => true,
-  };
 
   void _next() {
     FocusScope.of(context).unfocus();
@@ -50,112 +43,126 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     context.readStore.completeOnboarding(
       UserProfile(
         name: _name.text.trim(),
-        gender: _gender!,
         goal: _goal!,
         experience: _experience!,
         place: _place!,
-        // How often to train comes from the plan the user picks.
-        daysPerWeek: 3,
-        equipment: _equipment,
+        daysPerWeek: _days!,
+        equipment: {...(_place == Place.gym ? Equipment.gym : Equipment.home)},
       ),
     );
   }
 
-  void _setPlace(Place p) => setState(() {
-    if (_place != p) _equipment = {...p == Place.gym ? Equipment.gym : Equipment.home};
-    _place = p;
-  });
+  /// Shows the choice for a moment, then moves on.
+  Future<void> _pick(VoidCallback select) async {
+    if (_advancing) return;
+    setState(() {
+      select();
+      _advancing = true;
+    });
+    await Future<void>.delayed(context.motion(const Duration(milliseconds: 220)));
+    if (!mounted) return;
+    _advancing = false;
+    _next();
+  }
+
+  Widget _options<T>(List<(T, String, String?)> options, T? selected, ValueChanged<T> onSelect) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final (value, title, meta) in options)
+        ClOptionRow(
+          title: title,
+          meta: meta,
+          selected: selected == value,
+          onPressed: () => _pick(() => onSelect(value)),
+        ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
     final cl = context.cl;
-    final (String title, Widget body) = switch (_step) {
-      0 => ('Kako se zoveš?', _nameStep(cl)),
+    final (String title, String? hint, Widget body) = switch (_step) {
+      0 => ('Kako se zoveš?', null, _nameStep(cl)),
       1 => (
-        'Pol.',
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Da bi ti se aplikacija obraćala kako treba.',
-              style: cl.text.body.copyWith(color: cl.colors.inkMuted),
-            ),
-            gapS,
-            for (final g in Gender.values)
-              ClOptionRow(
-                title: g.label,
-                selected: _gender == g,
-                onPressed: () => setState(() => _gender = g),
-              ),
+        'Šta ti je cilj?',
+        null,
+        _options(
+          [
+            (Goal.strength, 'Snaga', 'Da dižeš više'),
+            (Goal.muscle, 'Mišićna masa', 'Da izgledaš jače'),
+            (Goal.conditioning, 'Kondicija', 'Da imaš više daha i energije'),
+            (Goal.general, 'Opšta forma', 'Da se osećaš bolje'),
           ],
+          _goal,
+          (g) => _goal = g,
         ),
       ),
       2 => (
-        'Tvoj cilj.',
-        Column(
-          children: [
-            for (final g in Goal.values)
-              ClOptionRow(title: g.label, selected: _goal == g, onPressed: () => setState(() => _goal = g)),
+        'Koliko dugo treniraš?',
+        null,
+        _options(
+          [
+            (Experience.beginner, 'Tek počinjem', 'Manje od 6 meseci redovnog treninga'),
+            (Experience.intermediate, 'Neko vreme', 'Od 6 meseci do 2 godine'),
+            (Experience.advanced, 'Dugo', 'Više od 2 godine'),
           ],
+          _experience,
+          (e) => _experience = e,
         ),
       ),
       3 => (
-        'Iskustvo.',
-        Column(
-          children: [
-            for (final (e, meta) in [
-              (Experience.beginner, 'Manje od 6 meseci redovnog treninga'),
-              (Experience.intermediate, 'Od 6 meseci do 2 godine'),
-              (Experience.advanced, 'Više od 2 godine'),
-            ])
-              ClOptionRow(
-                title: e.label,
-                meta: meta,
-                selected: _experience == e,
-                onPressed: () => setState(() => _experience = e),
-              ),
-          ],
-        ),
-      ),
-      4 => (
         'Gde treniraš?',
-        Column(
-          children: [
-            ClOptionRow(
-              title: Place.gym.label,
-              meta: 'Šipka, mašine, sajla',
-              selected: _place == Place.gym,
-              onPressed: () => _setPlace(Place.gym),
-            ),
-            ClOptionRow(
-              title: Place.home.label,
-              meta: 'Bučice, trake ili bez opreme',
-              selected: _place == Place.home,
-              onPressed: () => _setPlace(Place.home),
-            ),
+        'Prema tome biramo vežbe. Opremu menjaš u profilu.',
+        _options(
+          [
+            (Place.gym, Place.gym.label, 'Šipka, mašine, sajla'),
+            (Place.home, Place.home.label, 'Bučice, trake ili bez opreme'),
           ],
+          _place,
+          (p) => _place = p,
         ),
       ),
-      _ => ('Tvoja oprema.', _equipmentStep(cl)),
+      _ => (
+        'Koliko dana nedeljno?',
+        'Plan to prati. Svaki dan možeš da pomeriš.',
+        _options(
+          [
+            (2, '2 dana', 'Za početak, uz posao ili školu'),
+            (3, '3 dana', 'Najčešći izbor'),
+            (4, '4 dana', 'Za brži napredak'),
+            (5, '5 i više', 'Ako već treniraš redovno'),
+          ],
+          _days,
+          (d) => _days = d,
+        ),
+      ),
     };
 
     return AppScreen(
       topBar: ClTopBar(
         label: 'Korak ${_step + 1} / $_steps',
-        onBack: _step == 0 ? null : () => setState(() => _step--),
+        onBack: _step == 0 || _advancing ? null : () => setState(() => _step--),
       ),
-      bottom: ClButton.block(
-        label: _step == _steps - 1 ? 'Počni' : 'Dalje',
-        onPressed: _valid ? _next : null,
-      ),
+      // Choices move on by themselves; only the name needs a button.
+      bottom: _step == 0
+          ? ClButton.block(label: 'Dalje', onPressed: _name.text.trim().isEmpty ? null : _next)
+          : null,
       children: [
         ClSegmentBar(total: _steps, done: _step + 1),
         const SizedBox(height: ClSpace.s6),
         if (_step == 0 && widget.invitedBy != null) ...[
-          ClCreatorLine(name: widget.invitedBy!.name, trailing: 'Poziv'),
+          ClCreatorLine(
+            name: widget.invitedBy!.name,
+            image: photoOf(widget.invitedBy!.photo),
+            trailing: 'Poziv',
+          ),
           gapS,
         ],
         ClScreenTitle(title: title, label: _step == 0 ? appName : null),
+        if (hint != null) ...[
+          const SizedBox(height: ClSpace.s2),
+          Text(hint, style: cl.text.body.copyWith(color: cl.colors.inkMuted)),
+        ],
         const SizedBox(height: ClSpace.s6),
         body,
       ],
@@ -168,34 +175,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       Text(
         widget.invitedBy == null
             ? 'Treniraš po programu trenera kog pratiš. Aplikacija beleži svaki set i pokazuje napredak.'
-            : 'Treniraš po programu koji je ${widget.invitedBy!.name} objavio. Prvo nekoliko pitanja.',
+            : 'Treniraš po programu koji je ${widget.invitedBy!.name} objavio. Prvo četiri kratka pitanja.',
         style: cl.text.body.copyWith(color: cl.colors.inkMuted),
       ),
       const SizedBox(height: ClSpace.s6),
       ClTextField(label: 'Ime', hint: 'npr. Ana', controller: _name, onChanged: (_) => setState(() {})),
-    ],
-  );
-
-  Widget _equipmentStep(ClTheme cl) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(
-        'Programi pokazuju koliko ti odgovaraju, a vežbe za koje nemaš opremu dobijaju zamenu. Bez opreme se uvek podrazumeva.',
-        style: cl.text.body.copyWith(color: cl.colors.inkMuted),
-      ),
-      gapS,
-      Wrap(
-        spacing: ClSpace.s2,
-        children: [
-          for (final e in Equipment.values.where((e) => e != Equipment.bodyweight))
-            ClFilter(
-              label: e.label,
-              selected: _equipment.contains(e),
-              onChanged: (on) =>
-                  setState(() => _equipment = on ? {..._equipment, e} : ({..._equipment}..remove(e))),
-            ),
-        ],
-      ),
     ],
   );
 }

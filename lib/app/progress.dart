@@ -6,15 +6,15 @@ import 'common.dart';
 import 'summary_screen.dart';
 
 /// Numbers that prove discipline: streak, workouts, records, volume,
-/// per-exercise progress and the full history.
-class ProgressScreen extends StatefulWidget {
-  const ProgressScreen({super.key});
+/// per-exercise progress and the full history. Shown on the profile.
+class ProgressContent extends StatefulWidget {
+  const ProgressContent({super.key});
 
   @override
-  State<ProgressScreen> createState() => _ProgressScreenState();
+  State<ProgressContent> createState() => _ProgressContentState();
 }
 
-class _ProgressScreenState extends State<ProgressScreen> {
+class _ProgressContentState extends State<ProgressContent> {
   String? _exerciseId;
 
   @override
@@ -36,11 +36,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
     );
 
     if (history.isEmpty) {
-      return AppScreen(
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: ClSpace.s4),
-          const ClScreenTitle(label: 'Tvoji brojevi', title: 'Napredak', large: true),
-          const SizedBox(height: ClSpace.s6),
           stats,
           gap,
           const ClEmptyState(
@@ -66,11 +64,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final volume = weeklyVolume(history, store.now, 8);
     final bestWeek = volume.indexed.reduce((a, b) => b.$2.volume > a.$2.volume ? b : a).$1;
 
-    return AppScreen(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: ClSpace.s4),
-        const ClScreenTitle(label: 'Tvoji brojevi', title: 'Napredak', large: true),
-        const SizedBox(height: ClSpace.s6),
         stats,
         gap,
         ClLineChart(

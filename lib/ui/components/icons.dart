@@ -58,6 +58,7 @@ abstract final class ClIcons {
   static const IconData planFilled = IconData(0xe10a, fontFamily: _fill);
   static const IconData discoverFilled = IconData(0xe1c8, fontFamily: _fill);
   static const IconData progressFilled = IconData(0xe156, fontFamily: _fill);
+  static const IconData libraryFilled = IconData(0xe758, fontFamily: _fill);
   static const IconData profileFilled = IconData(0xe4c2, fontFamily: _fill);
 
   static const Map<String, IconData> all = {

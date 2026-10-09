@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme.dart';
 import '../tokens/spacing.dart';
@@ -40,51 +41,58 @@ class ClWorkoutHero extends StatelessWidget {
     final cl = context.cl;
     final pop = image == null ? color : null;
     final onPhoto = pop == null ? cl.colors.onPhoto : cl.colors.onPop;
-    return SizedBox(
-      height: height,
-      width: double.infinity,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(ClRadius.lg)),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (pop != null) ColoredBox(color: pop) else ...[ClPhoto(image: image), const ClPhotoScrim()],
-            if (topBar != null)
+    // Light status bar text over a photo, dark over a pop color.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: pop == null ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(ClRadius.lg)),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (pop != null) ColoredBox(color: pop) else ...[ClPhoto(image: image), const ClPhotoScrim()],
+              if (topBar != null)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    bottom: false,
+                    child: IconTheme(
+                      data: IconThemeData(color: onPhoto),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: ClSpace.s2),
+                        child: topBar!,
+                      ),
+                    ),
+                  ),
+                ),
               Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: SafeArea(
-                  bottom: false,
-                  child: IconTheme(
-                    data: IconThemeData(color: onPhoto),
-                    child: topBar!,
+                left: ClSpace.s4,
+                right: ClSpace.s4,
+                bottom: ClSpace.s4,
+                child: Semantics(
+                  header: true,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(label, style: cl.text.label.copyWith(color: onPhoto)),
+                      const SizedBox(height: ClSpace.s1),
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: (compact ? cl.text.displayM : cl.text.displayL).copyWith(color: onPhoto),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            Positioned(
-              left: ClSpace.s4,
-              right: ClSpace.s4,
-              bottom: ClSpace.s4,
-              child: Semantics(
-                header: true,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(label, style: cl.text.label.copyWith(color: onPhoto)),
-                    const SizedBox(height: ClSpace.s1),
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: (compact ? cl.text.displayM : cl.text.displayL).copyWith(color: onPhoto),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -219,6 +227,142 @@ class ClCreatorLine extends StatelessWidget {
         ),
         if (trailing != null) ...[const SizedBox(width: ClSpace.s2), Text(trailing!, style: cl.text.label)],
       ],
+    );
+  }
+}
+
+/// A pop block with a photo behind it: a rounded cover with a scrim, a small
+/// label, a big title and one line of meta in white. Without [image] (or
+/// while it loads) it is a plain pop block in [color] with ink text, so
+/// content that has no photo yet still looks finished.
+class ClPhotoBlock extends StatelessWidget {
+  const ClPhotoBlock({
+    super.key,
+    required this.title,
+    required this.color,
+    this.label,
+    this.meta,
+    this.image,
+    this.height = 240,
+    this.sticker,
+    this.avatar,
+    this.onPressed,
+  });
+
+  final String title;
+  final Color color;
+  final String? label;
+  final String? meta;
+  final ImageProvider? image;
+  final double height;
+
+  /// Optional [ClSticker] pinned over the top-right corner.
+  final Widget? sticker;
+
+  /// Optional [ClAvatar] shown before [label], for the creator.
+  final Widget? avatar;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.cl;
+    final ink = image == null ? cl.colors.onPop : cl.colors.onPhoto;
+    Widget block(bool pressed) => AnimatedScale(
+      duration: context.motion(ClMotion.fast),
+      curve: ClMotion.curve,
+      scale: pressed ? 0.98 : 1,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          SizedBox(
+            height: height,
+            width: double.infinity,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(ClRadius.lg),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ColoredBox(color: color),
+                  if (image != null) ...[_FadeInPhoto(image: image!), const ClPhotoScrim(coverage: 0.7)],
+                  Positioned(
+                    left: ClSpace.s4,
+                    right: ClSpace.s4,
+                    bottom: ClSpace.s4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (label != null || avatar != null)
+                          Row(
+                            children: [
+                              if (avatar != null) ...[avatar!, const SizedBox(width: ClSpace.s2)],
+                              if (label != null)
+                                Expanded(
+                                  child: Text(
+                                    label!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: cl.text.bodyStrong.copyWith(fontSize: 13, color: ink),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        const SizedBox(height: ClSpace.s1),
+                        Semantics(
+                          header: true,
+                          child: Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: cl.text.displayL.copyWith(color: ink),
+                          ),
+                        ),
+                        if (meta != null) ...[
+                          const SizedBox(height: ClSpace.s1),
+                          Text(meta!, style: cl.text.body.copyWith(color: ink)),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (sticker != null) Positioned(top: -ClSpace.s2, right: ClSpace.s3, child: sticker!),
+        ],
+      ),
+    );
+    if (onPressed == null) return block(false);
+    return ClPressable(
+      onPressed: onPressed,
+      semanticLabel: title,
+      radius: ClRadius.lg,
+      builder: (context, pressed) => block(pressed),
+    );
+  }
+}
+
+/// A photo that fades in over whatever is behind it once it has loaded.
+class _FadeInPhoto extends StatelessWidget {
+  const _FadeInPhoto({required this.image});
+
+  final ImageProvider image;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image(
+      image: image,
+      fit: BoxFit.cover,
+      excludeFromSemantics: true,
+      frameBuilder: (context, child, frame, sync) => sync
+          ? child
+          : AnimatedOpacity(
+              opacity: frame == null ? 0 : 1,
+              duration: context.motion(ClMotion.sheet),
+              curve: ClMotion.curve,
+              child: child,
+            ),
+      errorBuilder: (context, error, stack) => const SizedBox.shrink(),
     );
   }
 }

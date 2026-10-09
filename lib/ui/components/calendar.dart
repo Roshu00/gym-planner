@@ -46,7 +46,8 @@ String _markLabel(ClDayMark m) => switch (m) {
   ClDayMark.none => '',
 };
 
-/// Compact month calendar on a white card, Monday first. Each day shows its
+/// Compact month (or, with [weekOnly], one week) calendar on a white card,
+/// Monday first. Each day shows its
 /// number and a small icon: done (lime), planned (lilac) or rest. Selected = ink.
 class ClCalendar extends StatelessWidget {
   const ClCalendar({
@@ -58,10 +59,14 @@ class ClCalendar extends StatelessWidget {
     required this.onSelect,
     required this.onMonthChanged,
     this.isEdited,
+    this.weekOnly = false,
   });
 
-  /// Any day in the month to show.
+  /// Any day in the month (or week) to show.
   final DateTime month;
+
+  /// Shows only the week of [month]; the arrows move by a week.
+  final bool weekOnly;
   final DateTime selected;
   final DateTime today;
   final ClDayMark Function(DateTime day) markFor;
@@ -76,10 +81,21 @@ class ClCalendar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cl = context.cl;
-    final first = DateTime(month.year, month.month);
-    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final leading = first.weekday - 1;
+    final weekStart = DateTime(month.year, month.month, month.day - (month.weekday - 1));
+    final weekEnd = DateTime(weekStart.year, weekStart.month, weekStart.day + 6);
+    final first = weekOnly ? weekStart : DateTime(month.year, month.month);
+    final daysInMonth = weekOnly ? 7 : DateTime(month.year, month.month + 1, 0).day;
+    final leading = weekOnly ? 0 : first.weekday - 1;
     final rows = ((leading + daysInMonth) / 7).ceil();
+    final title = !weekOnly
+        ? '${_months[month.month - 1]} ${month.year}'
+        : weekStart.month == weekEnd.month
+        ? '${weekStart.day}.–${weekEnd.day}. ${_months[weekEnd.month - 1].toLowerCase()}'
+        : '${weekStart.day}. ${_months[weekStart.month - 1].substring(0, 3).toLowerCase()} – '
+              '${weekEnd.day}. ${_months[weekEnd.month - 1].substring(0, 3).toLowerCase()}';
+    DateTime step(int by) => weekOnly
+        ? DateTime(weekStart.year, weekStart.month, weekStart.day + 7 * by)
+        : DateTime(month.year, month.month + by);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(ClSpace.s2, ClSpace.s1, ClSpace.s2, ClSpace.s2),
@@ -97,21 +113,18 @@ class ClCalendar extends StatelessWidget {
               Expanded(
                 child: Semantics(
                   header: true,
-                  child: Text(
-                    '${_months[month.month - 1]} ${month.year}',
-                    style: cl.text.bodyStrong.copyWith(fontSize: 17),
-                  ),
+                  child: Text(title, style: cl.text.bodyStrong.copyWith(fontSize: 17)),
                 ),
               ),
               ClIconButton(
                 icon: ClIcons.back,
-                semanticLabel: 'Prethodni mesec',
-                onPressed: () => onMonthChanged(DateTime(month.year, month.month - 1)),
+                semanticLabel: weekOnly ? 'Prethodna nedelja' : 'Prethodni mesec',
+                onPressed: () => onMonthChanged(step(-1)),
               ),
               ClIconButton(
                 icon: ClIcons.chevron,
-                semanticLabel: 'Sledeći mesec',
-                onPressed: () => onMonthChanged(DateTime(month.year, month.month + 1)),
+                semanticLabel: weekOnly ? 'Sledeća nedelja' : 'Sledeći mesec',
+                onPressed: () => onMonthChanged(step(1)),
               ),
             ],
           ),
@@ -135,7 +148,7 @@ class ClCalendar extends StatelessWidget {
                       builder: (context) {
                         final n = r * 7 + c - leading + 1;
                         if (n < 1 || n > daysInMonth) return const SizedBox(height: _cell + 2);
-                        final day = DateTime(month.year, month.month, n);
+                        final day = DateTime(first.year, first.month, first.day + n - 1);
                         return _DayCell(
                           day: day,
                           mark: markFor(day),

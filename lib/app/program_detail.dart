@@ -9,28 +9,30 @@ import 'shell.dart';
 import 'subscribe_sheet.dart';
 import 'workout_detail.dart';
 
+/// Makes [programId] the user's plan, asking first when it replaces one,
+/// then shows Today.
+Future<void> startProgramFlow(BuildContext context, String programId) async {
+  final store = context.readStore;
+  final current = store.plan;
+  if (current != null) {
+    final ok = await confirmClSheet(
+      context,
+      title: 'Novi program?',
+      message: 'Trenutni plan „${current.name}” se zamenjuje. Istorija treninga ostaje.',
+      confirmLabel: 'Počni program',
+    );
+    if (!ok || !context.mounted) return;
+  }
+  store.startProgram(programId);
+  HomeShell.goTo(context, AppTab.today);
+}
+
 /// A creator's program: what it is, how well it fits the user's equipment,
 /// its workouts, and one action.
 class ProgramDetailScreen extends StatelessWidget {
   const ProgramDetailScreen({super.key, required this.programId});
 
   final String programId;
-
-  Future<void> _start(BuildContext context) async {
-    final store = context.readStore;
-    final current = store.plan;
-    if (current != null) {
-      final ok = await confirmClSheet(
-        context,
-        title: 'Novi program?',
-        message: 'Trenutni plan „${current.name}” se zamenjuje. Istorija treninga ostaje.',
-        confirmLabel: 'Počni program',
-      );
-      if (!ok || !context.mounted) return;
-    }
-    store.startProgram(programId);
-    HomeShell.goTo(context, AppTab.today);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,20 +68,22 @@ class ProgramDetailScreen extends StatelessWidget {
         onPressed: () => pushScreen(context, const PlanScreen()),
       );
     } else {
-      action = ClButton.block(label: 'Počni program', onPressed: () => _start(context));
+      action = ClButton.block(label: 'Počni program', onPressed: () => startProgramFlow(context, programId));
     }
 
     return AppScreen(
       safeTop: false,
       padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s8),
+      collapsed: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.clText.bodyStrong),
       header: ClWorkoutHero(
         title: p.name,
+        image: photoOf(p.image),
         color: context.clColors.popFor(p.id),
         label: '${c?.name ?? ''} · ${programMeta(p)}',
         height: 300,
         topBar: Row(
           children: [
-            ClIconButton(
+            ClIconButton.onMedia(
               icon: ClIcons.back,
               semanticLabel: 'Nazad',
               onPressed: () => Navigator.of(context).maybePop(),
@@ -104,7 +108,11 @@ class ProgramDetailScreen extends StatelessWidget {
         if (c != null)
           GestureDetector(
             onTap: () => pushScreen(context, CreatorProfileScreen(creatorId: c.id), theme: ClTheme.light),
-            child: ClCreatorLine(name: c.name, trailing: followersLabel(c.followers)),
+            child: ClCreatorLine(
+              name: c.name,
+              image: photoOf(c.photo),
+              trailing: followersLabel(c.followers),
+            ),
           ),
         if (p.description.isNotEmpty) ...[gapS, Text(p.description, style: cl.text.body)],
         gapS,

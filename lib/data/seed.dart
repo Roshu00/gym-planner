@@ -1,20 +1,30 @@
 import '../domain/models.dart';
 
+/// Demo pictures, loaded from their hosts at runtime. Exercise pictures are
+/// from free-exercise-db (Unlicense, public domain); creator and cover photos
+/// are from Unsplash (Unsplash License). The demo creators are fictional, so
+/// replace their photos with the real creators' own before launch.
+const _exerciseDb = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises';
+const _unsplash = 'https://images.unsplash.com/photo-';
+
 /// Demo catalog until the backend exists. Creators, their exercises,
 /// workouts and programs. Ids are stable so saved plans and history keep working.
 class SeedCatalog {
   static const creators = [
     Creator(
       id: 'c_marko',
+      photo: '${_unsplash}1704223523169-52feeed90365?w=400&q=75&auto=format&fit=crop',
       name: 'Marko Petrović',
       handle: 'marko.lifts',
       tagline: 'Snaga i hipertrofija',
-      bio: 'Trener snage iz Novog Sada. Radim sa šipkom, jednostavno i dosledno. Svaki trening ima jedan glavni pokret.',
+      bio:
+          'Trener snage iz Novog Sada. Radim sa šipkom, jednostavno i dosledno. Svaki trening ima jedan glavni pokret.',
       followers: 48200,
       priceMonthly: 5.99,
     ),
     Creator(
       id: 'c_jelena',
+      photo: '${_unsplash}1620862657760-72a639a2daef?w=400&q=75&auto=format&fit=crop',
       name: 'Jelena Ilić',
       handle: 'jelena.moves',
       tagline: 'Treninzi kod kuće',
@@ -25,6 +35,7 @@ class SeedCatalog {
     ),
     Creator(
       id: 'c_nikola',
+      photo: '${_unsplash}1634225251578-d5f6ffced78a?w=400&q=75&auto=format&fit=crop',
       name: 'Nikola Jovanović',
       handle: 'nikola.fit',
       tagline: 'Kalistenika',
@@ -38,6 +49,7 @@ class SeedCatalog {
     // Marko
     Exercise(
       id: 'm_bench',
+      image: '$_exerciseDb/Barbell_Bench_Press_-_Medium_Grip/0.jpg',
       creatorId: 'c_marko',
       name: 'Bench press',
       muscle: Muscle.chest,
@@ -46,6 +58,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_incline_db',
+      image: '$_exerciseDb/Incline_Dumbbell_Press/0.jpg',
       creatorId: 'c_marko',
       name: 'Kosi potisak bučicama',
       muscle: Muscle.chest,
@@ -54,6 +67,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_ohp',
+      image: '$_exerciseDb/Standing_Military_Press/0.jpg',
       creatorId: 'c_marko',
       name: 'Rameni potisak',
       muscle: Muscle.shoulders,
@@ -62,6 +76,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_lateral',
+      image: '$_exerciseDb/Side_Lateral_Raise/0.jpg',
       creatorId: 'c_marko',
       name: 'Odručenje',
       muscle: Muscle.shoulders,
@@ -70,6 +85,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_dips',
+      image: '$_exerciseDb/Dips_-_Triceps_Version/0.jpg',
       creatorId: 'c_marko',
       name: 'Propadanja',
       muscle: Muscle.triceps,
@@ -78,6 +94,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_pushdown',
+      image: '$_exerciseDb/Triceps_Pushdown/0.jpg',
       creatorId: 'c_marko',
       name: 'Triceps sajla',
       muscle: Muscle.triceps,
@@ -86,6 +103,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_deadlift',
+      image: '$_exerciseDb/Barbell_Deadlift/0.jpg',
       creatorId: 'c_marko',
       name: 'Mrtvo dizanje',
       muscle: Muscle.hamstrings,
@@ -94,6 +112,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_pullup',
+      image: '$_exerciseDb/Pullups/0.jpg',
       creatorId: 'c_marko',
       name: 'Zgibovi',
       muscle: Muscle.back,
@@ -102,6 +121,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_row',
+      image: '$_exerciseDb/Bent_Over_Barbell_Row/0.jpg',
       creatorId: 'c_marko',
       name: 'Veslanje šipkom',
       muscle: Muscle.back,
@@ -110,6 +130,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_lat',
+      image: '$_exerciseDb/Wide-Grip_Lat_Pulldown/0.jpg',
       creatorId: 'c_marko',
       name: 'Lat povlačenje',
       muscle: Muscle.back,
@@ -118,6 +139,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_curl',
+      image: '$_exerciseDb/Barbell_Curl/0.jpg',
       creatorId: 'c_marko',
       name: 'Biceps pregib',
       muscle: Muscle.biceps,
@@ -126,6 +148,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_squat',
+      image: '$_exerciseDb/Barbell_Squat/0.jpg',
       creatorId: 'c_marko',
       name: 'Čučanj',
       muscle: Muscle.quads,
@@ -134,6 +157,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_rdl',
+      image: '$_exerciseDb/Romanian_Deadlift/0.jpg',
       creatorId: 'c_marko',
       name: 'Rumunsko mrtvo dizanje',
       muscle: Muscle.hamstrings,
@@ -142,6 +166,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_lunge',
+      image: '$_exerciseDb/Dumbbell_Lunges/0.jpg',
       creatorId: 'c_marko',
       name: 'Iskorak',
       muscle: Muscle.quads,
@@ -150,6 +175,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_legpress',
+      image: '$_exerciseDb/Leg_Press/0.jpg',
       creatorId: 'c_marko',
       name: 'Nožna presa',
       muscle: Muscle.quads,
@@ -158,6 +184,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_calf',
+      image: '$_exerciseDb/Standing_Calf_Raises/0.jpg',
       creatorId: 'c_marko',
       name: 'Podizanje na prste',
       muscle: Muscle.calves,
@@ -166,6 +193,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'm_hanging_leg',
+      image: '$_exerciseDb/Hanging_Leg_Raise/0.jpg',
       creatorId: 'c_marko',
       name: 'Podizanje nogu u visu',
       muscle: Muscle.core,
@@ -176,6 +204,7 @@ class SeedCatalog {
     // Jelena
     Exercise(
       id: 'j_goblet',
+      image: '$_exerciseDb/Goblet_Squat/0.jpg',
       creatorId: 'c_jelena',
       name: 'Gobl čučanj',
       muscle: Muscle.quads,
@@ -184,6 +213,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_hip_thrust',
+      image: '$_exerciseDb/Barbell_Hip_Thrust/0.jpg',
       creatorId: 'c_jelena',
       name: 'Hip thrust sa trakom',
       muscle: Muscle.glutes,
@@ -192,6 +222,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_rdl_db',
+      image: '$_exerciseDb/Stiff-Legged_Dumbbell_Deadlift/0.jpg',
       creatorId: 'c_jelena',
       name: 'Rumunsko mrtvo bučicama',
       muscle: Muscle.hamstrings,
@@ -200,6 +231,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_pushup',
+      image: '$_exerciseDb/Pushups/0.jpg',
       creatorId: 'c_jelena',
       name: 'Sklekovi',
       muscle: Muscle.chest,
@@ -208,6 +240,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_row_db',
+      image: '$_exerciseDb/One-Arm_Dumbbell_Row/0.jpg',
       creatorId: 'c_jelena',
       name: 'Veslanje bučicom',
       muscle: Muscle.back,
@@ -216,6 +249,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_press_db',
+      image: '$_exerciseDb/Dumbbell_Shoulder_Press/0.jpg',
       creatorId: 'c_jelena',
       name: 'Rameni potisak bučicama',
       muscle: Muscle.shoulders,
@@ -224,6 +258,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_split_squat',
+      image: '$_exerciseDb/Split_Squat_with_Dumbbells/0.jpg',
       creatorId: 'c_jelena',
       name: 'Bugarski čučanj',
       muscle: Muscle.quads,
@@ -232,6 +267,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_bridge',
+      image: '$_exerciseDb/Butt_Lift_Bridge/0.jpg',
       creatorId: 'c_jelena',
       name: 'Glute bridge',
       muscle: Muscle.glutes,
@@ -240,6 +276,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_deadbug',
+      image: '$_exerciseDb/Dead_Bug/0.jpg',
       creatorId: 'c_jelena',
       name: 'Mrtva buba',
       muscle: Muscle.core,
@@ -257,6 +294,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'j_band_pull',
+      image: '$_exerciseDb/Band_Pull_Apart/0.jpg',
       creatorId: 'c_jelena',
       name: 'Razvlačenje trake',
       muscle: Muscle.back,
@@ -267,6 +305,7 @@ class SeedCatalog {
     // Nikola
     Exercise(
       id: 'n_pullup',
+      image: '$_exerciseDb/Pullups/0.jpg',
       creatorId: 'c_nikola',
       name: 'Zgibovi',
       muscle: Muscle.back,
@@ -275,6 +314,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'n_pushup',
+      image: '$_exerciseDb/Pushups/0.jpg',
       creatorId: 'c_nikola',
       name: 'Sklekovi',
       muscle: Muscle.chest,
@@ -283,6 +323,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'n_bench_dips',
+      image: '$_exerciseDb/Bench_Dips/0.jpg',
       creatorId: 'c_nikola',
       name: 'Propadanja na stolici',
       muscle: Muscle.triceps,
@@ -291,6 +332,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'n_squat',
+      image: '$_exerciseDb/Bodyweight_Squat/0.jpg',
       creatorId: 'c_nikola',
       name: 'Čučanj bez opreme',
       muscle: Muscle.quads,
@@ -299,6 +341,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'n_pistol',
+      image: '$_exerciseDb/Kettlebell_Pistol_Squat/0.jpg',
       creatorId: 'c_nikola',
       name: 'Pistol čučanj',
       muscle: Muscle.quads,
@@ -308,6 +351,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'n_leg_raise',
+      image: '$_exerciseDb/Hanging_Leg_Raise/0.jpg',
       creatorId: 'c_nikola',
       name: 'Podizanje nogu u visu',
       muscle: Muscle.core,
@@ -316,6 +360,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'n_pike',
+      image: '$_exerciseDb/Handstand_Push-Ups/0.jpg',
       creatorId: 'c_nikola',
       name: 'Pike sklekovi',
       muscle: Muscle.shoulders,
@@ -324,6 +369,7 @@ class SeedCatalog {
     ),
     Exercise(
       id: 'n_chinup',
+      image: '$_exerciseDb/Chin-Up/0.jpg',
       creatorId: 'c_nikola',
       name: 'Zgibovi podhvatom',
       muscle: Muscle.biceps,
@@ -336,6 +382,8 @@ class SeedCatalog {
     // Marko · Snaga 8
     Workout(
       id: 'w_m_push',
+      intro: 'Danas je potisak. Prvi set lagano, poslednji pošteno.',
+      image: '${_unsplash}1704223523303-a5ed14561b1f?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_marko',
       name: 'Push day',
       finishMessage: 'Dobar potisak. Sledeće je Pull. Isti ritam.',
@@ -356,6 +404,8 @@ class SeedCatalog {
     ),
     Workout(
       id: 'w_m_pull',
+      intro: 'Leđa nose sve ostalo. Kontroliši spuštanje.',
+      image: '${_unsplash}1517838277536-f5f99be501cd?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_marko',
       name: 'Pull day',
       finishMessage: 'Leđa su gotova. Sledeće su noge, odmori se.',
@@ -368,6 +418,8 @@ class SeedCatalog {
     ),
     Workout(
       id: 'w_m_legs',
+      intro: 'Noge danas. Dubina pre težine, uvek.',
+      image: '${_unsplash}1770664612843-b44e26070024?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_marko',
       name: 'Noge',
       finishMessage: 'Najteži dan je iza tebe. Sutra hodaj polako.',
@@ -380,6 +432,8 @@ class SeedCatalog {
     ),
     Workout(
       id: 'w_m_upper',
+      intro: 'Gornji deo, bez žurbe. Svaki set čist.',
+      image: '${_unsplash}1704223523169-52feeed90365?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_marko',
       name: 'Gornji deo',
       finishMessage: 'Nedelja je zatvorena. Sledeća počinje od Push day.',
@@ -402,6 +456,8 @@ class SeedCatalog {
     // Marko · Početak
     Workout(
       id: 'w_m_full_a',
+      intro: 'Danas radimo tehniku čučnja. Lagano, ali čisto.',
+      image: '${_unsplash}1770664612843-b44e26070024?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_marko',
       name: 'Celo telo A',
       finishMessage: 'Prvi korak je najvažniji. Sledeće je Celo telo B.',
@@ -413,6 +469,8 @@ class SeedCatalog {
     ),
     Workout(
       id: 'w_m_full_b',
+      intro: 'Mrtvo dizanje je glavno. Leđa ravna, sve ostalo je bonus.',
+      image: '${_unsplash}1517838277536-f5f99be501cd?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_marko',
       name: 'Celo telo B',
       finishMessage: 'Još jedan. Sledeći put dodaj 2,5 kg na čučanj.',
@@ -426,6 +484,8 @@ class SeedCatalog {
     // Jelena · Kuća 30
     Workout(
       id: 'w_j_lower',
+      intro: 'Četrdeset minuta, samo ti i bučice. Idemo.',
+      image: '${_unsplash}1571019613454-1cb2f99b2d8b?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_jelena',
       name: 'Donji deo',
       finishMessage: 'Noge gore, voda pored. Vidimo se za dva dana.',
@@ -445,6 +505,8 @@ class SeedCatalog {
     ),
     Workout(
       id: 'w_j_upper',
+      intro: 'Ramena i leđa. Diši i ne žuri.',
+      image: '${_unsplash}1714646442330-9068099f5521?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_jelena',
       name: 'Gornji deo',
       finishMessage: 'Ramena i leđa rade. Sledeće je celo telo.',
@@ -457,6 +519,8 @@ class SeedCatalog {
     ),
     Workout(
       id: 'w_j_full',
+      intro: 'Celo telo, malo prostora. Dovoljno je.',
+      image: '${_unsplash}1620862657760-72a639a2daef?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_jelena',
       name: 'Celo telo',
       finishMessage: 'Tri treninga ove nedelje. To je ritam koji ostaje.',
@@ -477,6 +541,8 @@ class SeedCatalog {
     // Jelena · Gluteus plan
     Workout(
       id: 'w_j_glute_a',
+      intro: 'Gluteus danas. Stisni na vrhu, svaki put.',
+      image: '${_unsplash}1571019613454-1cb2f99b2d8b?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_jelena',
       name: 'Gluteus A',
       finishMessage: 'Stegni i pusti. Sledeći je Gluteus B.',
@@ -503,6 +569,8 @@ class SeedCatalog {
     ),
     Workout(
       id: 'w_j_glute_b',
+      intro: 'Isti fokus, malo više ponavljanja. Ti to možeš.',
+      image: '${_unsplash}1714646442330-9068099f5521?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_jelena',
       name: 'Gluteus B',
       finishMessage: 'Gotovo za danas. Sledeće je Gluteus A.',
@@ -517,6 +585,8 @@ class SeedCatalog {
     // Nikola · Vratilo i pod
     Workout(
       id: 'w_n_pull',
+      intro: 'Vratilo čeka. Jedan zgib više nego prošli put.',
+      image: '${_unsplash}1634225251578-d5f6ffced78a?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_nikola',
       name: 'Vratilo',
       finishMessage: 'Svaki zgib se računa. Sledeći put jedan više.',
@@ -528,6 +598,8 @@ class SeedCatalog {
     ),
     Workout(
       id: 'w_n_push',
+      intro: 'Pod i sopstvena težina. Telo pravo kao daska.',
+      image: '${_unsplash}1634225252941-66fd95aaa7c3?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_nikola',
       name: 'Pod',
       finishMessage: 'Dobar posao. Vratilo te čeka sledeće.',
@@ -550,6 +622,7 @@ class SeedCatalog {
   static const programs = [
     Program(
       id: 'p_m_strength',
+      image: '${_unsplash}1517838277536-f5f99be501cd?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_marko',
       name: 'Snaga 8',
       description:
@@ -564,6 +637,7 @@ class SeedCatalog {
     ),
     Program(
       id: 'p_m_start',
+      image: '${_unsplash}1770664612843-b44e26070024?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_marko',
       name: 'Početak',
       description: 'Dva treninga celog tela koja se smenjuju. Za prvih šest nedelja u teretani.',
@@ -576,6 +650,7 @@ class SeedCatalog {
     ),
     Program(
       id: 'p_j_home',
+      image: '${_unsplash}1714646442330-9068099f5521?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_jelena',
       name: 'Kuća 30',
       description: 'Tri treninga od 30 do 40 minuta. Treba ti par bučica i traka.',
@@ -588,6 +663,7 @@ class SeedCatalog {
     ),
     Program(
       id: 'p_j_glute',
+      image: '${_unsplash}1571019613454-1cb2f99b2d8b?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_jelena',
       name: 'Gluteus plan',
       description: 'Četiri kraća treninga nedeljno sa fokusom na gluteus i zadnju ložu.',
@@ -601,6 +677,7 @@ class SeedCatalog {
     ),
     Program(
       id: 'p_n_bar',
+      image: '${_unsplash}1634225252941-66fd95aaa7c3?w=900&q=75&auto=format&fit=crop',
       creatorId: 'c_nikola',
       name: 'Vratilo i pod',
       description: 'Kalistenika tri puta nedeljno. Cilj je deset zgibova u seriji.',

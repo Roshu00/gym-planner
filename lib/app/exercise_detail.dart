@@ -40,6 +40,7 @@ class ExerciseDetailScreen extends StatelessWidget {
     return AppScreen(
       safeTop: false,
       padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s12),
+      collapsed: Text(e.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.clText.bodyStrong),
       header: SizedBox(
         height: 260,
         child: ClipRRect(
@@ -47,15 +48,14 @@ class ExerciseDetailScreen extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              const ClPhoto(placeholderLabel: 'Video vežbe'),
+              ClPhoto(image: photoOf(e.image), placeholderLabel: 'Video vežbe', semanticLabel: e.name),
               Positioned(
                 top: 0,
                 left: 0,
                 child: SafeArea(
-                  child: ClIconButton(
+                  child: ClIconButton.onMedia(
                     icon: ClIcons.back,
                     semanticLabel: 'Nazad',
-                    color: cl.colors.onPhoto,
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
                 ),
@@ -67,7 +67,7 @@ class ExerciseDetailScreen extends StatelessWidget {
       children: [
         ClScreenTitle(label: '${e.muscle.label} · ${e.equipmentLabel}', title: e.name),
         gapS,
-        if (c != null) ClCreatorLine(name: c.name, trailing: e.visibility.label),
+        if (c != null) ClCreatorLine(name: c.name, image: photoOf(c.photo), trailing: e.visibility.label),
         if (locked) ...[
           gapS,
           const ClNotice('Napomene i video su za pretplatnike.'),

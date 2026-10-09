@@ -47,7 +47,7 @@ class SummaryScreen extends StatelessWidget {
         ClSummary(
           label: label,
           headline: justFinished
-              ? (store.profile?.says('Pojavio si se.', 'Pojavila si se.') ?? 'Pojavio si se.')
+              ? (store.profile?.says('Pojavio si se.', 'Pojavila si se.', 'Odrađeno.') ?? 'Odrađeno.')
               : s.workoutName,
           stats: [
             ClStat(label: 'Volumen', value: formatNumber(s.volume, maxDecimals: 0), unit: 'kg'),
