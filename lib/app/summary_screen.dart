@@ -35,9 +35,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
       );
     }
     final date = s.finishedAt ?? s.startedAt;
-    final label = justFinished
-        ? '${s.workoutName} · ${formatDuration(s.duration)}'
-        : '${weekdayName(date)} ${formatDate(date)} · ${formatDuration(s.duration)}';
     final message = s.finishMessage.isNotEmpty
         ? s.finishMessage
         : (store.nextWorkout == null
@@ -68,29 +65,63 @@ class _SummaryScreenState extends State<SummaryScreen> {
         ],
       ),
       children: [
-        ClSummary(
-          label: label,
-          headline: justFinished
+        // The sticker already names the workout; the title says when.
+        ClScreenTitle(
+          label: justFinished && store.streak > 0
+              ? '${countLabel(store.streak, 'nedelja', 'nedelje', 'nedelja')} zaredom'
+              : null,
+          title: justFinished
               ? (store.profile?.says('Pojavio si se.', 'Pojavila si se.', 'Odrađeno.') ?? 'Odrađeno.')
-              : s.workoutName,
-          stats: [
-            ClStat(label: 'Volumen', value: formatNumber(s.volume, maxDecimals: 0), unit: 'kg'),
-            // A zero reads like a failure; without records the sets count.
-            if (s.prCount > 0)
-              ClStat(label: 'Rekordi', value: '${s.prCount}', unit: 'PR', highlight: true)
-            else
-              ClStat(label: 'Setova', value: '${s.doneSets}'),
-            if (justFinished && store.streak > 0)
-              ClStat(label: 'Niz', value: '${store.streak}', unit: 'ned.'),
-          ],
-          exercises: [
-            for (final e in s.exercises) ClSummaryExercise(name: e.name, detail: _detail(e), isPr: e.hasPr),
-          ],
-          creatorName: s.creatorName,
-          creatorHandle: store.creator(s.creatorId)?.handle,
-          creatorImage: photoOf(store.creator(s.creatorId)?.photo),
-          creatorMessage: message,
+              : '${weekdayName(date)} ${formatDate(date)}',
         ),
+        gapS,
+        // The same photo + sticker the story will have; a tap opens it.
+        ClPressable(
+          onPressed: () => pushScreen(context, StoryComposerScreen(session: s)),
+          semanticLabel: 'Podeli na story',
+          radius: ClRadius.lg,
+          builder: (context, pressed) => AnimatedScale(
+            duration: context.motion(ClMotion.fast),
+            scale: pressed ? 0.98 : 1,
+            child: AspectRatio(
+              aspectRatio: 4 / 5,
+              child: LayoutBuilder(
+                builder: (context, box) => ClipRRect(
+                  borderRadius: BorderRadius.circular(ClRadius.lg),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ColoredBox(color: context.clColors.popFor(s.workoutId)),
+                      if (photoOf(store.workoutsById[s.workoutId]?.image) case final cover?)
+                        ClPhoto(image: cover, placeholderLabel: ''),
+                      const ClPhotoScrim(coverage: 0.6),
+                      Positioned(
+                        left: ClSpace.s4,
+                        right: ClSpace.s4,
+                        bottom: ClSpace.s4,
+                        child: StorySticker(
+                          session: s,
+                          handle: store.creator(s.creatorId)?.handle,
+                          creatorPhoto: photoOf(store.creator(s.creatorId)?.photo),
+                          scale: box.maxWidth / 360,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: ClSpace.s4),
+        ClCreatorMessage(
+          name: s.creatorName,
+          message: message,
+          image: photoOf(store.creator(s.creatorId)?.photo),
+        ),
+        const SizedBox(height: ClSpace.s6),
+        const ClSectionHeader(label: 'Vežbe'),
+        for (final e in s.exercises) ClExerciseRow(name: e.name, detail: _detail(e), isPr: e.hasPr),
       ],
     );
   }
