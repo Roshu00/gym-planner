@@ -850,7 +850,8 @@ class _CreatorCarousel extends StatelessWidget {
                         fit: StackFit.expand,
                         children: [
                           ColoredBox(color: c.popFor(x.id)),
-                          if (photoOf(x.photo) case final photo?) ClPhoto(image: photo, placeholderLabel: ''),
+                          if (photoOf(x.photo) case final photo?)
+                            ClPhoto(image: photo, placeholderLabel: '', alignment: Alignment.topCenter),
                           const ClPhotoScrim(coverage: 0.6),
                           if (followStatus(store, x.id) != ClFollowStatus.none)
                             Positioned(

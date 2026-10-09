@@ -25,6 +25,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/trainers/minja/
+    - assets/trainers/kriss/
   fonts:
     - family: Bricolage
       fonts:

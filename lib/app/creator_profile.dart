@@ -109,6 +109,7 @@ class CreatorProfileScreen extends StatelessWidget {
         color: context.clColors.popFor(c.id),
         label: c.tagline.isEmpty ? '@${c.handle}' : '@${c.handle} · ${c.tagline}',
         height: 320,
+        imageAlignment: Alignment.topCenter,
         topBar: Row(
           children: [
             ClIconButton.onMedia(

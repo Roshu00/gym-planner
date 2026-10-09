@@ -19,6 +19,7 @@ class ClWorkoutHero extends StatelessWidget {
     this.compact = false,
     this.topBar,
     this.color,
+    this.imageAlignment = Alignment.center,
   });
 
   final String title;
@@ -36,6 +37,10 @@ class ClWorkoutHero extends StatelessWidget {
   /// Optional row pinned to the top (back button, menu). Keep it on-photo white.
   final Widget? topBar;
 
+  /// Which part of the photo stays when it is cropped; the top for a
+  /// portrait, so the face is not cut off.
+  final Alignment imageAlignment;
+
   @override
   Widget build(BuildContext context) {
     final cl = context.cl;
@@ -52,7 +57,12 @@ class ClWorkoutHero extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (pop != null) ColoredBox(color: pop) else ...[ClPhoto(image: image), const ClPhotoScrim()],
+              if (pop != null)
+                ColoredBox(color: pop)
+              else ...[
+                ClPhoto(image: image, alignment: imageAlignment),
+                const ClPhotoScrim(),
+              ],
               if (topBar != null)
                 Positioned(
                   top: 0,

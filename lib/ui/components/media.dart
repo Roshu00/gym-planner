@@ -144,7 +144,13 @@ class ClAvatar extends StatelessWidget {
               color: color ?? cl.colors.popFor(name),
               child: image == null
                   ? initials
-                  : Image(image: image!, fit: BoxFit.cover, errorBuilder: (context, e, s) => initials),
+                  : Image(
+                      image: image!,
+                      fit: BoxFit.cover,
+                      // Faces are usually in the upper part of a portrait.
+                      alignment: const Alignment(0, -0.6),
+                      errorBuilder: (context, e, s) => initials,
+                    ),
             ),
           ),
         ),

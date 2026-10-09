@@ -313,6 +313,8 @@ String sessionMeta(Session s) =>
 ImageProvider? photoOf(String? url) {
   if (url == null || url.isEmpty) return null;
   // A creator's own photo in local mode is a file on this phone.
+  // Real trainers' photos ship inside the app (see SeedCatalog).
+  if (url.startsWith('asset:')) return AssetImage(url.substring('asset:'.length));
   final uri = Uri.parse(url);
   return uri.isScheme('file') ? FileImage(File(uri.toFilePath())) : NetworkImage(url);
 }
