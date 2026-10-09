@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
@@ -39,8 +40,26 @@ RemoteError _remoteError(Object e) {
   return const RemoteError('Nije sačuvano na serveru. Proveri internet.', retryable: true);
 }
 
+/// Storage bucket for creators' videos (see the media migration).
+const mediaBucket = 'exercise-media';
+
 class SupabaseRemote implements Remote {
   SupabaseRemote(this._client, this.userId);
+
+  @override
+  Future<String> uploadMedia(String path, {required String extension, required String contentType}) async {
+    // Each user writes only into their own folder (storage policy).
+    final name = '$userId/${DateTime.now().microsecondsSinceEpoch}.$extension';
+    try {
+      await _client.storage
+          .from(mediaBucket)
+          .upload(name, File(path), fileOptions: FileOptions(contentType: contentType))
+          .timeout(const Duration(minutes: 3));
+      return _client.storage.from(mediaBucket).getPublicUrl(name);
+    } on Object {
+      throw const RemoteError('Video nije poslat. Proveri internet i pokušaj ponovo.', retryable: true);
+    }
+  }
 
   final SupabaseClient _client;
 

@@ -6,6 +6,12 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Da izabereš video vežbe za svoje pratioce.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Da snimiš kako se vežba izvodi.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Video vežbe se snima sa zvukom, a u aplikaciji se pušta bez zvuka.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Chalkline</string>
 	<key>CFBundleExecutable</key>

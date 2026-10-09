@@ -138,4 +138,8 @@ abstract interface class Remote {
   Future<UserData> fetchUser();
   Future<void> apply(Mutation m);
   Future<bool> isHandleAvailable(String handle);
+
+  /// Stores a creator's file (a video of an exercise) under the user's own
+  /// folder and returns the public link to it.
+  Future<String> uploadMedia(String path, {required String extension, required String contentType});
 }

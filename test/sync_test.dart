@@ -41,6 +41,34 @@ void main() {
     remote = FakeRemote();
   });
 
+  test('a creator\'s exercise video goes to the server and its link to the row', () async {
+    final store = await open();
+    store.completeOnboarding(profile);
+    final me = store.saveMyCreator(name: 'Boban', handle: 'boban.fit');
+    final url = await store.uploadExerciseVideo('/tmp/squat.MOV');
+    expect(remote.uploads, ['/tmp/squat.MOV']);
+    expect(url, startsWith('https://'));
+    expect(url, endsWith('.mov'));
+    store.saveExercise(
+      Exercise(id: 'e_v', creatorId: me.id, name: 'Čučanj', muscle: Muscle.quads, equipment: const {}, video: url),
+    );
+    await settle();
+    final row = remote.tables['exercises']!.singleWhere((r) => r['id'] == 'e_v');
+    expect(row['video_url'], url);
+  });
+
+  test('without a server the video stays a file on the phone', () async {
+    final local = AppStore(storage: MemoryStore(), clock: () => clock);
+    await local.load();
+    expect(await local.uploadExerciseVideo('/tmp/squat.mp4'), 'file:///tmp/squat.mp4');
+  });
+
+  test('a failed upload says what to do', () async {
+    final store = await open();
+    remote.offline = true;
+    expect(() => store.uploadExerciseVideo('/tmp/squat.mp4'), throwsA(isA<RemoteError>()));
+  });
+
   test('a new device waits for the server: a returning user skips onboarding', () async {
     remote.tables['profiles']!.add(profileRow(profile, uid));
     final store = await open();

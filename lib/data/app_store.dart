@@ -858,6 +858,19 @@ class AppStore extends ChangeNotifier {
 
   String newId(String prefix) => _id(prefix);
 
+  /// Largest video a creator may add to an exercise.
+  static const maxVideoBytes = 50 * 1024 * 1024;
+
+  /// Sends a creator's video of an exercise and returns its link: the
+  /// server's in the cloud, the file itself on this device in local mode.
+  Future<String> uploadExerciseVideo(String path) async {
+    final extension = path.toLowerCase().endsWith('.mov') ? 'mov' : 'mp4';
+    final contentType = extension == 'mov' ? 'video/quicktime' : 'video/mp4';
+    final remote = this.remote;
+    if (remote == null) return Uri.file(path).toString();
+    return remote.uploadMedia(path, extension: extension, contentType: contentType);
+  }
+
   void saveExercise(Exercise e) {
     myExercises = _upsert(myExercises, e, (x) => x.id);
     if (isCloud) _send(Mutation.upsert('exercises', exerciseRow(e)));

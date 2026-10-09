@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../data/app_store.dart';
+import '../data/sync.dart';
 import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
+import 'exercise_media.dart';
 
 /// Single-choice filter row for an enum.
 class _Choice<T> extends StatelessWidget {
@@ -181,12 +185,149 @@ class _ExerciseEditorState extends State<ExerciseEditor> {
   late Muscle _muscle = _existing?.muscle ?? Muscle.chest;
   late Set<Equipment> _equipment = {...?_existing?.equipment}..remove(Equipment.bodyweight);
   late Audience _audience = _existing?.visibility ?? Audience.public;
+  late String? _video = _existing?.video;
+  bool _uploading = false;
+  String? _videoError;
 
   @override
   void dispose() {
     _name.dispose();
     _note.dispose();
     super.dispose();
+  }
+
+  /// Records or picks a clip, checks its size and sends it.
+  Future<void> _addVideo() async {
+    final source = await showClSheet<ImageSource>(
+      context,
+      title: 'Video vežbe',
+      label: 'Snimi sa strane, 5–15 sekundi, cela vežba u kadru',
+      builder: (context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ClButton(
+            label: 'Snimi',
+            variant: ClButtonVariant.secondary,
+            icon: ClIcons.play,
+            expand: true,
+            onPressed: () => Navigator.of(context).pop(ImageSource.camera),
+          ),
+          const SizedBox(height: ClSpace.s3),
+          ClButton(
+            label: 'Izaberi iz galerije',
+            variant: ClButtonVariant.secondary,
+            icon: ClIcons.image,
+            expand: true,
+            onPressed: () => Navigator.of(context).pop(ImageSource.gallery),
+          ),
+        ],
+      ),
+    );
+    if (source == null || !mounted) return;
+    final XFile? file;
+    try {
+      file = await ImagePicker().pickVideo(source: source, maxDuration: const Duration(seconds: 60));
+    } on Object {
+      setState(
+        () => _videoError = source == ImageSource.camera
+            ? 'Kamera nije dostupna. Izaberi video iz galerije.'
+            : 'Galerija nije dostupna. Dozvoli pristup u podešavanjima telefona.',
+      );
+      return;
+    }
+    if (file == null || !mounted) return;
+    final store = context.readStore;
+    if (await file.length() > AppStore.maxVideoBytes) {
+      if (mounted) setState(() => _videoError = 'Video je veći od 50 MB. Skrati ga ili snimi kraći.');
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _uploading = true;
+      _videoError = null;
+    });
+    try {
+      final url = await store.uploadExerciseVideo(file.path);
+      if (mounted) setState(() => _video = url);
+    } on RemoteError catch (e) {
+      if (mounted) setState(() => _videoError = e.message);
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Widget _videoSection() {
+    final cl = context.cl;
+    final preview = Exercise(
+      id: _existing?.id ?? 'preview',
+      creatorId: '',
+      name: _name.text.trim(),
+      muscle: _muscle,
+      equipment: const {},
+      video: _video,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Video vežbe', style: cl.text.label),
+        const SizedBox(height: ClSpace.s2),
+        if (_uploading)
+          Container(
+            height: 200,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: cl.colors.surfaceRaised,
+              borderRadius: BorderRadius.circular(ClRadius.lg),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: cl.colors.ink, strokeWidth: 2),
+                const SizedBox(height: ClSpace.s3),
+                Text('Šaljem video…', style: cl.text.label),
+              ],
+            ),
+          )
+        else if (_video != null) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(ClRadius.lg),
+            child: SizedBox(
+              height: 220,
+              child: ExerciseMedia(key: ValueKey(_video), exercise: preview),
+            ),
+          ),
+          const SizedBox(height: ClSpace.s2),
+          Row(
+            children: [
+              ClButton(label: 'Zameni video', variant: ClButtonVariant.text, onPressed: _addVideo),
+              const Spacer(),
+              ClButton(
+                label: 'Ukloni',
+                variant: ClButtonVariant.text,
+                onPressed: () => setState(() => _video = null),
+              ),
+            ],
+          ),
+        ] else ...[
+          ClButton(
+            label: 'Dodaj video',
+            variant: ClButtonVariant.secondary,
+            icon: ClIcons.play,
+            expand: true,
+            onPressed: _addVideo,
+          ),
+          const SizedBox(height: ClSpace.s2),
+          Text(
+            'Pratioci ga vide uz svaku vežbu, u petlji i bez zvuka. Najbolje radi snimak sa strane.',
+            style: cl.text.label,
+          ),
+        ],
+        if (_videoError != null) ...[
+          const SizedBox(height: ClSpace.s2),
+          ClNotice(_videoError!, danger: true),
+        ],
+      ],
+    );
   }
 
   void _save() {
@@ -201,7 +342,7 @@ class _ExerciseEditorState extends State<ExerciseEditor> {
         note: _note.text.trim(),
         visibility: _audience,
         image: _existing?.image,
-        video: _existing?.video,
+        video: _video,
       ),
     );
     Navigator.of(context).pop();
@@ -211,7 +352,10 @@ class _ExerciseEditorState extends State<ExerciseEditor> {
   Widget build(BuildContext context) {
     return AppScreen(
       topBar: ClTopBar(label: _existing == null ? 'Nova vežba' : 'Uredi vežbu'),
-      bottom: ClButton.block(label: 'Sačuvaj', onPressed: _name.text.trim().isEmpty ? null : _save),
+      bottom: ClButton.block(
+        label: 'Sačuvaj',
+        onPressed: _name.text.trim().isEmpty || _uploading ? null : _save,
+      ),
       children: [
         ClTextField(
           label: 'Naziv',
@@ -249,6 +393,8 @@ class _ExerciseEditorState extends State<ExerciseEditor> {
               : 'Pratioci bez ove opreme dobijaju zamenu.',
         ),
         gapS,
+        _videoSection(),
+        gap,
         ClTextField(label: 'Napomena', hint: 'Šta pratilac treba da zapamti', controller: _note, maxLines: 3),
         gapS,
         _audienceChoice(_audience, (a) => setState(() => _audience = a)),

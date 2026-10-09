@@ -30,6 +30,16 @@ class FakeRemote implements Remote {
 
   bool offline = false;
 
+  /// Paths of files sent with [uploadMedia].
+  final uploads = <String>[];
+
+  @override
+  Future<String> uploadMedia(String path, {required String extension, required String contentType}) async {
+    _check();
+    uploads.add(path);
+    return 'https://media.example.test/$userId/${uploads.length}.$extension';
+  }
+
   /// Tables whose writes the server rejects (like an RLS violation).
   final rejected = <String>{};
   final applied = <Mutation>[];

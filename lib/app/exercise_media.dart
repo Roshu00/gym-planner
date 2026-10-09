@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -54,7 +55,11 @@ class _ExerciseMediaState extends State<ExerciseMedia> {
     if (!widget.playing) return;
     final url = widget.exercise.video;
     if (url != null) {
-      final video = VideoPlayerController.networkUrl(Uri.parse(url));
+      final uri = Uri.parse(url);
+      // A creator's own clip in local mode is a file on this phone.
+      final video = uri.isScheme('file')
+          ? VideoPlayerController.file(File(uri.toFilePath()))
+          : VideoPlayerController.networkUrl(uri);
       _video = video;
       video
           .initialize()
