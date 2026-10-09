@@ -197,7 +197,12 @@ class ClSummary extends StatelessWidget {
     this.headline = 'Pojavio si se.',
     this.creatorHandle,
     this.creatorImage,
+    this.cardKey,
   });
+
+  /// Put on a [RepaintBoundary] around the share card, so it can be saved
+  /// as a picture.
+  final GlobalKey? cardKey;
 
   /// `Trening završen · 1h 12m`
   final String label;
@@ -216,13 +221,16 @@ class ClSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ClShareCard(
-          label: label,
-          headline: headline,
-          stats: stats,
-          creatorName: creatorName,
-          creatorHandle: creatorHandle,
-          creatorImage: creatorImage,
+        RepaintBoundary(
+          key: cardKey,
+          child: ClShareCard(
+            label: label,
+            headline: headline,
+            stats: stats,
+            creatorName: creatorName,
+            creatorHandle: creatorHandle,
+            creatorImage: creatorImage,
+          ),
         ),
         const SizedBox(height: ClSpace.s4),
         ClCreatorMessage(name: creatorName, message: creatorMessage, image: creatorImage),

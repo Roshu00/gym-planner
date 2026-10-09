@@ -101,9 +101,9 @@ class _TodayExampleState extends State<TodayExample> {
                 padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s2, ClSpace.s4, ClSpace.s3),
                 child: ClButton.block(
                   label: 'Počni trening',
-                  onPressed: () =>
-                      Navigator.of(context)
-                          .pushReplacement(MaterialPageRoute(builder: (_) => const WorkoutExample())),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushReplacement(MaterialPageRoute(builder: (_) => const WorkoutExample())),
                 ),
               ),
               ClBottomNav(selected: _nav, onChanged: (i) => setState(() => _nav = i)),

@@ -4,14 +4,47 @@ import '../domain/models.dart';
 import '../domain/rules.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
+import 'story_share.dart';
 
 /// Proof of the workout: praise for showing up, volume, records, the
 /// creator's message, on a card made to be shared. Also the history detail view.
-class SummaryScreen extends StatelessWidget {
+class SummaryScreen extends StatefulWidget {
   const SummaryScreen({super.key, required this.sessionId, this.justFinished = false});
 
   final String sessionId;
   final bool justFinished;
+
+  @override
+  State<SummaryScreen> createState() => _SummaryScreenState();
+}
+
+class _SummaryScreenState extends State<SummaryScreen> {
+  final _card = GlobalKey();
+  final _shareButton = GlobalKey();
+  bool _sharing = false;
+
+  String get sessionId => widget.sessionId;
+  bool get justFinished => widget.justFinished;
+
+  Future<void> _share() async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    final box = _shareButton.currentContext?.findRenderObject() as RenderBox?;
+    try {
+      await shareStory(
+        context,
+        _card,
+        origin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+        onReady: () {
+          if (mounted) setState(() => _sharing = false);
+        },
+      );
+    } on Object {
+      if (mounted) showUndoToast(context, 'Slika nije napravljena. Pokušaj ponovo.');
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,11 +73,28 @@ class SummaryScreen extends StatelessWidget {
         label: justFinished ? null : s.workoutName,
         backLabel: justFinished ? 'Zatvori' : 'Nazad',
       ),
-      bottom: justFinished
-          ? ClButton.block(label: 'Gotovo', onPressed: () => Navigator.of(context).pop())
-          : null,
+      bottom: Row(
+        children: [
+          Expanded(
+            child: ClButton(
+              key: _shareButton,
+              label: _sharing ? 'Pripremam…' : 'Podeli na story',
+              variant: ClButtonVariant.pop,
+              expand: true,
+              onPressed: _sharing ? null : _share,
+            ),
+          ),
+          if (justFinished) ...[
+            const SizedBox(width: ClSpace.s2),
+            Expanded(
+              child: ClButton(label: 'Gotovo', expand: true, onPressed: () => Navigator.of(context).pop()),
+            ),
+          ],
+        ],
+      ),
       children: [
         ClSummary(
+          cardKey: _card,
           label: label,
           headline: justFinished
               ? (store.profile?.says('Pojavio si se.', 'Pojavila si se.', 'Odrađeno.') ?? 'Odrađeno.')

@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Da sačuvaš karticu treninga i podeliš je na story.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Da izabereš video vežbe za svoje pratioce.</string>
 	<key>NSCameraUsageDescription</key>
