@@ -19,32 +19,8 @@ class SummaryScreen extends StatefulWidget {
 }
 
 class _SummaryScreenState extends State<SummaryScreen> {
-  final _card = GlobalKey();
-  final _shareButton = GlobalKey();
-  bool _sharing = false;
-
   String get sessionId => widget.sessionId;
   bool get justFinished => widget.justFinished;
-
-  Future<void> _share() async {
-    if (_sharing) return;
-    setState(() => _sharing = true);
-    final box = _shareButton.currentContext?.findRenderObject() as RenderBox?;
-    try {
-      await shareStory(
-        context,
-        _card,
-        origin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-        onReady: () {
-          if (mounted) setState(() => _sharing = false);
-        },
-      );
-    } on Object {
-      if (mounted) showUndoToast(context, 'Slika nije napravljena. Pokušaj ponovo.');
-    } finally {
-      if (mounted) setState(() => _sharing = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,11 +53,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
         children: [
           Expanded(
             child: ClButton(
-              key: _shareButton,
-              label: _sharing ? 'Pripremam…' : 'Podeli na story',
+              label: 'Podeli na story',
               variant: ClButtonVariant.pop,
               expand: true,
-              onPressed: _sharing ? null : _share,
+              onPressed: () => pushScreen(context, StoryComposerScreen(session: s)),
             ),
           ),
           if (justFinished) ...[
@@ -94,7 +69,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
       ),
       children: [
         ClSummary(
-          cardKey: _card,
           label: label,
           headline: justFinished
               ? (store.profile?.says('Pojavio si se.', 'Pojavila si se.', 'Odrađeno.') ?? 'Odrađeno.')

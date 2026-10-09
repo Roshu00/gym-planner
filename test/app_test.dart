@@ -12,6 +12,7 @@ import 'package:chalkline/app/plan_tab.dart';
 import 'package:chalkline/app/profile.dart';
 import 'package:chalkline/app/program_detail.dart';
 import 'package:chalkline/app/library.dart';
+import 'package:chalkline/app/story_share.dart';
 import 'package:chalkline/app/summary_screen.dart';
 import 'package:chalkline/app/today.dart';
 import 'package:chalkline/app/workout_detail.dart';
@@ -154,6 +155,7 @@ void main() {
     'plan workout': ((_) => const PlanWorkoutScreen(index: 1), ClTheme.dark),
     'summary': ((s) => SummaryScreen(sessionId: s.sessions.last.id, justFinished: true), ClTheme.light),
     'history detail': ((s) => SummaryScreen(sessionId: s.sessions.first.id), ClTheme.light),
+    'story composer': ((s) => StoryComposerScreen(session: s.sessions.last), ClTheme.light),
     'creator mode': ((_) => const CreatorModeScreen(), ClTheme.light),
     'creator profile editor': ((_) => const CreatorProfileEditor(), ClTheme.light),
     'exercise editor': ((_) => const ExerciseEditor(exerciseId: 'e1'), ClTheme.light),
@@ -372,8 +374,16 @@ void main() {
     await tapText('Završi trening');
     expect(find.text('Odrađeno.'), findsOneWidget, reason: 'neutral praise without gender');
     await tapText('Gotovo');
-    expect(find.textContaining('Odrađeno danas'), findsOneWidget, reason: 'Today praises the finished workout');
-    expect(find.textContaining('Sledeće: Gornji deo'), findsOneWidget, reason: 'the plan moved to the next workout');
+    expect(
+      find.textContaining('Odrađeno danas'),
+      findsOneWidget,
+      reason: 'Today praises the finished workout',
+    );
+    expect(
+      find.textContaining('Sledeće: Gornji deo'),
+      findsOneWidget,
+      reason: 'the plan moved to the next workout',
+    );
     expect(store.thisWeek, 1);
   });
 
