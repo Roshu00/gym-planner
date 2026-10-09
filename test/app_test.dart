@@ -269,12 +269,40 @@ void main() {
     final store = await seasonedStore();
     store.startSession();
     await pump(tester, store, const WorkoutSessionScreen(), ClTheme.dark);
-    await tester.tap(find.bySemanticsLabel('Završi set 1'));
+    // Last time's numbers are already in: finishing the set is one tap.
+    await tester.tap(find.text('Završi set'));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Odmor'), findsOneWidget);
+    expect(find.text('Odmor'), findsOneWidget, reason: 'the rest clock is right above the button');
     expect(store.active!.exercises.first.sets.first.done, isTrue);
+
+    // One optional question instead of a RIR column.
+    await tester.tap(find.bySemanticsLabel('Lako'));
+    await tester.pump();
+    expect(store.active!.exercises.first.sets.first.rir, 3);
+
+    // − and + change the next set.
+    final before = store.active!.exercises.first.sets[1];
+    await tester.tap(find.bySemanticsLabel('Više ponavljanja'));
+    await tester.pump();
+    expect(store.active!.exercises.first.sets[1].reps, isNot(before.reps));
     await scrollThrough(tester);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a weight changed with + carries on to the next set', (tester) async {
+    final store = await freshStore();
+    store.updateProfile(profile.copyWith(place: Place.gym, equipment: Equipment.gym));
+    store.startSession(workoutId: 'w_m_push'); // Bench press first, with a weight
+    store.updateSet(0, 0, const SetLog(kg: 50, reps: 8));
+    await pump(tester, store, const WorkoutSessionScreen(), ClTheme.light);
+    const suggested = 50.0;
+    await tester.tap(find.bySemanticsLabel('Više kg'));
+    await tester.pump();
+    await tester.tap(find.text('Završi set'));
+    await tester.pump(const Duration(milliseconds: 300));
+    final sets = store.active!.exercises.first.sets;
+    expect(sets[0].kg, suggested + 2.5, reason: 'what the screen showed is what was saved');
+    expect(find.text(formatNumber(suggested + 2.5)), findsWidgets, reason: 'set 2 starts at the new weight');
   });
 
   testWidgets('from onboarding to a finished workout', (tester) async {
@@ -328,17 +356,24 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Počni'));
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     expect(find.text('Gobl čučanj'), findsWidgets);
+    // The first time there is no weight yet: type it once.
+    await tapText('Upiši kg');
     await tester.enterText(find.byType(TextField).first, '12');
+    await tapText('Sačuvaj');
     await tapText('Završi set');
     await tapText('Završi set');
     expect(store.active!.exercises.first.sets[1].kg, 12, reason: 'weight carries over');
     await tapText('Završi set');
     await tapText('Sledeća vežba');
+    // Done early: from the workout's menu, then confirm.
+    await tester.tap(find.bySemanticsLabel('Opcije treninga'));
+    await tester.pumpAndSettle();
     await tapText('Završi trening');
     await tapText('Završi trening');
     expect(find.text('Odrađeno.'), findsOneWidget, reason: 'neutral praise without gender');
     await tapText('Gotovo');
-    expect(find.text('Gornji deo'), findsOneWidget, reason: 'the plan moved to the next workout');
+    expect(find.textContaining('Odrađeno danas'), findsOneWidget, reason: 'Today praises the finished workout');
+    expect(find.textContaining('Sledeće: Gornji deo'), findsOneWidget, reason: 'the plan moved to the next workout');
     expect(store.thisWeek, 1);
   });
 
