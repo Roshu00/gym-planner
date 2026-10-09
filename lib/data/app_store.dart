@@ -725,6 +725,9 @@ class AppStore extends ChangeNotifier {
 
   List<Session> get history => [...sessions]..sort((a, b) => b.finishedAt!.compareTo(a.finishedAt!));
 
+  /// The user's very first finished workout: a milestone, not just a log.
+  bool isFirstSession(String id) => sessions.isNotEmpty && history.last.id == id;
+
   /// Starts [workoutId] (the plan's next workout by default). Returns the
   /// running session if one exists.
   /// [exercises] replaces the workout's list for this session (an edited day).

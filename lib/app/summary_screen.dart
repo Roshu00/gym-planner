@@ -35,6 +35,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
       );
     }
     final date = s.finishedAt ?? s.startedAt;
+    final first = store.isFirstSession(s.id);
     final message = s.finishMessage.isNotEmpty
         ? s.finishMessage
         : (store.nextWorkout == null
@@ -70,7 +71,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
           label: justFinished && store.streak > 0
               ? '${countLabel(store.streak, 'nedelja', 'nedelje', 'nedelja')} zaredom'
               : null,
-          title: justFinished
+          title: justFinished && first
+              ? 'Prvi trening.'
+              : justFinished
               ? (store.profile?.says('Pojavio si se.', 'Pojavila si se.', 'Odrađeno.') ?? 'Odrađeno.')
               : '${weekdayName(date)} ${formatDate(date)}',
         ),
@@ -101,6 +104,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                         bottom: ClSpace.s4,
                         child: StorySticker(
                           session: s,
+                          first: first,
                           handle: store.creator(s.creatorId)?.handle,
                           creatorPhoto: photoOf(store.creator(s.creatorId)?.photo),
                           scale: box.maxWidth / 360,
@@ -119,9 +123,15 @@ class _SummaryScreenState extends State<SummaryScreen> {
           message: message,
           image: photoOf(store.creator(s.creatorId)?.photo),
         ),
-        const SizedBox(height: ClSpace.s6),
-        const ClSectionHeader(label: 'Vežbe'),
-        for (final e in s.exercises) ClExerciseRow(name: e.name, detail: _detail(e), isPr: e.hasPr),
+        // The first time the baseline is the exercise list.
+        if (first) ...[
+          const SizedBox(height: ClSpace.s4),
+          _Baseline(session: s),
+        ] else ...[
+          const SizedBox(height: ClSpace.s6),
+          const ClSectionHeader(label: 'Vežbe'),
+          for (final e in s.exercises) ClExerciseRow(name: e.name, detail: _detail(e), isPr: e.hasPr),
+        ],
       ],
     );
   }
@@ -130,5 +140,51 @@ class _SummaryScreenState extends State<SummaryScreen> {
     final top = topSet(e);
     final sets = countLabel(e.doneSets.length, 'set', 'seta', 'setova');
     return top == null ? sets : '$sets · najbolji ${setLabel(top)}';
+  }
+}
+
+/// After the very first workout there are no records to beat yet; every
+/// number is a starting point. Says so, with the best set of each exercise.
+class _Baseline extends StatelessWidget {
+  const _Baseline({required this.session});
+
+  final Session session;
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.cl;
+    final c = cl.colors;
+    final rows = [
+      for (final e in session.exercises)
+        if (topSet(e) case final top?) (e.name, setLabel(top)),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(ClSpace.s4),
+      decoration: BoxDecoration(color: c.ink, borderRadius: BorderRadius.circular(ClRadius.lg)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Tvoji početni rezultati', style: cl.text.displayM.copyWith(color: c.bg, fontSize: 24)),
+          const SizedBox(height: ClSpace.s1),
+          Text(
+            'Od danas se meri svaki napredak. Sledeći put ih obaraš.',
+            style: cl.text.body.copyWith(color: c.bg.withValues(alpha: 0.75)),
+          ),
+          const SizedBox(height: ClSpace.s3),
+          for (final (name, best) in rows)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: ClSpace.s1),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(name, style: cl.text.body.copyWith(color: c.bg)),
+                  ),
+                  Text(best, style: cl.text.data.copyWith(color: c.bg)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

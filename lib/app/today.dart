@@ -72,7 +72,9 @@ class TodayScreen extends StatelessWidget {
         header: _TodayHero(
           greeting: '${weekdayName(today)} · Bravo, $name',
           title: doneToday.workoutName,
-          meta: 'Odrađeno danas · ${formatDuration(doneToday.duration)}',
+          meta: store.isFirstSession(doneToday.id)
+              ? 'Prvi trening je iza tebe · ${formatDuration(doneToday.duration)}'
+              : 'Odrađeno danas · ${formatDuration(doneToday.duration)}',
           color: cl.colors.popFor(doneToday.workoutId),
           image: photoOf(doneWorkout?.image),
           creator: doneBy,
@@ -100,8 +102,12 @@ class TodayScreen extends StatelessWidget {
       );
     }
 
+    // Nothing trained yet: the first workout is the whole point of today.
+    final first = store.sessions.isEmpty && active == null;
     final String? status = active != null
         ? 'Započet pre ${formatDuration(store.now.difference(active.startedAt))}'
+        : first
+        ? 'Tvoj prvi trening'
         : todayPlan == null
         ? 'Danas je odmor, ali možeš da treniraš'
         : changed?.note;
@@ -116,7 +122,11 @@ class TodayScreen extends StatelessWidget {
         color: cl.colors.popFor(workout.id),
         image: photoOf(workout.image),
         creator: creator,
-        action: active == null ? 'Počni' : 'Nastavi',
+        action: active != null
+            ? 'Nastavi'
+            : first
+            ? 'Počni prvi trening'
+            : 'Počni',
         onStart: start,
         onExercises: () => _showExercises(context, workout.name, exercises),
         onChangeDay: active == null
@@ -134,7 +144,7 @@ class TodayScreen extends StatelessWidget {
         onBackToPlan: active == null && changed != null ? () => store.setDayPlan(day, null) : null,
       ),
       children: [
-        _WeekDots(today: day),
+        if (first) ...[const _FirstWorkoutSteps(), gap] else _WeekDots(today: day),
         if (workout.intro.isNotEmpty && creator != null) ...[
           gap,
           _CreatorQuote(creator: creator, text: workout.intro),
@@ -509,6 +519,56 @@ class _ReminderOffer extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Before the very first workout: how it goes, in three short lines, so
+/// nothing on the next screen is a surprise.
+class _FirstWorkoutSteps extends StatelessWidget {
+  const _FirstWorkoutSteps();
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.cl;
+    final c = cl.colors;
+    const steps = [
+      ('Brojevi su već upisani', 'Menjaš ih sa − i +, a ako ne znaš koliko, kreni lakše.'),
+      ('Završi set', 'Odmor se meri sam. Ti samo dišeš.'),
+      ('Na kraju: tvoji početni rezultati', 'Od njih se meri svaki sledeći trening.'),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Kako ide', style: cl.text.label),
+        const SizedBox(height: ClSpace.s2),
+        for (final (i, (title, text)) in steps.indexed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: ClSpace.s3),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: c.ink, shape: BoxShape.circle),
+                  child: Text('${i + 1}', style: cl.text.bodyStrong.copyWith(color: c.bg, fontSize: 14)),
+                ),
+                const SizedBox(width: ClSpace.s3),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: cl.text.bodyStrong),
+                      Text(text, style: cl.text.body.copyWith(color: c.inkMuted)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

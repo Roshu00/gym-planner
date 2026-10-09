@@ -354,8 +354,10 @@ void main() {
     expect(store.plan!.programId, 'p_j_home');
     expect(find.text('Donji deo'), findsOneWidget);
 
-    // Today: one button on the trainer's photo.
-    await tester.tap(find.bySemanticsLabel('Počni'));
+    // Today: the first workout, with how it goes.
+    expect(find.textContaining('Tvoj prvi trening'), findsOneWidget);
+    expect(find.text('Kako ide'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Počni prvi trening'));
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     expect(find.text('Gobl čučanj'), findsWidgets);
     // The first time there is no weight yet: type it once.
@@ -372,12 +374,13 @@ void main() {
     await tester.pumpAndSettle();
     await tapText('Završi trening');
     await tapText('Završi trening');
-    expect(find.text('Odrađeno.'), findsOneWidget, reason: 'neutral praise without gender');
+    expect(find.text('Prvi trening.'), findsOneWidget, reason: 'the first workout is a milestone');
+    expect(find.text('Tvoji početni rezultati'), findsOneWidget);
     await tapText('Gotovo');
     expect(
-      find.textContaining('Odrađeno danas'),
+      find.textContaining('Prvi trening je iza tebe'),
       findsOneWidget,
-      reason: 'Today praises the finished workout',
+      reason: 'Today praises the first finished workout',
     );
     expect(
       find.textContaining('Sledeće: Gornji deo'),

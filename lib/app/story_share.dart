@@ -196,6 +196,7 @@ class _StoryComposerScreenState extends State<StoryComposerScreen> {
                                     padding: EdgeInsets.all(16 * scale),
                                     child: StorySticker(
                                       session: s,
+                                      first: store.isFirstSession(s.id),
                                       handle: creator?.handle,
                                       creatorPhoto: photoOf(creator?.photo),
                                       scale: scale,
@@ -230,7 +231,17 @@ class _StoryComposerScreenState extends State<StoryComposerScreen> {
 /// The workout as white text without a background, readable over any photo:
 /// its name, time, volume and records (or sets), the trainer and the app.
 class StorySticker extends StatelessWidget {
-  const StorySticker({super.key, required this.session, this.handle, this.creatorPhoto, this.scale = 1});
+  const StorySticker({
+    super.key,
+    required this.session,
+    this.handle,
+    this.creatorPhoto,
+    this.scale = 1,
+    this.first = false,
+  });
+
+  /// The user's first workout ever: the sticker says so.
+  final bool first;
 
   final Session session;
   final String? handle;
@@ -276,6 +287,13 @@ class StorySticker extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (first) ...[
+          Text(
+            'Prvi trening',
+            style: cl.text.bodyStrong.copyWith(color: white, fontSize: 14 * scale, shadows: shadow),
+          ),
+          SizedBox(height: 4 * scale),
+        ],
         Text(
           s.workoutName,
           maxLines: 2,

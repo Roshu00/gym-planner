@@ -30,7 +30,13 @@ class _ProgressContentState extends State<ProgressContent> {
         if (totalRecords(history) > 0)
           ClStat(label: 'Rekordi', value: '${totalRecords(history)}', unit: 'PR', highlight: true)
         else
-          ClStat(label: 'Rekordi', value: '—'),
+          // No records yet: what was done is the starting point.
+          ClStat(
+            label: history.isEmpty ? 'Rekordi' : 'Početni rez.',
+            value: history.isEmpty
+                ? '—'
+                : '${{for (final s in history) ...s.exercises.map((e) => e.exerciseId)}.length}',
+          ),
       ],
     );
 
