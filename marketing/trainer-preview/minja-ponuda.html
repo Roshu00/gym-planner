@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chalkline · Ponuda za saradnju</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
+
+<!--
+  ════════════════════════════════════════════════════════════════════════
+  KAKO SE KORISTI
+  1. Kopiraj fajl za svakog trenera (npr. jelena-ponuda.html).
+  2. Promeni blok PONUDA ispod: podaci o treneru, slike i uslovi.
+     Brojevi u "uslovi" su PRIMER, upiši svoje pre slanja.
+  3. Otvori u Chrome-u > Print (Cmd+P) > Save as PDF.
+     Papir A4, margine "None", uključi "Background graphics".
+  ════════════════════════════════════════════════════════════════════════
+-->
+<script>
+const PONUDA = {
+  broj: "CH-2026-001",
+  datum: "9. oktobar 2026.",
+  vaziDo: "9. novembar 2026.",
+
+  trener: {
+    ime: "Minja Varsaković",
+    imeVokativ: "Minja",              // u obraćanju: "Zdravo, Minja"
+    handle: "minjavarsakovicc",
+    pratioci: "142K",                  // ukupno
+    mreze: "Instagram 41,5K · TikTok 101K",
+    programi: ["Glutelab", "Glutelab 2"],
+    slikaNaslovna: "slike/minja/profil.jpg",
+    slike: ["slike/minja/glutelab.jpg", "slike/minja/danas.jpg", "slike/minja/glutelab2.jpg"],
+    pregled: "minja-pregled.png",       // slika ekrana iz minja.html
+    // Jedna rečenica zašto baš ona: konkretno, njenim rečima i brojevima.
+    zastoTi: "Glutelab već prodaješ kao online program. U Chalkline-u tvoje pratiteljke dobijaju taj isti program trening po trening, sa tvojim glasom, a ti dobijaš mesečni prihod umesto jednokratne prodaje."
+  },
+
+  uslovi: {
+    cenaMesecno: 4.99,       // € koliko pratilac plaća mesečno (PRIMER)
+    udeoTrenera: 70,         // % od neto prihoda koji ide treneru (PRIMER)
+    provizijaProdavnice: 15, // % App Store / Google Play
+    isplata: "mesečno, do 15. u mesecu za prethodni mesec",
+    trajanje: "12 meseci, uz automatsko produženje",
+    otkaz: "bilo kada, uz 30 dana obaveštenja",
+    ekskluzivnost: "Nema. Možeš da nastaviš sa svim drugim saradnjama i programima.",
+    sadrzaj: "Svi treninzi, video i tekst ostaju tvoje vlasništvo. Chalkline ih samo prikazuje u aplikaciji dok traje saradnja."
+  },
+
+  // Pretpostavke za primer zarade: koliko pratilaca postanu pretplatnici.
+  scenariji: [0.25, 0.5, 1],  // u procentima od ukupnog broja pratilaca
+
+  posiljalac: {
+    ime: "Uroš",
+    uloga: "Chalkline",
+    email: "uros.n@upgrade.rs"
+  }
+};
+</script>
+
+<style>
+  :root {
+    --bg: #FAF8F4; --surface: #FFFFFF; --raised: #EFECE5; --border: #E6E2D8;
+    --ink: #111111; --muted: #5A5750;
+    --lime: #D4F54A; --lilac: #C9B6FF; --peach: #FFC6A3;
+    --stage: #E9E5DC;
+    --font: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: var(--font); background: var(--stage); color: var(--ink); padding: 32px 16px 64px; }
+  .page { width: 210mm; height: 297mm; margin: 0 auto 28px; background: var(--bg); position: relative; overflow: hidden; box-shadow: 0 30px 60px -24px rgba(0,0,0,.3); display: flex; flex-direction: column; }
+  @page { size: A4; margin: 0; }
+  @media print { body { background: none; padding: 0; } .page { margin: 0; box-shadow: none; break-after: page; } }
+
+  .in { padding: 18mm 18mm 0; }
+  .foot { margin-top: auto; padding: 0 18mm 12mm; display: flex; justify-content: space-between; font: 600 10px var(--font); color: var(--muted); }
+  .brand { font: 800 15px var(--font); letter-spacing: -.02em; display: flex; align-items: center; gap: 8px; }
+  .brand i { width: 14px; height: 14px; border-radius: 50%; background: var(--lime); border: 1.5px solid var(--ink); }
+
+  .eyebrow { font: 700 11px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .h1 { font-size: 64px; line-height: 58px; font-weight: 800; letter-spacing: -.045em; font-variation-settings: "opsz" 96; }
+  .h2 { font-size: 34px; line-height: 34px; font-weight: 800; letter-spacing: -.035em; font-variation-settings: "opsz" 96; }
+  .h3 { font-size: 17px; line-height: 22px; font-weight: 800; letter-spacing: -.01em; }
+  .p { font-size: 13px; line-height: 20px; }
+  .muted { color: var(--muted); }
+  .num { font-variant-numeric: tabular-nums; }
+  .photo { background: #1F1E1B center / cover no-repeat; }
+
+  /* Naslovna */
+  .cover-photo { position: absolute; inset: 0 0 auto 0; height: 64%; }
+  .cover-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.35), transparent 30%, transparent 55%, rgba(0,0,0,.6)); }
+  .cover-top { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; color: #fff; padding: 14mm 18mm 0; }
+  .cover-top .brand i { border-color: #fff; }
+  .cover-name { position: absolute; left: 18mm; right: 18mm; top: calc(64% - 56mm); z-index: 1; color: #fff; }
+  .cover-body { margin-top: calc(64% * 297 / 210 / 1.4142); }
+  .sticker { display: inline-block; background: var(--lime); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 999px; padding: 6px 14px; font: 800 13px var(--font); rotate: -3deg; }
+
+  .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tile { background: var(--surface); border-radius: 18px; padding: 12px 14px; box-shadow: 0 6px 18px -6px rgba(59,52,38,.12), 0 1px 3px rgba(59,52,38,.06); }
+  .tile .l { font: 700 11px var(--font); color: var(--muted); }
+  .tile .v { font-size: 22px; line-height: 26px; font-weight: 800; letter-spacing: -.03em; margin-top: 2px; }
+
+  .row { display: grid; gap: 12px; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .card { background: var(--surface); border-radius: 22px; padding: 16px; box-shadow: 0 6px 18px -6px rgba(59,52,38,.12), 0 1px 3px rgba(59,52,38,.06); }
+  .card.lime { background: var(--lime); box-shadow: none; }
+  .card.lilac { background: var(--lilac); box-shadow: none; }
+  .card.peach { background: var(--peach); box-shadow: none; }
+  .card.ink { background: var(--ink); color: var(--bg); box-shadow: none; }
+  .badge { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--lime); display: grid; place-items: center; font: 800 13px var(--font); margin-bottom: 10px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  th { font: 700 11px var(--font); color: var(--muted); }
+  td.r, th.r { text-align: right; }
+  tr.hl td { font-weight: 800; }
+
+  .terms dt { font: 700 11px var(--font); color: var(--muted); margin-top: 12px; }
+  .terms dd { font-size: 13px; line-height: 19px; margin-top: 2px; }
+  .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 14px; }
+  .sign div { border-top: 1.5px solid var(--ink); padding-top: 6px; font: 600 11px var(--font); color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="doc"></div>
+
+<script>
+const P = PONUDA, T = P.trener, U = P.uslovi;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const bg = (url) => url ? `background-image:url('${String(url).replace(/'/g, "%27")}')` : "";
+const eur = (n, d = 0) => n.toLocaleString("sr-RS", { minimumFractionDigits: d, maximumFractionDigits: d }) + " €";
+const int = (n) => Math.round(n).toLocaleString("sr-RS");
+const followers = (() => { const m = String(T.pratioci).match(/([\d.,]+)\s*([KkMm]?)/); if (!m) return 0; const v = parseFloat(m[1].replace(",", ".")); return v * (/[Kk]/.test(m[2]) ? 1e3 : /[Mm]/.test(m[2]) ? 1e6 : 1); })();
+const perSub = U.cenaMesecno * (1 - U.provizijaProdavnice / 100) * (U.udeoTrenera / 100);
+const foot = (n) => `<div class="foot"><span>Ponuda ${esc(P.broj)} · ${esc(T.ime)}</span><span>${n} / 4</span></div>`;
+
+// ── Strana 1: naslovna
+const page1 = `<section class="page">
+  <div class="cover-photo photo" style="${bg(T.slikaNaslovna)}"></div>
+  <div class="cover-top"><span class="brand"><i></i>Chalkline</span><span class="eyebrow" style="color:#fff">Ponuda ${esc(P.broj)}</span></div>
+  <div class="cover-name">
+    <span class="sticker">Za @${esc(T.handle)}</span>
+    <div class="h1" style="margin-top:14px">Tvoji programi.<br>Tvoja aplikacija.</div>
+  </div>
+  <div class="in" style="position:relative;z-index:1;margin-top:calc(64% * 1.4142 - 26mm);padding-bottom:6mm">
+    <div class="eyebrow">Ponuda za saradnju</div>
+    <div class="h2" style="margin-top:6px">${esc(T.ime)} × Chalkline</div>
+    <p class="p muted" style="margin-top:10px;max-width:150mm">Zdravo, ${esc(T.imeVokativ)}. Pripremili smo kako bi ${esc(T.programi[0])} izgledao u Chalkline-u i koliko bi mogao da ti donosi svakog meseca.</p>
+    <div class="meta" style="margin-top:16px">
+      <div class="tile"><div class="l">Datum</div><div class="v" style="font-size:16px">${esc(P.datum)}</div></div>
+      <div class="tile"><div class="l">Važi do</div><div class="v" style="font-size:16px">${esc(P.vaziDo)}</div></div>
+      <div class="tile"><div class="l">Tvoj udeo</div><div class="v num">${U.udeoTrenera}%</div></div>
+    </div>
+  </div>
+  ${foot(1)}
+</section>`;
+
+// ── Strana 2: zašto ti + kako izgleda
+const page2 = `<section class="page"><div class="in">
+  <div class="eyebrow">01 · Zašto ti</div>
+  <div class="h2" style="margin-top:6px">Publika već trenira po tvom.</div>
+  <p class="p" style="margin-top:12px;max-width:160mm">${esc(T.zastoTi)}</p>
+  <div class="meta" style="margin-top:16px">
+    <div class="tile"><div class="l">Pratioci</div><div class="v num">${esc(T.pratioci)}</div><div class="l" style="margin-top:2px">${esc(T.mreze)}</div></div>
+    <div class="tile"><div class="l">Programi</div><div class="v">${T.programi.length}</div><div class="l" style="margin-top:2px">${T.programi.map(esc).join(" · ")}</div></div>
+    <div class="tile"><div class="l">Po pretplatniku</div><div class="v num">${eur(perSub, 2)}</div><div class="l" style="margin-top:2px">mesečno, tebi</div></div>
+  </div>
+  <div class="eyebrow" style="margin-top:26px">02 · Kako izgleda</div>
+  <div class="h2" style="margin-top:6px">Tvoj profil u aplikaciji.</div>
+  <div class="photo" style="margin-top:14px;height:150mm;border-radius:22px;background-color:var(--stage);background-size:contain;${bg(T.pregled)}"></div>
+  <p class="p muted" style="margin-top:8px">Prikaz napravljen sa tvojim fotografijama i programima. Konačan izgled dogovaramo zajedno.</p>
+</div>${foot(2)}</section>`;
+
+// ── Strana 3: šta dobijaš + zarada
+const rows = P.scenariji.map((pct, i) => {
+  const subs = followers * pct / 100;
+  return `<tr class="${i === 1 ? "hl" : ""}"><td>${String(pct).replace(".", ",")}% pratilaca</td><td class="r num">${int(subs)}</td><td class="r num">${eur(subs * perSub)}</td><td class="r num">${eur(subs * perSub * 12)}</td></tr>`;
+}).join("");
+const page3 = `<section class="page"><div class="in">
+  <div class="eyebrow">03 · Šta dobijaš</div>
+  <div class="h2" style="margin-top:6px">Mi radimo tehniku, ti treniraš.</div>
+  <div class="row cols-3" style="margin-top:16px">
+    <div class="card lime"><div class="badge">1</div><div class="h3">Svoj profil i programi</div><p class="p" style="margin-top:6px">${T.programi.map(esc).join(" i ")} kao programi u aplikaciji, sa tvojim slikama, videom i porukama.</p></div>
+    <div class="card lilac"><div class="badge">2</div><div class="h3">Mesečni prihod</div><p class="p" style="margin-top:6px">${U.udeoTrenera}% neto prihoda od svakog pretplatnika, svakog meseca dok je pretplaćen.</p></div>
+    <div class="card peach"><div class="badge">3</div><div class="h3">Bez posla oko aplikacije</div><p class="p" style="margin-top:6px">Unos programa, naplata, podrška korisnicima i ažuriranja su na nama.</p></div>
+  </div>
+  <div class="row cols-2" style="margin-top:12px">
+    <div class="card"><div class="h3">Tvoje pratiteljke dobijaju</div><p class="p muted" style="margin-top:6px">Trening dana, praćenje setova i kilaža, tvoje savete uz vežbe i story karticu posle treninga sa tvojim imenom.</p></div>
+    <div class="card"><div class="h3">Ti dobijaš</div><p class="p muted" style="margin-top:6px">Pregled pretplatnika i prihoda u realnom vremenu i svaku story objavu pratilaca kao besplatnu promociju.</p></div>
+  </div>
+
+  <div class="eyebrow" style="margin-top:26px">04 · Primer zarade</div>
+  <div class="h2" style="margin-top:6px">Koliko može da donese.</div>
+  <div class="card" style="margin-top:14px;padding:6px 18px 10px">
+    <table>
+      <tr><th>Ako se pretplati</th><th class="r">Pretplatnika</th><th class="r">Tebi mesečno</th><th class="r">Tebi godišnje</th></tr>
+      ${rows}
+    </table>
+  </div>
+  <p class="p muted" style="margin-top:8px;font-size:11px;line-height:16px">Računica: ${eur(U.cenaMesecno, 2)} mesečna pretplata, minus ${U.provizijaProdavnice}% provizije App Store / Google Play, ${U.udeoTrenera}% tebi = ${eur(perSub, 2)} po pretplatniku mesečno. Procenti pretplatnika su pretpostavke za ilustraciju, ne garancija prihoda.</p>
+</div>${foot(3)}</section>`;
+
+// ── Strana 4: uslovi + sledeći koraci
+const page4 = `<section class="page"><div class="in">
+  <div class="eyebrow">05 · Uslovi</div>
+  <div class="h2" style="margin-top:6px">Jednostavno i fer.</div>
+  <div class="row cols-2" style="margin-top:8px;gap:24px">
+    <dl class="terms">
+      <dt>Tvoj udeo</dt><dd>${U.udeoTrenera}% neto prihoda od pretplata na tvoje programe</dd>
+      <dt>Cena za pratioce</dt><dd>${eur(U.cenaMesecno, 2)} mesečno</dd>
+      <dt>Isplata</dt><dd>${esc(U.isplata)}</dd>
+      <dt>Trajanje</dt><dd>${esc(U.trajanje)}</dd>
+    </dl>
+    <dl class="terms">
+      <dt>Otkaz</dt><dd>${esc(U.otkaz)}</dd>
+      <dt>Ekskluzivnost</dt><dd>${esc(U.ekskluzivnost)}</dd>
+      <dt>Sadržaj</dt><dd>${esc(U.sadrzaj)}</dd>
+    </dl>
+  </div>
+
+  <div class="eyebrow" style="margin-top:26px">06 · Sledeći koraci</div>
+  <div class="row cols-3" style="margin-top:12px">
+    <div class="card"><div class="badge">1</div><div class="h3">Kratak poziv</div><p class="p muted" style="margin-top:6px">20 minuta da prođemo ponudu i tvoja pitanja.</p></div>
+    <div class="card"><div class="badge">2</div><div class="h3">Ugovor</div><p class="p muted" style="margin-top:6px">Šaljemo ugovor sa ovim uslovima na potpis.</p></div>
+    <div class="card"><div class="badge">3</div><div class="h3">Lansiranje</div><p class="p muted" style="margin-top:6px">Unosimo programe i zajedno najavljujemo.</p></div>
+  </div>
+
+  <div class="card ink" style="margin-top:18px;display:flex;gap:16px;align-items:center">
+    <span class="photo" style="width:64px;height:64px;border-radius:50%;flex:none;${bg(T.slike[0])}"></span>
+    <div style="flex:1"><div class="h3">Javi se do ${esc(P.vaziDo)}</div><p class="p" style="opacity:.8;margin-top:2px">${esc(P.posiljalac.ime)} · ${esc(P.posiljalac.uloga)} · ${esc(P.posiljalac.email)}</p></div>
+    <span class="sticker" style="rotate:3deg">Hajde da počnemo</span>
+  </div>
+
+  <div class="sign">
+    <div>${esc(P.posiljalac.uloga)}, potpis i datum</div>
+    <div>${esc(T.ime)}, potpis i datum</div>
+  </div>
+  <p class="p muted" style="margin-top:12px;font-size:10px;line-height:15px">Ova ponuda služi kao osnova za dogovor i nije ugovor. Obavezujući uslovi važe tek kada ih obe strane potpišu u ugovoru.</p>
+</div>${foot(4)}</section>`;
+
+document.getElementById("doc").innerHTML = page1 + page2 + page3 + page4;
+</script>
+</body>
+</html>

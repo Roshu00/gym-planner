@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chalkline za trenere</title>
+<title>Chalkline · osnivački treneri</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
 
@@ -95,10 +95,42 @@ const TRAINER = {
   // Računica zarade. VAŽNO: model naplate još nije konačan (vidi
   // docs/VISION.md). platformShare je pretpostavka; promeni je pre slanja.
   earnings: {
-    platformShare: 0.2,          // deo pretplate koji zadržava platforma
     conversion: 1,               // % pratilaca koji se pretplate, početna vrednost klizača
-    disclaimer: "Primer računice, ne obećanje. Udeo platforme i naknade prodavnica još nisu konačni."
+    disclaimer: "Primer računice, ne obećanje. Zarada zavisi isključivo od pratilaca koje dovedeš i koji se pretplate. Konačni udeo i naknade App Store-a i Google Play-a potvrđujemo u ugovoru."
   },
+
+  // Ponuda za osnivačke trenere. SVE OVDE JE PREDLOG: potvrdite brojke i
+  // pogodnosti pre slanja. Zarada trenera zavisi isključivo od pratilaca
+  // koje sam dovede i koji se pretplate na njega.
+  offer: {
+    launch: "proleće 2027",
+    spots: 30,                       // koliko osnivačkih trenera primamo
+    foundingShare: 0.85,             // deo pretplate koji trener zadržava kao osnivač
+    standardShare: 0.80,             // deo kasnije, za ostale trenere
+    foundingMonths: 12,              // koliko dugo važi osnivački udeo
+    perks: [
+      ["Bez troškova", "Nema članarine, opreme ni troškova izrade. Plaćaš udeo samo od pretplata koje dobiješ."],
+      ["Veći udeo prvu godinu", "Osnivački treneri zadržavaju više od svake pretplate prvih 12 meseci posle lansiranja."],
+      ["Istaknut na lansiranju", "Tvoj profil je među prvima na ekranu Otkrij kada aplikacija izađe."],
+      ["Pomoć oko sadržaja", "Pomažemo da složiš vežbe, snimiš video i napraviš prvi program."],
+      ["Tvoj glas u proizvodu", "Direktna linija sa timom. Osnivački treneri biraju šta pravimo sledeće."]
+    ],
+    contact: "treneri@chalkline.app",
+    timeline: [
+      ["Sada", "Praviš profil i program zajedno sa nama, u probnoj verziji."],
+      ["Beta", "Tvoji prvi pratioci probaju program pre svih i daju utiske."],
+      ["Lansiranje", "Aplikacija izlazi. Tvoj link u biografiji, pretplate počinju."]
+    ]
+  },
+
+  // Poređenje sa drugim platformama (javne cene, 2026). Ažurirajte po potrebi.
+  compare: [
+    ["Passion.io", "od 99 $ mesečno", "uz naknadu prodavnica 15–30%"],
+    ["Kajabi", "od 71 $ mesečno", "bez fitnes funkcija"],
+    ["Trainerize", "oko 5–9 $ po klijentu mesečno", "alat za klijente, ne za publiku"],
+    ["Stan Store", "29–99 $ mesečno", "prodaja PDF-a i kurseva"],
+    ["Patreon", "10% od svake naplate", "bez treninga u aplikaciji"]
+  ],
 
   // Rezime posle treninga i story kartica koju pratilac deli.
   summary: {
@@ -211,6 +243,24 @@ const TRAINER = {
   .money { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
   .money div { border-radius: 20px; padding: 18px; display: grid; gap: 6px; }
   .money .big { font-size: 40px; line-height: 42px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .banner { position: sticky; top: 0; z-index: 10; flex: 1 0 100%; background: var(--ink); color: var(--bg); text-align: center; padding: 12px 16px; font: 700 14px var(--font); border-radius: 999px; }
+  .banner b { color: var(--lime); }
+  .cmp { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .cmp td, .cmp th { text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .cmp th { font: 700 12px var(--font); color: var(--muted); }
+  .cmp tr.us td { background: var(--lime); font-weight: 800; }
+  .cmp tr.us td:first-child { border-radius: 16px 0 0 16px; } .cmp tr.us td:last-child { border-radius: 0 16px 16px 0; }
+  .cmpwrap { background: var(--surface); border-radius: 32px; padding: 16px; box-shadow: var(--shadow); overflow-x: auto; }
+  .timeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .timeline div { border-top: 3px solid var(--ink); padding-top: 14px; display: grid; gap: 6px; }
+  .timeline div.now { border-color: var(--lime); }
+  .timeline b { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+  .faq { display: grid; gap: 12px; }
+  .faq details { background: var(--surface); border-radius: 20px; padding: 18px 22px; box-shadow: var(--shadow); }
+  .faq summary { font-weight: 800; font-size: 17px; cursor: pointer; }
+  .faq p { margin-top: 10px; color: var(--muted); font-size: 15px; line-height: 22px; }
+  .cta { background: var(--ink); color: var(--bg); border-radius: 40px; padding: 48px 40px; display: grid; gap: 16px; justify-items: start; }
+  .cta .mail { background: var(--lime); color: var(--ink); border-radius: 999px; padding: 14px 24px; font: 800 20px var(--font); user-select: all; }
   .note { font-size: 13px; line-height: 18px; color: var(--muted); }
 
   /* Story kartica: Instagram story je 1080 × 1920, ovde u pola veličine. */
@@ -526,23 +576,28 @@ const money = (n) => new Intl.NumberFormat("sr-RS", { maximumFractionDigits: 0 }
 // ───────── Prezentacija za trenera
 function deck() {
   const first = T.name.split(" ")[0];
-  return `<div class="deck">
+  const O = T.offer;
+  const pct = (x) => `${Math.round(x * 100)}%`;
+  return `<div class="banner">Aplikacija je u izradi · lansiranje ${esc(O.launch)} · <b>primamo ${esc(O.spots)} osnivačkih trenera</b></div>
+  <div class="deck">
     <section class="sec hero">
       <div style="display:grid;gap:20px">
-        <span class="eyebrow">Chalkline · za ${esc(T.name)}</span>
-        <h1 class="h1">Tvoj program, u telefonu tvojih pratilaca.</h1>
-        <p class="lead">Ljudi te gledaju na Instagramu i TikToku, ali posle dve nedelje odustanu jer nemaju plan. U Chalkline-u tvoj program postaje njihova dnevna rutina: znaju šta rade danas, treniraju set po set uz tvoj video i savet, i vide napredak. Ti dobijaš pretplatnike, a ne samo lajkove.</p>
+        <span class="eyebrow">Chalkline · poziv za ${esc(T.name)}</span>
+        <h1 class="h1">Budi među prvim trenerima u Chalkline-u.</h1>
+        <p class="lead">Pravimo aplikaciju u kojoj tvoj program postaje dnevna rutina tvojih pratilaca. Pre lansiranja punimo je sadržajem najboljih trenera, i želimo tebe među njima. Ovako bi izgledao tvoj profil.</p>
+        <p class="lead" style="color:var(--ink);font-weight:700">Bez troškova i bez članarine. Zarađuješ samo od pratilaca koje dovedeš i koji se pretplate na tebe.</p>
       </div>
       ${phone(profileScreen)}
     </section>
 
     <section class="sec">
-      <div class="sec-head"><span class="eyebrow">Šta je Chalkline</span><h2 class="h2">Ti praviš sistem jednom. Oni ga rade svaki dan.</h2></div>
+      <div class="sec-head"><span class="eyebrow">Zašto Chalkline</span><h2 class="h2">Ljudi te gledaju. Ne treniraju po tebi.</h2>
+        <p class="lead">Pratioci gledaju reelove, kupe PDF i odustanu posle dve nedelje. Ti ne znaš ko trenira po tvom programu i živiš od lajkova i jednokratnih prodaja. Chalkline to menja.</p></div>
       <div class="points">
         <div class="point"><span class="n">1</span><b>Objaviš vežbe, treninge i programe</b><p>Uz svaku vežbu tvoj video i kratak savet, tvojim glasom.</p></div>
         <div class="point"><span class="n">2</span><b>Pratilac ih pretvori u svoj plan</b><p>Kaže koliko dana trenira, a aplikacija mu složi nedelju po tvom programu.</p></div>
         <div class="point"><span class="n">3</span><b>Trenira set po set</b><p>Vidi prošli rezultat, odmor se meri sam, svaki rekord se beleži.</p></div>
-        <div class="point"><span class="n">4</span><b>Ti zarađuješ mesečno</b><p>Pratioci se pretplaćuju na tebe, ne na aplikaciju.</p></div>
+        <div class="point"><span class="n">4</span><b>Ti dobijaš mesečnu pretplatu</b><p>Pratioci se pretplaćuju na tebe, ne na aplikaciju.</p></div>
       </div>
     </section>
 
@@ -576,30 +631,66 @@ function deck() {
     </section>
 
     <section class="sec">
-      <div class="sec-head"><span class="eyebrow">Kako zarađuješ</span><h2 class="h2">Pretplata od ${esc(T.priceMonthly)} mesečno, svaki mesec.</h2>
-        <p class="lead">Ti određuješ cenu i šta je javno, a šta samo za pretplatnike. Pomeri klizač: koliko tvojih pratilaca se pretplati.</p></div>
+      <div class="sec-head"><span class="eyebrow">Kako zarađuješ</span><h2 class="h2">Zarađuješ od svojih ljudi. Ništa ne plaćaš unapred.</h2>
+        <p class="lead">Ti određuješ cenu pretplate (npr. ${esc(T.priceMonthly)} mesečno). Kao osnivački trener zadržavaš ${pct(O.foundingShare)} svake pretplate prvih ${esc(O.foundingMonths)} meseci, kasnije ${pct(O.standardShare)}. Ako niko ne dođe, ne duguješ ništa. Pomeri klizač: koliko tvojih pratilaca se pretplati.</p></div>
       <div class="calc">
         <div style="display:grid;gap:8px">
-          <div style="display:flex;justify-content:space-between" class="strong"><span>Pretplati se <span id="pct"></span> od ${esc(T.followers)} pratilaca</span><span id="subs" class="num"></span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap" class="strong"><span>Pretplati se <span id="pct"></span> od ${esc(T.followers)} pratilaca</span><span id="subs" class="num"></span></div>
           <input id="rate" type="range" min="0.1" max="5" step="0.1" value="${T.earnings.conversion}" aria-label="Procenat pratilaca koji se pretplate">
         </div>
         <div class="money">
           <div style="background:var(--lime)"><span class="label" style="color:var(--ink)">Tebi mesečno</span><span class="big" id="month"></span></div>
           <div style="background:var(--peach)"><span class="label" style="color:var(--ink)">Tebi godišnje</span><span class="big" id="year"></span></div>
-          <div style="background:var(--raised)"><span class="label">Ukupno od pretplata mesečno</span><span class="big" id="gross" style="font-size:30px"></span></div>
+          <div style="background:var(--raised)"><span class="label">Ukupno od tvojih pretplata mesečno</span><span class="big" id="gross" style="font-size:30px"></span></div>
         </div>
-        <p class="note">${esc(T.earnings.disclaimer)} Računica: pratioci × procenat × ${esc(T.priceMonthly)} × ${Math.round((1 - T.earnings.platformShare) * 100)}% tebi.</p>
+        <p class="note">${esc(T.earnings.disclaimer)} Računica: pratioci × procenat × ${esc(T.priceMonthly)} × ${pct(1 - (1 - T.offer.foundingShare))} tebi.</p>
       </div>
+      <div class="sec-head" style="margin-top:12px"><h2 class="h2" style="font-size:32px">Šta drugi naplaćuju</h2>
+        <p class="lead">Većina platformi traži da plaćaš pre nego što zaradiš ijedan evro. Chalkline zarađuje samo kad zaradiš ti.</p></div>
+      <div class="cmpwrap"><table class="cmp">
+        <thead><tr><th>Platforma</th><th>Šta plaćaš</th><th>Napomena</th></tr></thead>
+        <tbody>
+          <tr class="us"><td>Chalkline</td><td>0 € unapred, ${pct(1 - O.foundingShare)} od pretplate</td><td>samo kad tvoji pratioci plate</td></tr>
+          ${T.compare.map(([n, c, x]) => `<tr><td><b>${esc(n)}</b></td><td>${esc(c)}</td><td style="color:var(--muted)">${esc(x)}</td></tr>`).join("")}
+        </tbody>
+      </table></div>
+      <p class="note">Javne cene drugih platformi, 2026. Podložne promenama.</p>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><span class="eyebrow">Osnivački treneri</span><h2 class="h2">Šta dobijaš ako se pridružiš pre lansiranja.</h2>
+        <p class="lead">Primamo ${esc(O.spots)} trenera. Oni oblikuju aplikaciju i prvi su koje pratioci vide.</p></div>
+      <div class="points">${O.perks.map(([t, d]) => `<div class="point"><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}</div>
+      <div class="timeline">${O.timeline.map(([t, d], i) => `<div class="${i === 0 ? "now" : ""}"><b>${esc(t)}</b><span class="lead" style="font-size:16px;line-height:24px">${esc(d)}</span></div>`).join("")}</div>
     </section>
 
     <section class="sec">
       <div class="sec-head"><span class="eyebrow">Kako počinješ</span><h2 class="h2">Za jedno popodne, ${esc(first)}.</h2></div>
       <div class="points">
-        <div class="point"><span class="n">1</span><b>Napraviš profil</b><p>Ime, @nalog, slika, opis i cena pretplate.</p></div>
+        <div class="point"><span class="n">1</span><b>Javiš nam se</b><p>Kratak razgovor, otvorimo ti nalog u probnoj verziji.</p></div>
         <div class="point"><span class="n">2</span><b>Snimiš vežbe</b><p>Telefonom, sa strane, 5–15 sekundi po vežbi. Uz svaku savet.</p></div>
         <div class="point"><span class="n">3</span><b>Složiš treninge i program</b><p>Redosled treninga kroz nedelje. Odlučiš šta je javno.</p></div>
-        <div class="point"><span class="n">4</span><b>Staviš link u biografiju</b><p>chalkline.app/c/${esc(T.handle)} i pozoveš pratioce u reelu.</p></div>
+        <div class="point"><span class="n">4</span><b>Na lansiranju: link u biografiju</b><p>chalkline.app/c/${esc(T.handle)} i pozoveš pratioce u reelu.</p></div>
       </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><span class="eyebrow">Pitanja</span><h2 class="h2">Česta pitanja</h2></div>
+      <div class="faq">
+        <details open><summary>Koliko košta?</summary><p>Ništa. Nema članarine ni troška izrade. Chalkline zadržava deo pretplate samo kada se tvoj pratilac pretplati.</p></details>
+        <details><summary>Od čega zavisi moja zarada?</summary><p>Isključivo od pratilaca koje dovedeš svojim linkom i sadržajem i koji se pretplate na tebe. Ne obećavamo fiksnu zaradu ni broj pretplatnika.</p></details>
+        <details><summary>Šta ako aplikacija kasni ili niko ne dođe?</summary><p>Ne gubiš novac. Program koji napraviš ostaje tvoj i možeš ga koristiti i van aplikacije.</p></details>
+        <details><summary>Ko je vlasnik mog sadržaja?</summary><p>Ti. Tvoje vežbe, video i programi su tvoji. Detalje potvrđujemo u ugovoru.</p></details>
+        <details><summary>Koliko vremena traži?</summary><p>Prvi program se složi za jedno popodne. Posle toga dodaješ kad hoćeš.</p></details>
+        <details><summary>Mogu li da odustanem?</summary><p>Da, u bilo kom trenutku, bez troškova.</p></details>
+      </div>
+    </section>
+
+    <section class="cta">
+      <span class="eyebrow" style="color:rgba(250,248,244,.7)">Osnivačkih mesta: ${esc(O.spots)}</span>
+      <h2 class="h2" style="color:var(--bg)">Hoćeš da budeš među prvima, ${esc(first)}?</h2>
+      <p class="lead" style="color:rgba(250,248,244,.75)">Javi nam se i otvaramo ti nalog u probnoj verziji ove nedelje.</p>
+      <span class="mail">${esc(O.contact)}</span>
     </section>
   </div>`;
 }
@@ -611,7 +702,7 @@ function wireCalc() {
     const rate = Number(input.value) / 100;
     const subs = Math.round(T.followersCount * rate);
     const gross = subs * T.price;
-    const mine = gross * (1 - T.earnings.platformShare);
+    const mine = gross * (1 - (1 - T.offer.foundingShare));
     document.getElementById("pct").textContent = `${String(input.value).replace(".", ",")}%`;
     document.getElementById("subs").textContent = `${new Intl.NumberFormat("sr-RS").format(subs)} pretplatnika`;
     document.getElementById("month").textContent = money(mine);
