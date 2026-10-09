@@ -57,7 +57,12 @@ class SupabaseRemote implements Remote {
           .timeout(const Duration(minutes: 3));
       return _client.storage.from(mediaBucket).getPublicUrl(name);
     } on Object {
-      throw const RemoteError('Video nije poslat. Proveri internet i pokušaj ponovo.', retryable: true);
+      throw RemoteError(
+        contentType.startsWith('image')
+            ? 'Slika nije poslata. Proveri internet i pokušaj ponovo.'
+            : 'Video nije poslat. Proveri internet i pokušaj ponovo.',
+        retryable: true,
+      );
     }
   }
 

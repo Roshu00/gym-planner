@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -309,7 +310,12 @@ String sessionMeta(Session s) =>
     '${formatDate(s.finishedAt ?? s.startedAt)} · ${formatDuration(s.duration)} · ${formatKg(s.volume)}';
 
 /// A picture from a link, or null when there is none.
-ImageProvider? photoOf(String? url) => url == null || url.isEmpty ? null : NetworkImage(url);
+ImageProvider? photoOf(String? url) {
+  if (url == null || url.isEmpty) return null;
+  // A creator's own photo in local mode is a file on this phone.
+  final uri = Uri.parse(url);
+  return uri.isScheme('file') ? FileImage(File(uri.toFilePath())) : NetworkImage(url);
+}
 
 /// What just changed, as a dark message near the bottom with "Poništi". It
 /// goes away by itself after a few seconds, so it never pushes content down.

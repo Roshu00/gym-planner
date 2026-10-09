@@ -25,6 +25,7 @@ Row creatorRow(Creator c, {String? userId}) => {
   'followers': c.followers,
   'price_monthly': c.priceMonthly,
   'photo_url': c.photo,
+  'highlights': [for (final h in c.highlights) h.toJson()],
 };
 
 Creator creatorFromRow(Row r, {String? currentUserId}) => Creator(
@@ -37,6 +38,7 @@ Creator creatorFromRow(Row r, {String? currentUserId}) => Creator(
   priceMonthly: (r['price_monthly'] as num?)?.toDouble() ?? 4.99,
   isMine: currentUserId != null && r['user_id'] == currentUserId,
   photo: r['photo_url'] as String?,
+  highlights: Highlight.listFromJson(r['highlights']),
 );
 
 Row exerciseRow(Exercise e) => {

@@ -948,6 +948,34 @@ class AppStore extends ChangeNotifier {
     return remote.uploadMedia(path, extension: extension, contentType: contentType);
   }
 
+  /// Sends a creator's photo or video for a highlight and returns its link.
+  Future<String> uploadHighlightMedia(String path) async {
+    final remote = this.remote;
+    if (remote == null) return Uri.file(path).toString();
+    final (extension, contentType) = switch (path.split('.').last.toLowerCase()) {
+      'mov' => ('mov', 'video/quicktime'),
+      'mp4' || 'm4v' => ('mp4', 'video/mp4'),
+      'png' => ('png', 'image/png'),
+      'heic' => ('heic', 'image/heic'),
+      _ => ('jpg', 'image/jpeg'),
+    };
+    return remote.uploadMedia(path, extension: extension, contentType: contentType);
+  }
+
+  /// Adds or replaces one of the creator's highlights on their profile.
+  void saveHighlight(Highlight h) =>
+      _setHighlights(_upsert(myCreator?.highlights ?? const [], h, (x) => x.id));
+
+  void deleteHighlight(String id) => _setHighlights([...?myCreator?.highlights.where((h) => h.id != id)]);
+
+  void _setHighlights(List<Highlight> highlights) {
+    final me = myCreator;
+    if (me == null) return;
+    myCreator = me.copyWith(highlights: highlights);
+    if (isCloud) _send(Mutation.upsert('creators', creatorRow(myCreator!, userId: _uid)));
+    _commit();
+  }
+
   void saveExercise(Exercise e) {
     myExercises = _upsert(myExercises, e, (x) => x.id);
     if (isCloud) _send(Mutation.upsert('exercises', exerciseRow(e)));

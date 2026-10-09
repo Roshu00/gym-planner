@@ -57,6 +57,28 @@ void main() {
     expect(row['video_url'], url);
   });
 
+  test('a highlight photo is uploaded and the highlights go to the creator row', () async {
+    final store = await open();
+    store.completeOnboarding(profile);
+    final me = store.saveMyCreator(name: 'Boban', handle: 'boban.fit');
+    final photo = await store.uploadHighlightMedia('/tmp/me.JPG');
+    final clip = await store.uploadHighlightMedia('/tmp/gym.mov');
+    expect(photo, endsWith('.jpg'));
+    expect(clip, endsWith('.mov'));
+    store.saveHighlight(
+      Highlight(
+        id: 'h1',
+        title: 'O meni',
+        items: [HighlightItem(url: photo), HighlightItem(url: clip, video: true)],
+      ),
+    );
+    await settle();
+    final row = remote.tables['creators']!.singleWhere((r) => r['id'] == me.id);
+    final saved = Highlight.listFromJson(row['highlights']).single;
+    expect(saved.title, 'O meni');
+    expect(saved.items.map((i) => i.video), [false, true]);
+  });
+
   test('without a server the video stays a file on the phone', () async {
     final local = AppStore(storage: MemoryStore(), clock: () => clock);
     await local.load();

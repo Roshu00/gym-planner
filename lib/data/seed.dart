@@ -17,6 +17,32 @@ class SeedCatalog {
   static const creators = [
     Creator(
       id: 'c_marko',
+      highlights: [
+        Highlight(
+          id: 'h_marko_me',
+          title: 'O meni',
+          items: [
+            HighlightItem(url: '${_unsplash}1704223523169-52feeed90365?w=1080&q=75&auto=format&fit=crop'),
+            HighlightItem(url: '${_unsplash}1704223523303-a5ed14561b1f?w=1080&q=75&auto=format&fit=crop'),
+          ],
+        ),
+        Highlight(
+          id: 'h_marko_how',
+          title: 'Kako treniram',
+          items: [
+            HighlightItem(url: '$_pexels/4488004/4488004-sd_360_640_25fps.mp4', video: true),
+            HighlightItem(url: '${_unsplash}1517838277536-f5f99be501cd?w=1080&q=75&auto=format&fit=crop'),
+          ],
+        ),
+        Highlight(
+          id: 'h_marko_res',
+          title: 'Rezultati',
+          items: [
+            HighlightItem(url: '${_unsplash}1770664612843-b44e26070024?w=1080&q=75&auto=format&fit=crop'),
+            HighlightItem(url: '${_unsplash}1571019613454-1cb2f99b2d8b?w=1080&q=75&auto=format&fit=crop'),
+          ],
+        ),
+      ],
       photo: '${_unsplash}1704223523169-52feeed90365?w=400&q=75&auto=format&fit=crop',
       name: 'Marko Petrović',
       handle: 'marko.lifts',
@@ -28,6 +54,31 @@ class SeedCatalog {
     ),
     Creator(
       id: 'c_jelena',
+      highlights: [
+        Highlight(
+          id: 'h_jelena_me',
+          title: 'O meni',
+          items: [
+            HighlightItem(url: '${_unsplash}1620862657760-72a639a2daef?w=1080&q=75&auto=format&fit=crop'),
+            HighlightItem(url: '${_unsplash}1714646442330-9068099f5521?w=1080&q=75&auto=format&fit=crop'),
+          ],
+        ),
+        Highlight(
+          id: 'h_jelena_home',
+          title: 'Kod kuće',
+          items: [
+            HighlightItem(url: '$_pexels/5510124/5510124-sd_360_640_25fps.mp4', video: true),
+            HighlightItem(url: '${_unsplash}1571019613454-1cb2f99b2d8b?w=1080&q=75&auto=format&fit=crop'),
+          ],
+        ),
+        Highlight(
+          id: 'h_jelena_qa',
+          title: 'Pitanja',
+          items: [
+            HighlightItem(url: '${_unsplash}1714646442330-9068099f5521?w=1080&q=75&auto=format&fit=crop'),
+          ],
+        ),
+      ],
       photo: '${_unsplash}1620862657760-72a639a2daef?w=400&q=75&auto=format&fit=crop',
       name: 'Jelena Ilić',
       handle: 'jelena.moves',
@@ -39,6 +90,21 @@ class SeedCatalog {
     ),
     Creator(
       id: 'c_nikola',
+      highlights: [
+        Highlight(
+          id: 'h_nikola_me',
+          title: 'O meni',
+          items: [
+            HighlightItem(url: '${_unsplash}1634225251578-d5f6ffced78a?w=1080&q=75&auto=format&fit=crop'),
+            HighlightItem(url: '${_unsplash}1634225252941-66fd95aaa7c3?w=1080&q=75&auto=format&fit=crop'),
+          ],
+        ),
+        Highlight(
+          id: 'h_nikola_skill',
+          title: 'Prvi zgib',
+          items: [HighlightItem(url: '$_pexels/7187450/7187450-sd_360_640_24fps.mp4', video: true)],
+        ),
+      ],
       photo: '${_unsplash}1634225251578-d5f6ffced78a?w=400&q=75&auto=format&fit=crop',
       name: 'Nikola Jovanović',
       handle: 'nikola.fit',

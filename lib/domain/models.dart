@@ -96,6 +96,7 @@ class Creator {
     this.priceMonthly = 4.99,
     this.isMine = false,
     this.photo,
+    this.highlights = const [],
   });
 
   final String id;
@@ -114,7 +115,16 @@ class Creator {
   /// Portrait URL; null shows initials on a pop color.
   final String? photo;
 
-  Creator copyWith({String? name, String? handle, String? tagline, String? bio}) => Creator(
+  /// Public stories pinned to the profile, like Instagram highlights.
+  final List<Highlight> highlights;
+
+  Creator copyWith({
+    String? name,
+    String? handle,
+    String? tagline,
+    String? bio,
+    List<Highlight>? highlights,
+  }) => Creator(
     id: id,
     name: name ?? this.name,
     handle: handle ?? this.handle,
@@ -124,6 +134,7 @@ class Creator {
     priceMonthly: priceMonthly,
     isMine: isMine,
     photo: photo,
+    highlights: highlights ?? this.highlights,
   );
 
   Map<String, Object?> toJson() => {
@@ -136,6 +147,7 @@ class Creator {
     'priceMonthly': priceMonthly,
     'isMine': isMine,
     'photo': photo,
+    'highlights': [for (final h in highlights) h.toJson()],
   };
 
   factory Creator.fromJson(Map<String, Object?> j) => Creator(
@@ -148,7 +160,52 @@ class Creator {
     priceMonthly: (j['priceMonthly'] as num?)?.toDouble() ?? 4.99,
     isMine: j['isMine'] as bool? ?? false,
     photo: j['photo'] as String?,
+    highlights: Highlight.listFromJson(j['highlights']),
   );
+}
+
+/// One photo or video in a highlight.
+class HighlightItem {
+  const HighlightItem({required this.url, this.video = false});
+
+  final String url;
+  final bool video;
+
+  Map<String, Object?> toJson() => {'url': url, 'video': video};
+
+  factory HighlightItem.fromJson(Map<String, Object?> j) =>
+      HighlightItem(url: j['url'] as String, video: j['video'] as bool? ?? false);
+}
+
+/// A titled set of stories on a creator's profile: "O meni", "Rezultati".
+class Highlight {
+  const Highlight({required this.id, required this.title, required this.items});
+
+  final String id;
+  final String title;
+  final List<HighlightItem> items;
+
+  /// The first photo; a video only highlight shows its color instead.
+  String? get cover => items.where((i) => !i.video).firstOrNull?.url;
+
+  Highlight copyWith({String? title, List<HighlightItem>? items}) =>
+      Highlight(id: id, title: title ?? this.title, items: items ?? this.items);
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'title': title,
+    'items': [for (final i in items) i.toJson()],
+  };
+
+  factory Highlight.fromJson(Map<String, Object?> j) => Highlight(
+    id: j['id'] as String,
+    title: j['title'] as String? ?? '',
+    items: [for (final i in (j['items'] as List?) ?? const []) HighlightItem.fromJson((i as Map).cast())],
+  );
+
+  static List<Highlight> listFromJson(Object? list) => [
+    for (final h in (list as List?) ?? const []) Highlight.fromJson((h as Map).cast()),
+  ];
 }
 
 class Exercise {

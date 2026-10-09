@@ -6,6 +6,7 @@ import 'auth_screen.dart';
 import 'common.dart';
 import 'creator_editors.dart';
 import 'creator_profile.dart';
+import 'highlights.dart';
 
 /// Studio: where a trainer builds their system once (exercises, workouts,
 /// programs, what is public and what is for subscribers). A tab for
@@ -31,7 +32,8 @@ class _CreatorModeScreenState extends State<CreatorModeScreen> {
         children: [
           ClEmptyState(
             title: 'Sačuvaj nalog.',
-            message: 'Objavljivanje traži nalog sa emailom, da bi pratioci mogli da te nađu i da tvoj sadržaj ostane tvoj.',
+            message:
+                'Objavljivanje traži nalog sa emailom, da bi pratioci mogli da te nađu i da tvoj sadržaj ostane tvoj.',
             action: ClButton(
               label: 'Sačuvaj nalog',
               expand: true,
@@ -136,6 +138,15 @@ class _CreatorModeScreenState extends State<CreatorModeScreen> {
         ),
         const SizedBox(height: ClSpace.s2),
         const ClNotice('Pratilac koji otvori link ide pravo na tvoj profil.'),
+        gap,
+        const ClSectionHeader(label: 'Priče na profilu'),
+        HighlightsRow(creator: me, editable: true),
+        if (me.highlights.isEmpty) ...[
+          const SizedBox(height: ClSpace.s2),
+          const ClNotice(
+            'Predstavi se pre nego što neko zaprati: ko si, rezultati klijenata, kako treniraš.',
+          ),
+        ],
         gap,
         ClTabs(
           tabs: [

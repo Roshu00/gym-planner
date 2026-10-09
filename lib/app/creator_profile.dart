@@ -4,6 +4,7 @@ import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'creator_mode.dart';
 import 'discover.dart';
+import 'highlights.dart';
 import 'subscribe_sheet.dart';
 
 /// Creator profile: photo header, numbers, subscribe, programs.
@@ -106,7 +107,7 @@ class CreatorProfileScreen extends StatelessWidget {
         title: c.name,
         image: photoOf(c.photo),
         color: context.clColors.popFor(c.id),
-        label: '@${c.handle} · ${c.tagline}',
+        label: c.tagline.isEmpty ? '@${c.handle}' : '@${c.handle} · ${c.tagline}',
         height: 320,
         topBar: Row(
           children: [
@@ -120,6 +121,10 @@ class CreatorProfileScreen extends StatelessWidget {
       ),
       children: [
         if (c.bio.isNotEmpty) ...[Text(c.bio, style: cl.text.body), const SizedBox(height: ClSpace.s6)],
+        if (c.highlights.any((h) => h.items.isNotEmpty)) ...[
+          HighlightsRow(creator: c),
+          const SizedBox(height: ClSpace.s4),
+        ],
         ClStatBar(
           stats: [
             ClStat(label: 'Pratioci', value: formatCompact(c.followers)),

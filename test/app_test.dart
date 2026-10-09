@@ -5,6 +5,7 @@ import 'package:chalkline/app/creator_mode.dart';
 import 'package:chalkline/app/creator_profile.dart';
 import 'package:chalkline/app/discover.dart';
 import 'package:chalkline/app/exercise_detail.dart';
+import 'package:chalkline/app/highlights.dart';
 import 'package:chalkline/app/onboarding.dart';
 import 'package:chalkline/app/plan_finder.dart';
 import 'package:chalkline/app/plan_screen.dart';
@@ -553,6 +554,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.profile!.place, Place.gym);
     expect(store.profile!.equipment, Equipment.gym, reason: 'equipment follows the place');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a creator\'s highlights open full screen and close', (tester) async {
+    final store = await freshStore();
+    await pump(tester, store, const CreatorProfileScreen(creatorId: 'c_jelena'), ClTheme.light);
+    expect(find.byType(HighlightsRow), findsOneWidget);
+    await tapVisible(tester, 'O meni');
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(HighlightViewer), findsOneWidget);
+    expect(find.textContaining('jelena.moves', findRichText: true), findsOneWidget);
+    await tester.tap(find.byIcon(ClIcons.close));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(HighlightViewer), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Studio offers a new highlight and the editor needs a name and a picture', (tester) async {
+    final store = await freshStore();
+    store.saveMyCreator(name: 'Ana Trener', handle: 'ana.trener');
+    await pump(tester, store, const CreatorModeScreen(), ClTheme.light);
+    expect(find.text('Priče na profilu'), findsOneWidget);
+    await tapVisible(tester, 'Nova');
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(HighlightEditor), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'O meni');
+    await tester.pump();
+    final save = tester.widget<ClButton>(find.widgetWithText(ClButton, 'Sačuvaj'));
+    expect(save.onPressed, isNull, reason: 'no picture yet');
     expect(tester.takeException(), isNull);
   });
 }

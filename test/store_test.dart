@@ -306,6 +306,25 @@ void main() {
     expect(broken.profile, isNull);
   });
 
+  test('a creator\'s highlights are saved, replaced, deleted and kept', () async {
+    store.saveMyCreator(name: 'Ana Trener', handle: 'ana.trener');
+    const photo = HighlightItem(url: 'https://x.test/a.jpg');
+    const clip = HighlightItem(url: 'https://x.test/b.mp4', video: true);
+    store.saveHighlight(const Highlight(id: 'h1', title: 'O meni', items: [clip, photo]));
+    store.saveHighlight(const Highlight(id: 'h2', title: 'Rezultati', items: [photo]));
+    store.saveHighlight(const Highlight(id: 'h1', title: 'Ko sam', items: [clip, photo]));
+    expect(store.myCreator!.highlights.map((h) => h.title), ['Ko sam', 'Rezultati']);
+    expect(store.myCreator!.highlights.first.cover, photo.url, reason: 'the first photo, not the video');
+
+    store.deleteHighlight('h2');
+    final reopened = AppStore(storage: storage, clock: () => clock);
+    await reopened.load();
+    final kept = reopened.myCreator!.highlights.single;
+    expect(kept.title, 'Ko sam');
+    expect(kept.items.first.video, isTrue);
+    expect(reopened.creator(reopened.myCreator!.id)!.highlights, hasLength(1));
+  });
+
   test('creator mode content joins the catalog', () {
     final me = store.saveMyCreator(name: 'Ana Trener', handle: 'ana.trener');
     store.saveExercise(
