@@ -15,6 +15,8 @@
      Slike mogu biti linkovi (https://...) ili fajlovi pored ovog fajla
      (npr. "slike/jelena.jpg").
   3. Otvori fajl u Chrome-u. Dugmad gore biraju ekran i pozadinu.
+     "Story 9:16" je sama kartica za Instagram story, bez telefona; uvećaj
+     sliku 2× pri izvozu da dobiješ 1080 × 1920.
   4. Za sliku jednog ekrana: "Samo jedan ekran" + "Bez pozadine", pa
      desni klik > Inspect > desni klik na .phone > "Capture node screenshot".
      Ili obična slika ekrana.
@@ -72,6 +74,23 @@ const TRAINER = {
     sets: 3, reps: "10–12", rest: "1:30", kg: "12", repsNow: 12,
     cue: "Lakti unutar kolena, grudi gore.",
     picture: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Goblet_Squat/0.jpg"
+  },
+
+  // Rezime posle treninga i story kartica koju pratilac deli.
+  summary: {
+    workout: "Donji deo",
+    duration: "34 min",
+    headline: "Odrađeno.",
+    volume: "2.880 kg",
+    records: 2,
+    streak: "4 ned.",
+    finishMessage: "Svaki čučanj danas je bio bolji od prošle nedelje. Vidimo se u ponedeljak.",
+    exercises: [
+      { name: "Gobl čučanj", detail: "3 seta · najbolji 14 kg × 12", pr: true },
+      { name: "Rumunsko mrtvo bučicama", detail: "3 seta · najbolji 12 kg × 10", pr: true },
+      { name: "Bugarski čučanj", detail: "3 seta · najbolji 8 kg × 10", pr: false },
+      { name: "Glute bridge", detail: "3 seta · 15 ponavljanja", pr: false }
+    ]
   }
 };
 </script>
@@ -140,6 +159,10 @@ const TRAINER = {
   .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .tile .v { font-size: 26px; line-height: 28px; font-weight: 800; letter-spacing: -.03em; margin-top: 4px; }
   .pill { font: 700 10px var(--font); border: 1px solid var(--ink); border-radius: 999px; padding: 2px 7px; }
+  .tag-pr { font: 800 11px var(--font); background: var(--ink); color: var(--lime); border-radius: 999px; padding: 3px 8px; }
+  /* Story kartica: Instagram story je 1080 × 1920, ovde u pola veličine. */
+  .story-frame { width: 540px; height: 960px; background: var(--bg); border-radius: 0; padding: 72px 40px; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 30px 60px -20px rgba(0,0,0,.35); flex: none; }
+  body.clean .story-frame { box-shadow: none; }
   .sticker { position: absolute; top: -8px; right: 14px; background: var(--ink); color: var(--lime); font: 800 12px var(--font); padding: 6px 12px; border-radius: 999px; rotate: 6deg; z-index: 2; }
 </style>
 </head>
@@ -332,18 +355,76 @@ function workoutScreen() {
   </div>`;
 }
 
+// ───────── Story kartica (ista kao u aplikaciji, lib/ui/components/summary.dart)
+function shareCard(scale = 1) {
+  const m = T.summary;
+  const tile = (label, value, bgc, fg, big) => `<div style="background:${bgc};color:${fg};border-radius:${20 * scale}px;padding:${14 * scale}px">
+      <div class="label" style="color:${fg};font-size:${12 * scale}px;line-height:${16 * scale}px">${label}</div>
+      <div class="num" style="font-weight:800;letter-spacing:-.03em;white-space:nowrap;font-size:${(big ? 40 : 26) * scale}px;line-height:${(big ? 42 : 28) * scale}px">${esc(value)}</div>
+    </div>`;
+  const second = m.records > 0 ? tile("Rekordi", `${m.records} PR`, "var(--peach)", "var(--ink)") : tile("Setova", m.sets ?? "—", "var(--peach)", "var(--ink)");
+  return `<div style="background:var(--lilac);border-radius:${28 * scale}px;padding:${24 * scale}px ${20 * scale}px ${20 * scale}px;color:var(--ink)">
+    <div class="strong" style="font-size:${13 * scale}px;line-height:${18 * scale}px">${esc(m.workout)} · ${esc(m.duration)}</div>
+    <div style="font-size:${56 * scale}px;line-height:${54 * scale}px;font-weight:800;letter-spacing:-.04em;font-variation-settings:'opsz' 96;margin-top:${8 * scale}px">${esc(m.headline)}</div>
+    <div style="display:grid;gap:${8 * scale}px;margin-top:${24 * scale}px">
+      ${tile("Volumen", m.volume, "var(--lime)", "var(--ink)", true)}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:${8 * scale}px">${second}${tile("Niz", m.streak, "var(--ink)", "#fff")}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:${8 * scale}px;margin-top:${24 * scale}px">
+      <span class="avatar" style="width:${28 * scale}px;height:${28 * scale}px;${bg(T.photo)}"></span>
+      <span class="strong" style="flex:1;font-size:${13 * scale}px">@${esc(T.handle)}</span>
+      <span class="strong" style="font-size:${13 * scale}px">Chalkline</span>
+    </div>
+  </div>`;
+}
+
+// ───────── Ekran 5: rezime posle treninga
+function summaryScreen() {
+  const m = T.summary;
+  const rows = m.exercises.map((x) => `<div class="tile" style="display:flex;align-items:center;gap:10px;padding:12px 14px">
+      <div style="flex:1"><div class="strong">${esc(x.name)}</div><div class="body" style="font-size:13px;line-height:18px;color:var(--muted)">${esc(x.detail)}</div></div>
+      ${x.pr ? '<span class="tag-pr">PR</span>' : ""}
+    </div>`).join("");
+  return `${status(false)}
+  <div class="content">
+    <div style="padding:58px 8px 0"><span style="width:48px;height:48px;display:grid;place-items:center"><span style="width:24px;height:24px">${icon.back}</span></span></div>
+    <div class="pad" style="display:grid;gap:12px">
+      ${shareCard(0.86)}
+      <div class="tile" style="display:flex;gap:12px;align-items:flex-start">
+        ${avatar(36)}
+        <div><div class="label">Poruka · ${esc(T.name)}</div><div class="body" style="margin-top:2px">${esc(m.finishMessage)}</div></div>
+      </div>
+      <div class="display-m" style="font-size:22px;margin-top:6px">Vežbe</div>
+      ${rows}
+    </div>
+  </div>
+  <div class="pad" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-bottom:34px;padding-top:10px">
+    <div class="btn pop">Podeli na story</div>
+    <div class="btn dark">Gotovo</div>
+  </div>`;
+}
+
+// ───────── Story za Instagram: samo kartica, 9:16
+function storyFrame() {
+  return `<div class="story-frame" id="story">${shareCard(1.6)}</div>`;
+}
+
 const SCREENS = [
   { id: "profil", title: "Profil trenera", render: profileScreen },
   { id: "program", title: "Program", render: programScreen },
   { id: "danas", title: "Danas, kod pratioca", render: todayScreen },
-  { id: "trening", title: "Trening", render: workoutScreen }
+  { id: "trening", title: "Trening", render: workoutScreen },
+  { id: "rezime", title: "Rezime", render: summaryScreen },
+  { id: "story", title: "Story 9:16", render: storyFrame, bare: true }
 ];
 
 let only = null;
 function draw() {
   document.getElementById("stage").innerHTML = SCREENS
     .filter((s) => !only || s.id === only)
-    .map((s) => `<div class="slot"><div class="phone" id="${s.id}"><div class="screen">${s.render()}</div></div><div class="caption">${s.title}</div></div>`)
+    .map((s) => s.bare
+      ? `<div class="slot">${s.render()}<div class="caption">${s.title}</div></div>`
+      : `<div class="slot"><div class="phone" id="${s.id}"><div class="screen">${s.render()}</div></div><div class="caption">${s.title}</div></div>`)
     .join("");
   document.getElementById("toolbar").innerHTML =
     `<button class="${only ? "" : "on"}" data-only="">Svi ekrani</button>` +
