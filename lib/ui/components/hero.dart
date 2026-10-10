@@ -109,8 +109,8 @@ class ClWorkoutHero extends StatelessWidget {
   }
 }
 
-/// Program card: a rounded photo (~220px) with the title on the scrim, then
-/// avatar + creator + followers, then tags.
+/// Program card: a rounded 4:5 photo, like an Instagram post, with the title
+/// on the scrim, then avatar + creator + followers, then tags.
 class ClProgramCard extends StatelessWidget {
   const ClProgramCard({
     super.key,
@@ -123,7 +123,7 @@ class ClProgramCard extends StatelessWidget {
     this.tags = const [],
     this.locked = false,
     this.onPressed,
-    this.photoHeight = 220,
+    this.photoAspectRatio = 4 / 5,
     this.color,
   });
 
@@ -145,7 +145,10 @@ class ClProgramCard extends StatelessWidget {
   /// Subscribers-only content.
   final bool locked;
   final VoidCallback? onPressed;
-  final double photoHeight;
+
+  /// Width / height of the photo. 4:5 is Instagram's portrait post, so a
+  /// trainer's existing posts fit as they are.
+  final double photoAspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -162,8 +165,8 @@ class ClProgramCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(
-              height: photoHeight,
+            AspectRatio(
+              aspectRatio: photoAspectRatio,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(ClRadius.lg),
                 child: Stack(
