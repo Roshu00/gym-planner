@@ -28,6 +28,7 @@ flutter:
   assets:
     - assets/trainers/minja/
     - assets/trainers/kriss/
+    - assets/trainers/anja/
   fonts:
     - family: Bricolage
       fonts:
