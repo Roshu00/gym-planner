@@ -108,7 +108,8 @@ class CreatorProfileScreen extends StatelessWidget {
         image: photoOf(c.photo),
         color: context.clColors.popFor(c.id),
         label: c.tagline.isEmpty ? '@${c.handle}' : '@${c.handle} · ${c.tagline}',
-        height: 320,
+        // 4:5 like an Instagram post, so a trainer's portrait shows whole.
+        height: MediaQuery.sizeOf(context).width * 5 / 4,
         imageAlignment: Alignment.topCenter,
         topBar: Row(
           children: [
