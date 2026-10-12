@@ -287,7 +287,7 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
                 index: i + 1,
                 image: photoOf(e.image),
                 name: e.name,
-                detail: '${we.target} · ${restLabel(we.restSeconds)}',
+                detail: '${we.targetFor(e.measured)} · ${restLabel(we.restSeconds)}',
               ),
           gapS,
           if (day == today)

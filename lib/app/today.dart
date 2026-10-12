@@ -176,15 +176,19 @@ class TodayScreen extends StatelessWidget {
                 index: i + 1,
                 image: photoOf(e.image),
                 name: e.name,
-                detail: _detail(we.target, previousSets(store.sessions, e.id).firstOrNull),
+                detail: _detail(
+                  we.targetFor(e.measured),
+                  previousSets(store.sessions, e.id).firstOrNull,
+                  timed: e.measured == Measure.time,
+                ),
               ),
         ],
       ),
     );
   }
 
-  static String _detail(String target, SetLog? last) =>
-      last == null ? target : '$target · Prošli put ${setLabel(last)}';
+  static String _detail(String target, SetLog? last, {bool timed = false}) =>
+      last == null ? target : '$target · Prošli put ${setLabel(last, timed: timed)}';
 }
 
 /// The trainer and today's workout over most of the screen: a small greeting

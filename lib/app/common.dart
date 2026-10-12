@@ -300,14 +300,37 @@ String prescription(String target, int? rir, int restSeconds) =>
     [target, if (rir != null) 'RIR $rir', restLabel(restSeconds)].join(' · ');
 
 /// `80 kg × 8`, or `12 pon.` for bodyweight without added load.
-String setLabel(SetLog s) {
+/// `80 kg × 8`, `12 pon.`, or `45 s` for a held exercise.
+String setLabel(SetLog s, {bool timed = false}) {
   final kg = s.kg ?? 0;
   final reps = s.reps ?? 0;
+  if (timed) return kg > 0 ? '${formatKg(kg)} · ${formatSeconds(reps)}' : formatSeconds(reps);
   return kg > 0 ? formatSet(kg, reps) : '$reps pon.';
 }
 
-String sessionMeta(Session s) =>
-    '${formatDate(s.finishedAt ?? s.startedAt)} · ${formatDuration(s.duration)} · ${formatKg(s.volume)}';
+/// What a session moved, in the unit that fits: kilograms, else reps of
+/// push-ups and the like, else time held. Never "0 kg" for a bodyweight day.
+({String label, String value}) sessionWork(Session s) {
+  if (s.volume > 0) {
+    final v = s.volume >= 1000
+        ? '${formatNumber(s.volume / 1000)} t'
+        : '${formatNumber(s.volume, maxDecimals: 0)} kg';
+    return (label: 'Volumen', value: v);
+  }
+  if (s.bodyweightReps > 0) return (label: 'Ponavljanja', value: '${s.bodyweightReps}');
+  if (s.secondsHeld > 0) return (label: 'Izdržaji', value: formatSeconds(s.secondsHeld));
+  return (label: 'Setova', value: '${s.doneSets}');
+}
+
+String sessionMeta(Session s) {
+  final work = sessionWork(s);
+  final value = s.volume > 0
+      ? formatKg(s.volume)
+      : work.label == 'Ponavljanja'
+      ? '${work.value} pon.'
+      : work.value;
+  return '${formatDate(s.finishedAt ?? s.startedAt)} · ${formatDuration(s.duration)} · $value';
+}
 
 /// A picture from a link, or null when there is none.
 ImageProvider? photoOf(String? url) {

@@ -57,11 +57,16 @@ class _ProgressContentState extends State<ProgressContent> {
     }
 
     // Exercises by how often they were done, most frequent first.
-    final frequency = <String, ({String name, int count, bool bodyweight})>{};
+    final frequency = <String, ({String name, int count, bool bodyweight, bool timed})>{};
     for (final s in history) {
       for (final e in s.exercises) {
         final f = frequency[e.exerciseId];
-        frequency[e.exerciseId] = (name: e.name, count: (f?.count ?? 0) + 1, bodyweight: e.bodyweight);
+        frequency[e.exerciseId] = (
+          name: e.name,
+          count: (f?.count ?? 0) + 1,
+          bodyweight: e.bodyweight,
+          timed: e.timed,
+        );
       }
     }
     final top = frequency.entries.toList()..sort((a, b) => b.value.count.compareTo(a.value.count));
@@ -93,7 +98,12 @@ class _ProgressContentState extends State<ProgressContent> {
           ),
         gap,
         ClSectionHeader(
-          label: 'Vežba · ${exerciseInfo.bodyweight ? 'najviše ponavljanja' : 'procenjeni 1RM'}',
+          label:
+              'Vežba · ${exerciseInfo.timed
+                  ? 'najduže držanje'
+                  : exerciseInfo.bodyweight
+                  ? 'najviše ponavljanja'
+                  : 'procenjeni 1RM'}',
         ),
         Wrap(
           spacing: ClSpace.s2,
@@ -112,7 +122,11 @@ class _ProgressContentState extends State<ProgressContent> {
         else
           ClLineChart(
             title: exerciseInfo.name,
-            unit: exerciseInfo.bodyweight ? 'pon.' : 'kg',
+            unit: exerciseInfo.timed
+                ? 's'
+                : exerciseInfo.bodyweight
+                ? 'pon.'
+                : 'kg',
             height: 150,
             points: [
               for (final p in points.length > 8 ? points.sublist(points.length - 8) : points)

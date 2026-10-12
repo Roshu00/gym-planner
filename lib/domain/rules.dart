@@ -287,6 +287,7 @@ Progression? nextProgression({
   required int repsMax,
   required double step,
   required bool bodyweight,
+  int repStep = 1,
 }) {
   final sets = [
     for (final s in last)
@@ -318,7 +319,10 @@ Progression? nextProgression({
     wasEasy: false,
     sets: [
       for (final s in sets)
-        SetLog(kg: s.kg, reps: bodyweight || !weighted ? s.reps! + 1 : math.min(s.reps! + 1, repsMax)),
+        SetLog(
+          kg: s.kg,
+          reps: bodyweight || !weighted ? s.reps! + repStep : math.min(s.reps! + repStep, repsMax),
+        ),
     ],
   );
 }

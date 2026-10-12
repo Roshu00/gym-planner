@@ -40,6 +40,10 @@ String formatDuration(Duration d) {
   return h > 0 ? '${h}h ${m}m' : '${m}m';
 }
 
+/// Time held: `45 s`, `1:30`.
+String formatSeconds(int seconds) =>
+    seconds < 60 ? '$seconds s' : '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+
 /// Rest timer clock: `1:30`, `0:05`.
 String formatClock(Duration d) {
   final s = d.inSeconds.abs();

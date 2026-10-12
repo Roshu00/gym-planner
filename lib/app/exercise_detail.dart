@@ -99,11 +99,22 @@ class ExerciseDetailScreen extends StatelessWidget {
         gap,
         ClStatBar(
           stats: [
-            ClStat(label: 'Najbolji set', value: bestSet == null ? '—' : setLabel(bestSet)),
             ClStat(
-              label: e.isBodyweight ? 'Najviše pon.' : 'Procenjeni 1RM',
-              value: best == null ? '—' : formatNumber(best, maxDecimals: e.isBodyweight ? 0 : 1),
-              unit: best == null || e.isBodyweight ? null : 'kg',
+              label: 'Najbolji set',
+              value: bestSet == null ? '—' : setLabel(bestSet, timed: e.measured == Measure.time),
+            ),
+            ClStat(
+              label: switch (e.measured) {
+                Measure.weight => 'Procenjeni 1RM',
+                Measure.reps => 'Najviše pon.',
+                Measure.time => 'Najduže',
+              },
+              value: best == null
+                  ? '—'
+                  : e.measured == Measure.time
+                  ? formatSeconds(best.round())
+                  : formatNumber(best, maxDecimals: e.measured == Measure.weight ? 1 : 0),
+              unit: best == null || e.measured != Measure.weight ? null : 'kg',
               highlight: best != null,
             ),
             ClStat(label: 'Urađeno', value: '${history.length}', unit: '×'),

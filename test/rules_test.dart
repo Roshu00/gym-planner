@@ -322,4 +322,39 @@ void main() {
       expect(weightSteps({Equipment.machine}), (start: 10.0, step: 5.0));
     });
   });
+
+  group('how exercises are measured', () {
+    Exercise ex(Set<Equipment> eq, {Measure? measure}) =>
+        Exercise(id: 'x', creatorId: 'c', name: 'X', muscle: Muscle.core, equipment: eq, measure: measure);
+
+    test('nothing to load counts reps, a load counts weight', () {
+      expect(ex({Equipment.bodyweight}).measured, Measure.reps);
+      expect(ex({Equipment.pullupBar}).measured, Measure.reps, reason: 'pull-ups');
+      expect(ex({Equipment.band}).measured, Measure.reps);
+      expect(ex({Equipment.barbell, Equipment.bench}).measured, Measure.weight);
+      expect(ex({Equipment.dumbbell}).measured, Measure.weight);
+      expect(ex({Equipment.bodyweight}, measure: Measure.time).measured, Measure.time, reason: 'set by the trainer');
+    });
+
+    test('a held exercise moves on by five seconds', () {
+      final p = nextProgression(
+        last: const [SetLog(kg: 0, reps: 30, rir: 2)],
+        repsMin: 30,
+        repsMax: 45,
+        step: 2.5,
+        bodyweight: true,
+        repStep: 5,
+      )!;
+      expect(p.kind, ProgressionKind.moreReps);
+      expect(p.sets.single.reps, 35);
+    });
+
+    test('prescriptions read in seconds for held exercises', () {
+      const we = WorkoutExercise(exerciseId: 'x', sets: 3, repsMin: 30, repsMax: 45);
+      expect(we.targetFor(Measure.time), '3 × 30–45 s');
+      expect(we.targetFor(Measure.reps), '3 × 30–45');
+      expect(formatSeconds(45), '45 s');
+      expect(formatSeconds(90), '1:30');
+    });
+  });
 }

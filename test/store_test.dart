@@ -281,6 +281,24 @@ void main() {
     expect(store.freeTrialOf(program), isNull);
   });
 
+  test('a bodyweight day counts reps and seconds, not 0 kg', () {
+    store.startProgram('p_j_home');
+    final s0 = store.startSession(workoutId: 'w_j_lower');
+    final plank = s0.exercises.indexWhere((e) => e.exerciseId == 'j_plank');
+    final deadbug = s0.exercises.indexWhere((e) => e.exerciseId == 'j_deadbug');
+    expect(store.active!.exercises[plank].timed, isTrue);
+    expect(store.active!.exercises[plank].target, '3 × 30–45 s');
+    expect(store.active!.exercises[deadbug].bodyweight, isTrue);
+    store.updateSet(plank, 0, const SetLog(reps: 40));
+    store.toggleSet(plank, 0);
+    store.updateSet(deadbug, 0, const SetLog(reps: 10));
+    store.toggleSet(deadbug, 0);
+    final done = store.finishSession();
+    expect(done.volume, 0);
+    expect(done.secondsHeld, 40);
+    expect(done.bodyweightReps, 10);
+  });
+
   test('first time: weight carries over from the previous set', () {
     store.startProgram('p_m_start');
     store.startSession();

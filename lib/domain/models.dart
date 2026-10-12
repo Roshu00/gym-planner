@@ -208,6 +208,26 @@ class Highlight {
   ];
 }
 
+/// How an exercise is counted: weight and reps, reps alone (push-ups,
+/// pull-ups, bands) or seconds held (plank).
+enum Measure {
+  weight('Kilaža i ponavljanja', 'Čučanj, bench, mašine, bučice'),
+  reps('Samo ponavljanja', 'Sklekovi, zgibovi, trbušnjaci, trake'),
+  time('Vreme', 'Plank, zidni čučanj, izdržaji');
+
+  const Measure(this.label, this.examples);
+  final String label;
+  final String examples;
+
+  /// The usual way for [equipment]: nothing to load means reps.
+  static Measure inferred(Set<Equipment> equipment) =>
+      equipment.every(
+        const {Equipment.bodyweight, Equipment.pullupBar, Equipment.band, Equipment.bench}.contains,
+      )
+      ? Measure.reps
+      : Measure.weight;
+}
+
 class Exercise {
   const Exercise({
     required this.id,
@@ -219,12 +239,19 @@ class Exercise {
     this.visibility = Audience.public,
     this.image,
     this.video,
+    this.measure,
   });
 
   final String id;
   final String creatorId;
   final String name;
   final Muscle muscle;
+
+  /// Set by the creator; null takes the usual one for the equipment.
+  final Measure? measure;
+
+  /// How this exercise is counted.
+  Measure get measured => measure ?? Measure.inferred(equipment);
 
   /// Picture of the movement; null shows the muscle group instead.
   final String? image;
@@ -255,6 +282,7 @@ class Exercise {
     'visibility': visibility.name,
     'image': image,
     'video': video,
+    'measure': measure?.name,
   };
 
   factory Exercise.fromJson(Map<String, Object?> j) => Exercise(
@@ -269,6 +297,7 @@ class Exercise {
     visibility: _enum(Audience.values, j['visibility'], Audience.public),
     image: j['image'] as String?,
     video: j['video'] as String?,
+    measure: Measure.values.where((m) => m.name == j['measure']).firstOrNull,
   );
 }
 
@@ -292,6 +321,9 @@ class WorkoutExercise {
 
   /// `4 × 6–8`
   String get target => '$sets × ${repsMin == repsMax ? '$repsMin' : '$repsMin–$repsMax'}';
+
+  /// [target] in the exercise's unit: `3 × 30–45 s` for a held exercise.
+  String targetFor(Measure m) => m == Measure.time ? '$target s' : target;
 
   WorkoutExercise copyWith({String? exerciseId, int? sets, int? repsMin, int? repsMax, int? restSeconds}) =>
       WorkoutExercise(
@@ -734,6 +766,7 @@ class SessionExercise {
     this.repsMin = 8,
     this.repsMax = 10,
     this.bodyweight = false,
+    this.timed = false,
     this.rir,
     this.note = '',
     this.noteBy,
@@ -748,6 +781,9 @@ class SessionExercise {
 
   /// Weight is optional (added load) when true.
   final bool bodyweight;
+
+  /// Held for time: a set's reps are seconds.
+  final bool timed;
 
   /// Snapshot of the prescription, e.g. `4 × 6–8`.
   final String target;
@@ -775,6 +811,7 @@ class SessionExercise {
     repsMin: repsMin,
     repsMax: repsMax,
     bodyweight: bodyweight,
+    timed: timed,
     restSeconds: restSeconds,
     rir: rir,
     note: note,
@@ -791,6 +828,7 @@ class SessionExercise {
     'repsMin': repsMin,
     'repsMax': repsMax,
     'bodyweight': bodyweight,
+    'timed': timed,
     'restSeconds': restSeconds,
     'rir': rir,
     'note': note,
@@ -807,6 +845,7 @@ class SessionExercise {
     repsMin: j['repsMin'] as int? ?? 8,
     repsMax: j['repsMax'] as int? ?? 10,
     bodyweight: j['bodyweight'] as bool? ?? false,
+    timed: j['timed'] as bool? ?? false,
     restSeconds: j['restSeconds'] as int? ?? 90,
     rir: j['rir'] as int?,
     note: j['note'] as String? ?? '',
@@ -846,6 +885,15 @@ class Session {
   double get volume => exercises.fold(0, (v, e) => v + e.volume);
   int get prCount => exercises.fold(0, (n, e) => n + e.sets.where((s) => s.isPr).length);
   int get doneSets => exercises.fold(0, (n, e) => n + e.doneSets.length);
+
+  /// Reps of exercises counted without weight (push-ups, pull-ups).
+  int get bodyweightReps => exercises
+      .where((e) => e.bodyweight && !e.timed)
+      .fold(0, (n, e) => n + e.doneSets.fold(0, (m, s) => m + (s.reps ?? 0)));
+
+  /// Seconds held in timed exercises (plank).
+  int get secondsHeld =>
+      exercises.where((e) => e.timed).fold(0, (n, e) => n + e.doneSets.fold(0, (m, s) => m + (s.reps ?? 0)));
 
   Session copyWith({List<SessionExercise>? exercises, DateTime? finishedAt, String? finishMessage}) =>
       Session(

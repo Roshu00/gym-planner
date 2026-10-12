@@ -185,6 +185,9 @@ class _ExerciseEditorState extends State<ExerciseEditor> {
   late Muscle _muscle = _existing?.muscle ?? Muscle.chest;
   late Set<Equipment> _equipment = {...?_existing?.equipment}..remove(Equipment.bodyweight);
   late Audience _audience = _existing?.visibility ?? Audience.public;
+
+  /// Null follows the equipment (nothing to load counts reps).
+  late Measure? _measure = _existing?.measure;
   late String? _video = _existing?.video;
   bool _uploading = false;
   String? _videoError;
@@ -343,6 +346,7 @@ class _ExerciseEditorState extends State<ExerciseEditor> {
         visibility: _audience,
         image: _existing?.image,
         video: _video,
+        measure: _measure,
       ),
     );
     Navigator.of(context).pop();
@@ -392,6 +396,16 @@ class _ExerciseEditorState extends State<ExerciseEditor> {
               ? 'Bez opreme: svi pratioci mogu da je rade.'
               : 'Pratioci bez ove opreme dobijaju zamenu.',
         ),
+        gapS,
+        Text('Kako se meri?', style: context.clText.label),
+        const SizedBox(height: ClSpace.s1),
+        for (final m in Measure.values)
+          ClOptionRow(
+            title: m.label,
+            meta: m.examples,
+            selected: (_measure ?? Measure.inferred(_equipment)) == m,
+            onPressed: () => setState(() => _measure = m == Measure.inferred(_equipment) ? null : m),
+          ),
         gapS,
         _videoSection(),
         gap,
@@ -540,20 +554,42 @@ class _WorkoutEditorState extends State<WorkoutEditor> {
             max: 10,
             onChanged: (v) => _update(i, we.copyWith(sets: v)),
           ),
-          ClStepper(
-            label: 'Ponavljanja od',
-            value: we.repsMin,
-            min: 1,
-            max: 50,
-            onChanged: (v) => _update(i, we.copyWith(repsMin: v, repsMax: v > we.repsMax ? v : null)),
-          ),
-          ClStepper(
-            label: 'Ponavljanja do',
-            value: we.repsMax,
-            min: we.repsMin,
-            max: 50,
-            onChanged: (v) => _update(i, we.copyWith(repsMax: v)),
-          ),
+          // A held exercise is prescribed in seconds, by five.
+          if (store.exercisesById[we.exerciseId]?.measured == Measure.time) ...[
+            ClStepper(
+              label: 'Sekunde od',
+              value: we.repsMin,
+              min: 5,
+              max: 300,
+              step: 5,
+              format: formatSeconds,
+              onChanged: (v) => _update(i, we.copyWith(repsMin: v, repsMax: v > we.repsMax ? v : null)),
+            ),
+            ClStepper(
+              label: 'Sekunde do',
+              value: we.repsMax,
+              min: we.repsMin,
+              max: 300,
+              step: 5,
+              format: formatSeconds,
+              onChanged: (v) => _update(i, we.copyWith(repsMax: v)),
+            ),
+          ] else ...[
+            ClStepper(
+              label: 'Ponavljanja od',
+              value: we.repsMin,
+              min: 1,
+              max: 50,
+              onChanged: (v) => _update(i, we.copyWith(repsMin: v, repsMax: v > we.repsMax ? v : null)),
+            ),
+            ClStepper(
+              label: 'Ponavljanja do',
+              value: we.repsMax,
+              min: we.repsMin,
+              max: 50,
+              onChanged: (v) => _update(i, we.copyWith(repsMax: v)),
+            ),
+          ],
           ClStepper(
             label: 'Odmor',
             value: we.restSeconds,

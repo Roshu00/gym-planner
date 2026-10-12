@@ -51,6 +51,7 @@ Row exerciseRow(Exercise e) => {
   'audience': e.visibility.name,
   'image_url': e.image,
   'video_url': e.video,
+  'measure': e.measure?.name,
 };
 
 Exercise exerciseFromRow(Row r) => Exercise(
@@ -63,6 +64,7 @@ Exercise exerciseFromRow(Row r) => Exercise(
   visibility: _enum(Audience.values, r['audience'], Audience.public),
   image: r['image_url'] as String?,
   video: r['video_url'] as String?,
+  measure: Measure.values.where((m) => m.name == r['measure']).firstOrNull,
 );
 
 Row workoutRow(Workout w) => {

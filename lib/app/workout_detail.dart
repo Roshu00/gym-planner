@@ -106,7 +106,7 @@ class WorkoutDetailScreen extends StatelessWidget {
                 label: '${i + 1}'.padLeft(2, '0'),
               ),
               title: e.name,
-              meta: prescription(we.target, we.rir, we.restSeconds),
+              meta: prescription(we.targetFor(e.measured), we.rir, we.restSeconds),
               tags: [
                 if (!canDo(e, store.equipment)) const ClTag('Nemaš opremu', variant: ClTagVariant.danger),
               ],

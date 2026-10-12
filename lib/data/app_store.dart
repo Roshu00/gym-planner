@@ -811,10 +811,11 @@ class AppStore extends ChangeNotifier {
     exerciseId: e.id,
     name: e.name,
     muscle: e.muscle,
-    target: we.target,
+    target: we.targetFor(e.measured),
     repsMin: we.repsMin,
     repsMax: we.repsMax,
-    bodyweight: e.isBodyweight,
+    bodyweight: e.measured != Measure.weight,
+    timed: e.measured == Measure.time,
     restSeconds: we.restSeconds,
     rir: we.rir,
     note: e.note,
@@ -878,6 +879,8 @@ class AppStore extends ChangeNotifier {
     repsMax: e.repsMax,
     step: weightStepsFor(e).step,
     bodyweight: e.bodyweight,
+    // A held exercise moves on by five seconds, not one.
+    repStep: e.timed ? 5 : 1,
   );
 
   /// Where an empty weight starts and how far − and + move it for [e].

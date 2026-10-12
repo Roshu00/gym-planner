@@ -370,6 +370,16 @@ class SeedCatalog {
 
     // Jelena
     Exercise(
+      id: 'j_plank',
+      image: '$_exerciseDb/Plank/0.jpg',
+      creatorId: 'c_jelena',
+      name: 'Plank',
+      muscle: Muscle.core,
+      equipment: {Equipment.bodyweight},
+      measure: Measure.time,
+      note: 'Telo kao daska: stisni gluteus, pupak ka kičmi, diši.',
+    ),
+    Exercise(
       id: 'j_goblet',
       image: '$_exerciseDb/Goblet_Squat/0.jpg',
       creatorId: 'c_jelena',
@@ -1134,6 +1144,7 @@ class SeedCatalog {
           restSeconds: 60,
         ),
         WorkoutExercise(exerciseId: 'j_deadbug', sets: 3, repsMin: 10, repsMax: 10, restSeconds: 45),
+        WorkoutExercise(exerciseId: 'j_plank', sets: 3, repsMin: 30, repsMax: 45, restSeconds: 45),
       ],
     ),
     Workout(

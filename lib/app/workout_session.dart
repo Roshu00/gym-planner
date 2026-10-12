@@ -116,6 +116,8 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         p.wasEasy
             ? 'Prošli put je bilo lako. Danas ${formatNumber(kg)} kg.'
             : 'Prošli put gornja granica ponavljanja. Danas ${formatNumber(kg)} kg.',
+      ProgressionKind.moreReps when e.timed => 'Pet sekundi duže nego prošli put.',
+      ProgressionKind.moreReps when e.bodyweight => 'Jedno ponavljanje više nego prošli put.',
       ProgressionKind.moreReps => 'Ista težina, jedno ponavljanje više nego prošli put.',
       ProgressionKind.same => 'Prošli put je bilo teško. Danas isti brojevi, čistije.',
       _ => null,
@@ -128,10 +130,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     final v = _valuesOf(e, setIndex);
     final result = await showClSheet<String>(
       context,
-      title: kg ? 'Težina' : 'Ponavljanja',
+      title: kg ? 'Težina' : (e.timed ? 'Sekunde' : 'Ponavljanja'),
       label: 'Set ${setIndex + 1} · ${e.name}',
       builder: (context) => _NumberSheet(
-        label: kg ? 'kg' : 'ponavljanja',
+        label: kg ? 'kg' : (e.timed ? 'sekundi' : 'ponavljanja'),
         initial: kg ? (v.kg == null ? '' : formatNumber(v.kg!)) : '${v.reps}',
       ),
     );
@@ -474,10 +476,12 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           _FocusSet(
             number: current + 1,
             total: e.sets.length,
-            previous: prev.isEmpty ? null : setLabel(prev[current.clamp(0, prev.length - 1)]),
+            previous: prev.isEmpty ? null : setLabel(prev[current.clamp(0, prev.length - 1)], timed: e.timed),
             kg: _valuesOf(e, current).kg,
             reps: _valuesOf(e, current).reps,
             bodyweight: e.bodyweight,
+            timed: e.timed,
+            onHeld: () => _toggle(current),
             weightStart: store.weightStepsFor(e).start,
             weightStep: store.weightStepsFor(e).step,
             hint: _progressHint(e),
@@ -492,9 +496,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
             _SetLine(
               number: j + 1,
               label: s.done
-                  ? setLabel(s)
+                  ? setLabel(s, timed: e.timed)
                   : () {
                       final v = _valuesOf(e, j);
+                      if (e.timed) return formatSeconds(v.reps);
                       return v.kg == null || e.bodyweight
                           ? '${v.reps} pon.'
                           : '${formatNumber(v.kg!)} kg × ${v.reps}';
@@ -609,6 +614,8 @@ class _FocusSet extends StatelessWidget {
     required this.kg,
     required this.reps,
     required this.bodyweight,
+    required this.timed,
+    required this.onHeld,
     required this.weightStart,
     required this.weightStep,
     required this.onKg,
@@ -624,6 +631,12 @@ class _FocusSet extends StatelessWidget {
 
   /// Today's step forward from last time, e.g. "Danas 22,5 kg."
   final String? hint;
+
+  /// Held for time: the second number is seconds, with a countdown.
+  final bool timed;
+
+  /// The countdown reached zero: the set is done.
+  final VoidCallback onHeld;
 
   final int number;
   final int total;
@@ -678,15 +691,113 @@ class _FocusSet extends StatelessWidget {
             ),
           ],
           const SizedBox(height: ClSpace.s3),
-          _Stepper(
-            value: '$reps',
-            unit: 'ponavljanja',
-            onMinus: reps > 1 ? () => onReps(reps - 1) : null,
-            onPlus: () => onReps(reps + 1),
-            onType: onTypeReps,
-          ),
+          if (timed) ...[
+            _Stepper(
+              value: formatSeconds(reps),
+              unit: 'drži',
+              onMinus: reps > 5 ? () => onReps(reps - 5) : null,
+              onPlus: () => onReps(reps + 5),
+              onType: onTypeReps,
+            ),
+            const SizedBox(height: ClSpace.s3),
+            _HoldTimer(key: ValueKey('$number-$reps'), seconds: reps, onDone: onHeld),
+          ] else
+            _Stepper(
+              value: '$reps',
+              unit: 'ponavljanja',
+              onMinus: reps > 1 ? () => onReps(reps - 1) : null,
+              onPlus: () => onReps(reps + 1),
+              onType: onTypeReps,
+            ),
         ],
       ),
+    );
+  }
+}
+
+/// A held set: start, a countdown with a bar, and the set is done at zero.
+class _HoldTimer extends StatefulWidget {
+  const _HoldTimer({super.key, required this.seconds, required this.onDone});
+
+  final int seconds;
+  final VoidCallback onDone;
+
+  @override
+  State<_HoldTimer> createState() => _HoldTimerState();
+}
+
+class _HoldTimerState extends State<_HoldTimer> {
+  Timer? _timer;
+  int _left = 0;
+
+  bool get _running => _timer != null;
+
+  void _start() {
+    HapticFeedback.mediumImpact();
+    setState(() => _left = widget.seconds);
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return t.cancel();
+      if (_left <= 1) {
+        t.cancel();
+        _timer = null;
+        HapticFeedback.heavyImpact();
+        widget.onDone();
+        return;
+      }
+      if (_left <= 4) HapticFeedback.selectionClick();
+      setState(() => _left--);
+    });
+  }
+
+  void _stop() {
+    _timer?.cancel();
+    setState(() => _timer = null);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.cl;
+    final c = cl.colors;
+    if (!_running) {
+      return ClButton(
+        label: 'Pokreni · ${formatSeconds(widget.seconds)}',
+        variant: ClButtonVariant.secondary,
+        icon: ClIcons.timer,
+        expand: true,
+        onPressed: _start,
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                formatClock(Duration(seconds: _left)),
+                style: cl.text.metricL.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+              ),
+            ),
+            ClButton(label: 'Zaustavi', variant: ClButtonVariant.text, onPressed: _stop),
+          ],
+        ),
+        const SizedBox(height: ClSpace.s2),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: LinearProgressIndicator(
+            value: 1 - _left / widget.seconds,
+            minHeight: 6,
+            color: c.ink,
+            backgroundColor: c.surfaceRaised,
+          ),
+        ),
+      ],
     );
   }
 }

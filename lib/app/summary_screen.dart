@@ -146,7 +146,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
   static String _detail(SessionExercise e) {
     final top = topSet(e);
     final sets = countLabel(e.doneSets.length, 'set', 'seta', 'setova');
-    return top == null ? sets : '$sets · najbolji ${setLabel(top)}';
+    return top == null ? sets : '$sets · najbolji ${setLabel(top, timed: e.timed)}';
   }
 }
 
@@ -163,7 +163,7 @@ class _Baseline extends StatelessWidget {
     final c = cl.colors;
     final rows = [
       for (final e in session.exercises)
-        if (topSet(e) case final top?) (e.name, setLabel(top)),
+        if (topSet(e) case final top?) (e.name, setLabel(top, timed: e.timed)),
     ];
     return Container(
       padding: const EdgeInsets.all(ClSpace.s4),

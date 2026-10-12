@@ -280,9 +280,8 @@ class StorySticker extends StatelessWidget {
       ),
     );
     final s = session;
-    final volume = s.volume >= 1000
-        ? '${formatNumber(s.volume / 1000)} t'
-        : '${formatNumber(s.volume, maxDecimals: 0)} kg';
+    // Kilograms, or reps / time held on a bodyweight day: never "0 kg".
+    final work = sessionWork(s);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,7 +302,7 @@ class StorySticker extends StatelessWidget {
         Row(
           children: [
             stat('Vreme', formatDuration(s.duration)),
-            stat('Volumen', volume),
+            stat(work.label, work.value),
             if (s.prCount > 0) stat('Rekordi', '${s.prCount}') else stat('Setova', '${s.doneSets}'),
           ],
         ),

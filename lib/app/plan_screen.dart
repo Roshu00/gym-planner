@@ -152,7 +152,7 @@ class PlanWorkoutScreen extends StatelessWidget {
               title: e.name,
               meta: [
                 if (e.id != original.id) 'Zamena za ${original.name}',
-                prescription(we.target, we.rir, we.restSeconds),
+                prescription(we.targetFor(e.measured), we.rir, we.restSeconds),
               ].join(' · '),
               tags: [
                 if (!canDo(e, store.equipment)) const ClTag('Nemaš opremu', variant: ClTagVariant.danger),
