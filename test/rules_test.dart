@@ -275,4 +275,51 @@ void main() {
     expect(a.reasons, containsAll(['Snaga', 'Početnik', 'Teretana', '3× nedeljno', 'Imaš svu opremu']));
     expect(b.score, lessThan(a.score));
   });
+
+  group('progression: next time\'s numbers', () {
+    Progression? next(List<SetLog> last, {bool bodyweight = false}) =>
+        nextProgression(last: last, repsMin: 8, repsMax: 10, step: 2.5, bodyweight: bodyweight);
+
+    test('the first time there is nothing to move on from', () {
+      expect(next(const []), isNull);
+    });
+
+    test('easy sets get heavier, back to the bottom of the range', () {
+      final p = next(const [SetLog(kg: 20, reps: 8, rir: 3), SetLog(kg: 20, reps: 8, rir: 3)])!;
+      expect(p.kind, ProgressionKind.heavier);
+      expect(p.wasEasy, isTrue);
+      expect(p.sets.map((s) => (s.kg, s.reps)), [(22.5, 8), (22.5, 8)]);
+    });
+
+    test('the top of the range gets heavier too', () {
+      final p = next(const [SetLog(kg: 40, reps: 10, rir: 2), SetLog(kg: 40, reps: 10)])!;
+      expect(p.kind, ProgressionKind.heavier);
+      expect(p.wasEasy, isFalse);
+      expect(p.sets.first.kg, 42.5);
+    });
+
+    test('in the range: same weight, one more rep', () {
+      final p = next(const [SetLog(kg: 30, reps: 8, rir: 2), SetLog(kg: 30, reps: 9, rir: 2)])!;
+      expect(p.kind, ProgressionKind.moreReps);
+      expect(p.sets.map((s) => (s.kg, s.reps)), [(30.0, 9), (30.0, 10)]);
+    });
+
+    test('hard or short of the range: the same numbers again', () {
+      final p = next(const [SetLog(kg: 50, reps: 6, rir: 0), SetLog(kg: 50, reps: 7, rir: 0)])!;
+      expect(p.kind, ProgressionKind.same);
+      expect(p.sets.map((s) => (s.kg, s.reps)), [(50.0, 6), (50.0, 7)]);
+    });
+
+    test('bodyweight moves on by reps, past the range', () {
+      final p = next(const [SetLog(kg: 0, reps: 10, rir: 3)], bodyweight: true)!;
+      expect(p.kind, ProgressionKind.moreReps);
+      expect(p.sets.single.reps, 11);
+    });
+
+    test('weights start and step by equipment', () {
+      expect(weightSteps({Equipment.barbell, Equipment.bench}), (start: 20.0, step: 2.5));
+      expect(weightSteps({Equipment.dumbbell}), (start: 2.0, step: 2.0));
+      expect(weightSteps({Equipment.machine}), (start: 10.0, step: 5.0));
+    });
+  });
 }

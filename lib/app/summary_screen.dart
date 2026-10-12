@@ -36,7 +36,12 @@ class _SummaryScreenState extends State<SummaryScreen> {
     }
     final date = s.finishedAt ?? s.startedAt;
     final first = store.isFirstSession(s.id);
-    final message = s.finishMessage.isNotEmpty
+    final planned = store.plannedSets(s);
+    // The trainer's "great workout" only fits a workout done (nearly) in full.
+    final message = !store.finishedInFull(s) && planned != null
+        ? 'Urađeno ${s.doneSets} od ${countLabel(planned, 'seta', 'seta', 'setova')}. '
+              'I to se računa. Sledeći put idemo do kraja.'
+        : s.finishMessage.isNotEmpty
         ? s.finishMessage
         : (store.nextWorkout == null
               ? 'Vidimo se na sledećem treningu.'

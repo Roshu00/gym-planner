@@ -89,7 +89,7 @@ class TodayScreen extends StatelessWidget {
             const SizedBox(height: ClSpace.s2),
             Text('Sledeće: $upcomingName, ${dayInSentence(upcoming.key, day)}', style: cl.text.bodyStrong),
           ],
-          if (doneToday.finishMessage.isNotEmpty && doneBy != null) ...[
+          if (doneToday.finishMessage.isNotEmpty && doneBy != null && store.finishedInFull(doneToday)) ...[
             gap,
             _CreatorQuote(creator: doneBy, text: doneToday.finishMessage),
           ],

@@ -251,3 +251,74 @@ typedef PlanCriteria = ({Goal goal, Experience level, Place place, int daysPerWe
   if (ratio == 1) reasons.add('Imaš svu opremu');
   return (score: score, reasons: reasons);
 }
+
+// ───────────────────────── Progression
+
+/// Where an empty weight starts and how far one tap moves it, from what the
+/// exercise is done with: an empty bar is 20 kg, machine stacks go by 5.
+({double start, double step}) weightSteps(Set<Equipment> equipment) {
+  if (equipment.contains(Equipment.barbell)) return (start: 20, step: 2.5);
+  if (equipment.contains(Equipment.machine)) return (start: 10, step: 5);
+  if (equipment.contains(Equipment.cable)) return (start: 5, step: 2.5);
+  if (equipment.contains(Equipment.kettlebell)) return (start: 8, step: 4);
+  if (equipment.contains(Equipment.dumbbell)) return (start: 2, step: 2);
+  return (start: 0, step: 2.5);
+}
+
+enum ProgressionKind {
+  /// Last time was easy or hit the top of the rep range: more weight.
+  heavier,
+
+  /// In the range: same weight, one more rep.
+  moreReps,
+
+  /// Last time was hard or short of the range: the same numbers again.
+  same,
+}
+
+typedef Progression = ({ProgressionKind kind, bool wasEasy, List<SetLog> sets});
+
+/// Next time's numbers for an exercise, the way a coach would set them
+/// (double progression): from last time's sets and how they felt, where
+/// "Lako" is 3 reps in reserve and "Teško" 0.
+Progression? nextProgression({
+  required List<SetLog> last,
+  required int repsMin,
+  required int repsMax,
+  required double step,
+  required bool bodyweight,
+}) {
+  final sets = [
+    for (final s in last)
+      if (s.reps != null) s,
+  ];
+  if (sets.isEmpty) return null;
+  final half = (sets.length + 1) ~/ 2;
+  final hard = sets.where((s) => s.rir == 0 || s.reps! < repsMin).length;
+  final easy = sets.where((s) => (s.rir ?? 0) >= 3).length;
+  final top = sets.every((s) => s.reps! >= repsMax);
+  final weighted = !bodyweight && sets.every((s) => (s.kg ?? 0) > 0);
+
+  if (hard >= half) {
+    return (
+      kind: ProgressionKind.same,
+      wasEasy: false,
+      sets: [for (final s in sets) SetLog(kg: s.kg, reps: s.reps)],
+    );
+  }
+  if (weighted && (top || easy >= half)) {
+    return (
+      kind: ProgressionKind.heavier,
+      wasEasy: !top,
+      sets: [for (final s in sets) SetLog(kg: s.kg! + step, reps: repsMin)],
+    );
+  }
+  return (
+    kind: ProgressionKind.moreReps,
+    wasEasy: false,
+    sets: [
+      for (final s in sets)
+        SetLog(kg: s.kg, reps: bodyweight || !weighted ? s.reps! + 1 : math.min(s.reps! + 1, repsMax)),
+    ],
+  );
+}

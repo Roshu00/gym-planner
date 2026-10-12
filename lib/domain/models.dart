@@ -352,8 +352,10 @@ class Workout {
   int get totalSets => exercises.fold(0, (s, e) => s + e.sets);
 
   /// ~45 s per set plus prescribed rest, rounded to 5 min.
+  /// Sets with their rest, plus a warm-up and a minute to set up each
+  /// exercise, as trainers count a workout.
   int get estimatedMinutes {
-    final seconds = exercises.fold(0, (s, e) => s + e.sets * (45 + e.restSeconds));
+    final seconds = 5 * 60 + exercises.fold(0, (s, e) => s + 60 + e.sets * (45 + e.restSeconds));
     return ((seconds / 60) / 5).ceil() * 5;
   }
 

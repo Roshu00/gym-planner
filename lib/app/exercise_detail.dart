@@ -112,7 +112,10 @@ class ExerciseDetailScreen extends StatelessWidget {
         gap,
         const ClSectionHeader(label: 'Istorija'),
         if (history.isEmpty)
-          const ClNotice('Još nisi radio ovu vežbu. Posle prvog treninga ovde su tvoji setovi.'),
+          ClNotice(
+            'Još nisi ${store.profile?.says('radio', 'radila') ?? 'radio'} ovu vežbu. '
+            'Posle prvog treninga ovde su tvoji setovi.',
+          ),
         for (final h in history.take(8))
           ClListRow(
             title: formatDate(h.session.finishedAt!),

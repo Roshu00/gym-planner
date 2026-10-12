@@ -106,6 +106,22 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     HapticFeedback.selectionClick();
   }
 
+  /// What the progression set for today, in the trainer's words.
+  String? _progressHint(SessionExercise e) {
+    final p = _store.progressionFor(e);
+    if (p == null) return null;
+    final kg = p.sets.first.kg;
+    return switch (p.kind) {
+      ProgressionKind.heavier when kg != null =>
+        p.wasEasy
+            ? 'Prošli put je bilo lako. Danas ${formatNumber(kg)} kg.'
+            : 'Prošli put gornja granica ponavljanja. Danas ${formatNumber(kg)} kg.',
+      ProgressionKind.moreReps => 'Ista težina, jedno ponavljanje više nego prošli put.',
+      ProgressionKind.same => 'Prošli put je bilo teško. Danas isti brojevi, čistije.',
+      _ => null,
+    };
+  }
+
   /// Typing a number, for when − and + are too far off (first time, a jump).
   Future<void> _typeValue(int setIndex, {required bool kg}) async {
     final e = _store.active!.exercises[_exercise!];
@@ -190,7 +206,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     final s = _store.active!;
     final open = s.exercises.fold(0, (n, e) => n + e.sets.where((x) => !x.done).length);
     if (s.doneSets == 0) {
-      setState(() => _notice = 'Završi bar jedan set da bi sačuvao trening.');
+      setState(
+        () => _notice =
+            'Završi bar jedan set da bi ${_store.profile?.says('sačuvao', 'sačuvala') ?? 'sačuvao'} trening.',
+      );
       return;
     }
     if (open > 0) {
@@ -199,7 +218,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         title: 'Završi trening?',
         message:
             '${countLabel(open, 'set nije završen', 'seta nisu završena', 'setova nije završeno')}. '
-            'Čuvamo samo ono što si uradio.',
+            'Čuvamo samo ono što si ${_store.profile?.says('uradio', 'uradila') ?? 'uradio'}.',
         confirmLabel: 'Završi trening',
       );
       if (!ok || !mounted) return;
@@ -459,6 +478,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
             kg: _valuesOf(e, current).kg,
             reps: _valuesOf(e, current).reps,
             bodyweight: e.bodyweight,
+            weightStart: store.weightStepsFor(e).start,
+            weightStep: store.weightStepsFor(e).step,
+            hint: _progressHint(e),
             onKg: (v) => _setKg(current, v),
             onReps: (v) => _setReps(current, v),
             onTypeKg: () => _typeValue(current, kg: true),
@@ -587,11 +609,21 @@ class _FocusSet extends StatelessWidget {
     required this.kg,
     required this.reps,
     required this.bodyweight,
+    required this.weightStart,
+    required this.weightStep,
     required this.onKg,
     required this.onReps,
     required this.onTypeKg,
     required this.onTypeReps,
+    this.hint,
   });
+
+  /// The first + on an empty weight (an empty bar is 20 kg), and each step.
+  final double weightStart;
+  final double weightStep;
+
+  /// Today's step forward from last time, e.g. "Danas 22,5 kg."
+  final String? hint;
 
   final int number;
   final int total;
@@ -624,14 +656,24 @@ class _FocusSet extends StatelessWidget {
               if (previous != null) Text('Prošli put $previous', style: cl.text.label),
             ],
           ),
+          if (hint != null) ...[
+            const SizedBox(height: ClSpace.s2),
+            Row(
+              children: [
+                Icon(ClIcons.streak, size: 18, color: c.ink),
+                const SizedBox(width: ClSpace.s2),
+                Expanded(child: Text(hint!, style: cl.text.bodyStrong.copyWith(fontSize: 14))),
+              ],
+            ),
+          ],
           if (!bodyweight) ...[
             const SizedBox(height: ClSpace.s3),
             _Stepper(
               value: kg == null ? null : formatNumber(kg!),
               unit: 'kg',
               empty: 'Upiši kg',
-              onMinus: kg == null ? null : () => onKg(kg! - 2.5),
-              onPlus: () => onKg((kg ?? 0) + 2.5),
+              onMinus: kg == null ? null : () => onKg(kg! - weightStep),
+              onPlus: () => onKg(kg == null ? weightStart : kg! + weightStep),
               onType: onTypeKg,
             ),
           ],

@@ -60,7 +60,9 @@ class WorkoutDetailScreen extends StatelessWidget {
         image: photoOf(w.image),
         color: context.clColors.popFor(w.id),
         label: '${c?.name ?? ''} · ${workoutMeta(w)}',
-        height: 320,
+        // 4:5 like an Instagram post, as on the trainer's profile.
+        height: MediaQuery.sizeOf(context).width * 5 / 4,
+        imageAlignment: Alignment.topCenter,
         compact: true,
         topBar: Row(
           children: [
@@ -90,12 +92,10 @@ class WorkoutDetailScreen extends StatelessWidget {
         for (final (i, we) in w.exercises.indexed)
           if (store.exercisesById[we.exerciseId] case final e?)
             ClListRow(
-              leading: SizedBox(
-                width: 24,
-                child: Text(
-                  '${i + 1}'.padLeft(2, '0'),
-                  style: cl.text.data.copyWith(color: cl.colors.inkMuted),
-                ),
+              leading: ListThumb(
+                image: photoOf(e.image),
+                color: cl.colors.popFor(e.id),
+                label: '${i + 1}'.padLeft(2, '0'),
               ),
               title: e.name,
               meta: prescription(we.target, we.rir, we.restSeconds),

@@ -339,3 +339,31 @@ void showUndoToast(BuildContext context, String message, {VoidCallback? onUndo})
     ),
   );
 }
+
+/// A list row's picture: the photo, or its number on a pop color without
+/// one.
+class ListThumb extends StatelessWidget {
+  const ListThumb({super.key, required this.image, required this.color, required this.label});
+
+  final ImageProvider? image;
+  final Color color;
+
+  /// Shown on the color when there is no photo, e.g. `01`.
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(ClRadius.sm),
+    child: SizedBox.square(
+      dimension: 56,
+      child: image == null
+          ? ColoredBox(
+              color: color,
+              child: Center(
+                child: Text(label, style: context.clText.data.copyWith(color: context.clColors.onPop)),
+              ),
+            )
+          : ClPhoto(image: image, placeholderLabel: ''),
+    ),
+  );
+}

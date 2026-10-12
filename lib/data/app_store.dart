@@ -838,10 +838,34 @@ class AppStore extends ChangeNotifier {
     return ConfirmSetResult.done;
   }
 
-  /// What an empty set defaults to: the same set last time, else the
-  /// previous set done in this session.
+  /// Next time's numbers for [e], from last time and how it felt; null the
+  /// first time.
+  Progression? progressionFor(SessionExercise e) => nextProgression(
+    last: previousSets(sessions, e.exerciseId),
+    repsMin: e.repsMin,
+    repsMax: e.repsMax,
+    step: weightStepsFor(e).step,
+    bodyweight: e.bodyweight,
+  );
+
+  /// Where an empty weight starts and how far − and + move it for [e].
+  ({double start, double step}) weightStepsFor(SessionExercise e) =>
+      weightSteps(exercisesById[e.exerciseId]?.equipment ?? const {});
+
+  /// Whether [s] was done in full (or nearly), so the trainer's "great
+  /// workout" message fits. A session of an unknown workout counts as full.
+  bool finishedInFull(Session s) {
+    final planned = plannedSets(s);
+    return planned == null || planned == 0 || s.doneSets >= planned * 0.75;
+  }
+
+  /// How many sets [s]'s workout prescribes; null for an unknown workout.
+  int? plannedSets(Session s) => workoutsById[s.workoutId]?.exercises.fold(0, (n, e) => n! + e.sets);
+
+  /// What an empty set defaults to: last time's set moved on by the
+  /// progression, else the previous set done in this session.
   SetLog? suggestedSet(SessionExercise e, int setIndex) {
-    final prev = previousSets(sessions, e.exerciseId);
+    final prev = progressionFor(e)?.sets ?? const [];
     if (prev.isNotEmpty) return prev[math.min(setIndex, prev.length - 1)];
     for (var i = setIndex - 1; i >= 0; i--) {
       if (e.sets[i].done) return e.sets[i];

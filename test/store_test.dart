@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:chalkline/data/app_store.dart';
 import 'package:chalkline/data/storage.dart';
 import 'package:chalkline/domain/models.dart';
+import 'package:chalkline/domain/rules.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const gymProfile = UserProfile(
@@ -206,13 +207,15 @@ void main() {
     expect(store.thisWeek, 1);
     expect(store.streak, 1);
 
-    // Next A session: empty fields take last time's values; heavier is a PR.
+    // Next A session: last time's 60 × 8 was the top of the range, so the
+    // empty set moves on to 62.5 kg (double progression); heavier is a PR.
     clock = clock.add(const Duration(days: 2));
     store.setNextWorkout(0);
     store.startSession();
+    expect(store.progressionFor(store.active!.exercises[0])!.kind, ProgressionKind.heavier);
     expect(store.toggleSet(0, 0), ConfirmSetResult.done);
-    expect(store.active!.exercises[0].sets[0].kg, 60);
-    expect(store.active!.exercises[0].sets[0].isPr, isFalse);
+    expect(store.active!.exercises[0].sets[0].kg, 62.5);
+    expect(store.active!.exercises[0].sets[0].isPr, isTrue);
     store.updateSet(0, 1, const SetLog(kg: 65, reps: 8));
     store.toggleSet(0, 1);
     expect(store.active!.exercises[0].sets[1].isPr, isTrue);
@@ -221,8 +224,18 @@ void main() {
     store.toggleSet(0, 2);
     expect(store.active!.exercises[0].sets[2].isPr, isFalse);
     final second = store.finishSession();
-    expect(second.prCount, 1);
-    expect(second.volume, 60 * 8 + 65 * 8 * 2);
+    expect(second.prCount, 2);
+    expect(second.volume, 62.5 * 8 + 65 * 8 * 2);
+  });
+
+  test('a workout cut short is not finished in full', () {
+    store.startProgram('p_m_start');
+    store.startSession();
+    store.updateSet(0, 0, const SetLog(kg: 60, reps: 8));
+    store.toggleSet(0, 0);
+    final s = store.finishSession();
+    expect(store.plannedSets(s), greaterThan(4));
+    expect(store.finishedInFull(s), isFalse);
   });
 
   test('first time: weight carries over from the previous set', () {

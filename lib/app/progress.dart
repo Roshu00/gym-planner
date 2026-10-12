@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../domain/rules.dart';
@@ -66,7 +68,9 @@ class _ProgressContentState extends State<ProgressContent> {
     final selected = frequency.containsKey(_exerciseId) ? _exerciseId! : top.first.key;
     final exerciseInfo = frequency[selected]!;
     final points = exerciseHistory(history, selected);
-    final volume = weeklyVolume(history, store.now, 8);
+    // From the first week trained on: empty weeks before it are not a drop.
+    final weeks = weeklyVolume(history, store.now, 8);
+    final volume = weeks.sublist(math.max(0, weeks.indexWhere((v) => v.volume > 0)));
     final bestWeek = volume.indexed.reduce((a, b) => b.$2.volume > a.$2.volume ? b : a).$1;
 
     return Column(
@@ -74,13 +78,19 @@ class _ProgressContentState extends State<ProgressContent> {
       children: [
         stats,
         gap,
-        ClLineChart(
-          title: 'Nedeljni volumen · najbolja nedelja',
-          unit: 'kg',
-          highlightIndex: bestWeek,
-          height: 150,
-          points: [for (final v in volume) ClChartPoint(formatDate(v.week, now: store.now), v.volume)],
-        ),
+        if (volume.length < 2)
+          ClNotice(
+            'Ove nedelje ${formatNumber(volume.last.volume, maxDecimals: 0)} kg ukupno. '
+            'Od sledeće nedelje ovde je grafikon napretka.',
+          )
+        else
+          ClLineChart(
+            title: 'Nedeljni volumen · najbolja nedelja',
+            unit: 'kg',
+            highlightIndex: bestWeek,
+            height: 150,
+            points: [for (final v in volume) ClChartPoint(formatDate(v.week, now: store.now), v.volume)],
+          ),
         gap,
         ClSectionHeader(
           label: 'Vežba · ${exerciseInfo.bodyweight ? 'najviše ponavljanja' : 'procenjeni 1RM'}',
