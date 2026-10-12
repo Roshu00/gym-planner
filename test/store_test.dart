@@ -238,6 +238,30 @@ void main() {
     expect(store.finishedInFull(s), isFalse);
   });
 
+  test('a workout from another program is a trial of it, until the user switches', () {
+    store.startProgram('p_m_start');
+    store.startSession(workoutId: 'w_ab_glute_a');
+    store.updateSet(0, 0, const SetLog(kg: 40, reps: 8));
+    store.toggleSet(0, 0);
+    final tried = store.finishSession();
+    expect(store.trialProgramOf(tried)?.id, 'p_ab_fit');
+    expect(store.hasTried(store.programsById['p_ab_fit']!), isTrue);
+
+    store.startProgram('p_ab_fit');
+    expect(store.trialProgramOf(tried), isNull, reason: 'already on it');
+    expect(store.plan!.nextIndex, 1, reason: 'the workout tried today counts as the first');
+    expect(store.plan!.completed, 1);
+    expect(store.hasTried(store.programsById['p_ab_fit']!), isFalse);
+  });
+
+  test('a plan workout is not a trial', () {
+    store.startProgram('p_m_start');
+    store.startSession();
+    store.updateSet(0, 0, const SetLog(kg: 60, reps: 8));
+    store.toggleSet(0, 0);
+    expect(store.trialProgramOf(store.finishSession()), isNull);
+  });
+
   test('first time: weight carries over from the previous set', () {
     store.startProgram('p_m_start');
     store.startSession();

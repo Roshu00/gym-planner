@@ -11,6 +11,7 @@ import 'plan_finder.dart';
 import 'program_detail.dart';
 import 'shell.dart';
 import 'summary_screen.dart';
+import 'trial_offer.dart';
 import 'workout_session.dart';
 
 /// Every morning. Three states:
@@ -93,8 +94,14 @@ class TodayScreen extends StatelessWidget {
             gap,
             _CreatorQuote(creator: doneBy, text: doneToday.finishMessage),
           ],
+          // A workout tried from another program: offer to switch to it.
+          if (store.trialProgramOf(doneToday) != null) ...[gap, TrialOffer(session: doneToday)],
           // The best moment to offer reminders: right after showing up.
-          if (!store.reminderSettings.enabled && !store.reminderSettings.asked && upcoming != null) ...[
+          // One offer at a time: the program first.
+          if (!store.reminderSettings.enabled &&
+              !store.reminderSettings.asked &&
+              upcoming != null &&
+              store.trialProgramOf(doneToday) == null) ...[
             gap,
             const _ReminderOffer(),
           ],

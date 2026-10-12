@@ -18,7 +18,9 @@ Future<void> startProgramFlow(BuildContext context, String programId) async {
     final ok = await confirmClSheet(
       context,
       title: 'Novi program?',
-      message: 'Trenutni plan „${current.name}” se zamenjuje. Istorija treninga ostaje.',
+      message:
+          'Umesto „${current.name}” treniraš „${store.programsById[programId]?.name ?? ''}”. '
+          'Istorija treninga ostaje.',
       confirmLabel: 'Počni program',
     );
     if (!ok || !context.mounted) return;
@@ -68,7 +70,10 @@ class ProgramDetailScreen extends StatelessWidget {
         onPressed: () => pushScreen(context, const PlanScreen()),
       );
     } else {
-      action = ClButton.block(label: 'Počni program', onPressed: () => startProgramFlow(context, programId));
+      action = ClButton.block(
+        label: store.hasTried(p) ? 'Pređi na ovaj program' : 'Počni program',
+        onPressed: () => startProgramFlow(context, programId),
+      );
     }
 
     return AppScreen(

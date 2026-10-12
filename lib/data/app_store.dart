@@ -526,6 +526,13 @@ class AppStore extends ChangeNotifier {
       swaps: swaps,
       trainingDays: trainingDays ?? defaultTrainingDays(p.daysPerWeek),
     );
+    // A workout of this program tried today counts as its first: the plan
+    // goes on with the one after it.
+    final tried = sessions
+        .where((s) => s.planId == null && dateOnly(s.finishedAt ?? s.startedAt) == dateOnly(now))
+        .lastOrNull;
+    final at = tried == null ? -1 : plan!.workoutIds.indexOf(tried.workoutId);
+    if (at >= 0) plan = plan!.copyWith(nextIndex: (at + 1) % plan!.workoutIds.length, completed: 1);
     _follow(p.creatorId);
     _savePlan();
     return plan!;
@@ -858,6 +865,19 @@ class AppStore extends ChangeNotifier {
     final planned = plannedSets(s);
     return planned == null || planned == 0 || s.doneSets >= planned * 0.75;
   }
+
+  /// The program [s] was a taste of: a workout done outside the user's plan,
+  /// from a program they are not on. Null for plan workouts.
+  Program? trialProgramOf(Session s) {
+    if (s.planId != null) return null;
+    final programs = allPrograms.where((p) => p.workoutIds.contains(s.workoutId) && p.id != plan?.programId);
+    // The trainer's own program first, if the workout is in several.
+    return programs.where((p) => p.creatorId == s.creatorId).firstOrNull ?? programs.firstOrNull;
+  }
+
+  /// Whether the user has done a workout of [p] without being on it.
+  bool hasTried(Program p) =>
+      plan?.programId != p.id && sessions.any((s) => s.planId == null && p.workoutIds.contains(s.workoutId));
 
   /// How many sets [s]'s workout prescribes; null for an unknown workout.
   int? plannedSets(Session s) => workoutsById[s.workoutId]?.exercises.fold(0, (n, e) => n! + e.sets);

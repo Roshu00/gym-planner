@@ -16,6 +16,7 @@ import 'package:chalkline/app/library.dart';
 import 'package:chalkline/app/story_share.dart';
 import 'package:chalkline/app/summary_screen.dart';
 import 'package:chalkline/app/today.dart';
+import 'package:chalkline/app/trial_offer.dart';
 import 'package:chalkline/app/workout_detail.dart';
 import 'package:chalkline/app/workout_session.dart';
 import 'package:chalkline/data/app_store.dart';
@@ -584,6 +585,24 @@ void main() {
     await tester.pump();
     final save = tester.widget<ClButton>(find.widgetWithText(ClButton, 'Sačuvaj'));
     expect(save.onPressed, isNull, reason: 'no picture yet');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('after a tried workout the summary offers to switch to its program', (tester) async {
+    final store = await freshStore();
+    store.startProgram('p_j_home');
+    store.startSession(workoutId: 'w_ab_glute_a');
+    store.updateSet(0, 0, const SetLog(kg: 40, reps: 8));
+    store.toggleSet(0, 0);
+    final s = store.finishSession();
+    await pump(tester, store, SummaryScreen(sessionId: s.id, justFinished: true), ClTheme.light);
+    expect(find.byType(TrialOffer), findsOneWidget);
+    await tapVisible(tester, 'Pređi na ovaj program');
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Novi program?'), findsOneWidget, reason: 'replacing a plan asks first');
+    await tester.tap(find.widgetWithText(ClButton, 'Počni program'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(store.plan!.programId, 'p_ab_fit');
     expect(tester.takeException(), isNull);
   });
 }

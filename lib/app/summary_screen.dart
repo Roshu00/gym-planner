@@ -5,6 +5,7 @@ import '../domain/rules.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'story_share.dart';
+import 'trial_offer.dart';
 
 /// Proof of the workout: praise for showing up, volume, records, the
 /// creator's message, on a card made to be shared. Also the history detail view.
@@ -128,6 +129,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
           message: message,
           image: photoOf(store.creator(s.creatorId)?.photo),
         ),
+        if (justFinished) ...[const SizedBox(height: ClSpace.s4), TrialOffer(session: s)],
         // The first time the baseline is the exercise list.
         if (first) ...[
           const SizedBox(height: ClSpace.s4),
