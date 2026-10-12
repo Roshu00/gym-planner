@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/app_store.dart';
 import '../domain/models.dart';
 import '../domain/rules.dart';
 import '../ui/chalkline_ui.dart';
@@ -103,7 +104,7 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
           ],
         ),
         gapS,
-        for (final day in days) _row(context, day, today),
+        for (final day in days) _row(context, day, today, featured: day == _featured(store, days, today)),
         if (plan == null) ...[
           gapS,
           ClButton(
@@ -147,8 +148,16 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
     );
   }
 
+  /// The day shown large: today when it has a workout, else the next
+  /// planned day of this week. Other weeks have none.
+  DateTime? _featured(AppStore store, List<DateTime> days, DateTime today) {
+    if (!days.contains(today)) return null;
+    if (sessionsOn(store.sessions, today).isNotEmpty) return today;
+    return days.where((d) => !d.isBefore(today) && store.plannedOn(d) != null).firstOrNull;
+  }
+
   /// One day: the date on the left, the day itself on the right.
-  Widget _row(BuildContext context, DateTime day, DateTime today) {
+  Widget _row(BuildContext context, DateTime day, DateTime today, {bool featured = false}) {
     final store = context.store;
     final cl = context.cl;
     final c = cl.colors;
@@ -168,18 +177,22 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
         image: photoOf(w?.image),
         done: true,
         today: isToday,
+        big: featured,
+        label: isToday ? 'Danas' : null,
         onPressed: () => pushScreen(context, SummaryScreen(sessionId: s.id), theme: ClTheme.light),
       );
     } else if (planned != null) {
       final w = planned.workout;
       final minutes = (w.estimatedMinutes * planned.exercises.length / w.exercises.length.clamp(1, 99))
           .round();
-      final card = _DayCard(
+      _DayCard card({required bool big}) => _DayCard(
         title: w.name,
         meta: [?custom?.note, '~$minutes min'].join(' · '),
         color: c.popFor(w.id),
         image: photoOf(w.image),
         today: isToday,
+        big: big,
+        label: isToday ? 'Danas' : 'Sledeće · ${weekdayName(day).toLowerCase()}',
         onPressed: () => _openDay(context, day, today),
       );
       body = LongPressDraggable<DateTime>(
@@ -189,13 +202,14 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
         onDragEnd: (_) => setState(() => _dragging = null),
         feedback: SizedBox(
           width: MediaQuery.sizeOf(context).width - ClSpace.s4 * 2 - 52,
+          // A big card is dragged as its small row, so the days stay in view.
           child: Transform.rotate(
             angle: -0.02,
-            child: Material(type: MaterialType.transparency, child: card),
+            child: Material(type: MaterialType.transparency, child: card(big: false)),
           ),
         ),
-        childWhenDragging: Opacity(opacity: 0.3, child: card),
-        child: card,
+        childWhenDragging: Opacity(opacity: 0.3, child: card(big: featured)),
+        child: card(big: featured),
       );
     } else {
       final past = day.isBefore(today);
@@ -228,6 +242,7 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: ClSpace.s2),
       child: Row(
+        crossAxisAlignment: featured ? CrossAxisAlignment.start : CrossAxisAlignment.center,
         children: [
           SizedBox(
             width: 44,
@@ -321,8 +336,10 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
   }
 }
 
-/// A training day: the workout's photo (or its pop color), the name and one
-/// line. Done days get a check; today gets an ink outline.
+/// A training day. The featured one (today, or the next) is a big 4:5
+/// photo card like an Instagram post; the others are rows with a 4:5
+/// thumbnail, so a cover is never cut into a strip. Done days get a check;
+/// today gets an ink outline.
 class _DayCard extends StatelessWidget {
   const _DayCard({
     required this.title,
@@ -332,6 +349,8 @@ class _DayCard extends StatelessWidget {
     required this.onPressed,
     this.done = false,
     this.today = false,
+    this.big = false,
+    this.label,
   });
 
   final String title;
@@ -341,12 +360,24 @@ class _DayCard extends StatelessWidget {
   final VoidCallback onPressed;
   final bool done;
   final bool today;
+  final bool big;
+
+  /// Above the title on the big card, e.g. "Danas".
+  final String? label;
+
+  /// Height of a small row; a free day matches it while a workout is dragged.
+  static const rowHeight = 76.0;
 
   @override
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
-    final ink = image == null ? c.onPop : c.onPhoto;
+    final check = Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(color: big ? c.bg : c.ink, shape: BoxShape.circle),
+      child: Icon(ClIcons.check, size: 13, color: big ? c.ink : c.bg),
+    );
     return ClPressable(
       onPressed: onPressed,
       semanticLabel: [title, meta, if (done) 'urađeno', if (today) 'danas'].join(', '),
@@ -355,53 +386,91 @@ class _DayCard extends StatelessWidget {
         duration: context.motion(ClMotion.fast),
         scale: pressed ? 0.98 : 1,
         child: Container(
-          height: 84,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(ClRadius.sm + 2),
             border: today ? Border.all(color: c.ink, width: 2) : null,
           ),
           padding: EdgeInsets.all(today ? 2 : 0),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(ClRadius.sm),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ColoredBox(color: color),
-                if (image != null) ...[
-                  ClPhoto(image: image, placeholderLabel: ''),
-                  const ClPhotoScrim(coverage: 1),
+          child: big ? _big(cl, check) : _small(cl, check),
+        ),
+      ),
+    );
+  }
+
+  Widget _big(ClTheme cl, Widget check) {
+    final c = cl.colors;
+    final ink = image == null ? c.onPop : c.onPhoto;
+    return AspectRatio(
+      aspectRatio: 4 / 5,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(ClRadius.sm),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(color: color),
+            if (image != null) ...[
+              ClPhoto(image: image, placeholderLabel: '', alignment: Alignment.topCenter),
+              const ClPhotoScrim(coverage: 0.5),
+            ],
+            Padding(
+              padding: const EdgeInsets.all(ClSpace.s4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (label != null) Text(label!, style: cl.text.label.copyWith(color: ink)),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: cl.text.displayM.copyWith(color: ink, fontSize: 30, height: 1.05),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(meta, maxLines: 1, style: cl.text.body.copyWith(color: ink, fontSize: 14)),
                 ],
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: ClSpace.s3, vertical: ClSpace.s2),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: cl.text.bodyStrong.copyWith(fontSize: 17, color: ink),
-                      ),
-                      Text(meta, maxLines: 1, style: cl.text.label.copyWith(color: ink)),
-                    ],
-                  ),
-                ),
-                if (done)
-                  Positioned(
-                    top: ClSpace.s2,
-                    right: ClSpace.s2,
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(color: c.bg, shape: BoxShape.circle),
-                      child: Icon(ClIcons.check, size: 13, color: c.ink),
-                    ),
-                  ),
+              ),
+            ),
+            if (done) Positioned(top: ClSpace.s3, right: ClSpace.s3, child: check),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _small(ClTheme cl, Widget check) {
+    final c = cl.colors;
+    return Container(
+      height: rowHeight - (today ? 4 : 0),
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(ClRadius.sm),
+        boxShadow: ClElevation.card(c.shadow),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(ClRadius.sm - 4),
+            child: AspectRatio(
+              aspectRatio: 4 / 5,
+              child: image == null
+                  ? ColoredBox(color: color)
+                  : ClPhoto(image: image, placeholderLabel: '', alignment: Alignment.topCenter),
+            ),
+          ),
+          const SizedBox(width: ClSpace.s3),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: cl.text.bodyStrong),
+                Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: cl.text.label),
               ],
             ),
           ),
-        ),
+          if (done) ...[check, const SizedBox(width: ClSpace.s2)],
+        ],
       ),
     );
   }
@@ -427,7 +496,7 @@ class _FreeDay extends StatelessWidget {
       radius: ClRadius.sm,
       builder: (context, pressed) => AnimatedContainer(
         duration: context.motion(ClMotion.fast),
-        height: highlight ? 84 : 40,
+        height: highlight ? _DayCard.rowHeight : 40,
         padding: const EdgeInsets.symmetric(horizontal: ClSpace.s3),
         decoration: BoxDecoration(
           color: hovered || pressed ? c.surfaceRaised : null,
