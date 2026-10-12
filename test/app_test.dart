@@ -276,15 +276,22 @@ void main() {
     // Last time's numbers are already in: finishing the set is one tap.
     await tester.tap(find.text('Završi set'));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Odmor'), findsOneWidget, reason: 'the rest clock is right above the button');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Odmor'), findsOneWidget, reason: 'rest is its own screen');
+    expect(find.text('Završi set'), findsNothing, reason: 'only what rest needs');
     expect(store.active!.exercises.first.sets.first.done, isTrue);
 
-    // One optional question instead of a RIR column.
+    // One optional question, asked once, then it steps aside.
     await tester.tap(find.bySemanticsLabel('Lako'));
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(store.active!.exercises.first.sets.first.rir, 3);
+    expect(find.text('Kako je bilo?'), findsNothing);
 
-    // − and + change the next set.
+    // "Kreni" goes back to the set; − and + change the next set.
+    await tester.tap(find.text('Kreni'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
     final before = store.active!.exercises.first.sets[1];
     await tester.tap(find.bySemanticsLabel('Više ponavljanja'));
     await tester.pump();
@@ -306,6 +313,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     final sets = store.active!.exercises.first.sets;
     expect(sets[0].kg, suggested + 2.5, reason: 'what the screen showed is what was saved');
+    expect(find.textContaining('${formatNumber(suggested + 2.5)} kg'), findsWidgets, reason: 'rest shows set 2 at it');
+    await tester.tap(find.text('Kreni'));
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text(formatNumber(suggested + 2.5)), findsWidgets, reason: 'set 2 starts at the new weight');
   });
 
@@ -371,10 +381,15 @@ void main() {
     await tester.enterText(find.byType(TextField).first, '12');
     await tapText('Sačuvaj');
     await tapText('Završi set');
+    // Rest is its own screen; "Kreni" goes on before the time is up.
+    expect(find.text('Kako je bilo?'), findsOneWidget);
+    await tapText('Kreni');
     await tapText('Završi set');
     expect(store.active!.exercises.first.sets[1].kg, 12, reason: 'weight carries over');
+    await tapText('Kreni');
     await tapText('Završi set');
-    await tapText('Sledeća vežba');
+    expect(find.textContaining('Sledeća vežba'), findsOneWidget, reason: 'rest shows what comes next');
+    await tapText('Kreni');
     // Done early: from the workout's menu, then confirm.
     await tester.tap(find.bySemanticsLabel('Opcije treninga'));
     await tester.pumpAndSettle();

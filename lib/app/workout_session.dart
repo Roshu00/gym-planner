@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,10 +13,13 @@ import 'exercise_media.dart';
 import 'summary_screen.dart';
 import 'swap_sheet.dart';
 
-/// Set-by-set workout, made for one thumb between sets: the current set is
-/// big with − and + for weight and reps (last time's numbers already in), the
-/// other sets are thin lines, and what matters right now (what to fill in,
-/// the rest clock) sits right above the one button.
+/// The workout, one step at a time, full screen:
+/// - a set: the exercise moving at the top, the numbers to do below (last
+///   time's already in, − and + in thumb reach) and one button;
+/// - rest: a dark screen with the clock, one question about the set just
+///   done and what comes next; it moves on by itself when time is up;
+/// - the end: the question for the last set and "Završi trening".
+/// Everything else (the list, swaps, extra sets) waits behind "⋯".
 class WorkoutSessionScreen extends StatefulWidget {
   const WorkoutSessionScreen({super.key});
 
@@ -258,50 +262,47 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
       builder: (context) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ClButton(
-            label: 'Dodaj set',
-            variant: ClButtonVariant.secondary,
-            icon: ClIcons.add,
-            expand: true,
-            onPressed: () => Navigator.of(context).pop('add'),
+          ClMenuGroup(
+            children: [
+              ClMenuRow(
+                icon: ClIcons.plan,
+                title: 'Sve vežbe',
+                onPressed: () => Navigator.of(context).pop('list'),
+              ),
+              ClMenuRow(
+                icon: ClIcons.swap,
+                title: 'Zameni vežbu',
+                onPressed: () => Navigator.of(context).pop('swap'),
+              ),
+              ClMenuRow(
+                icon: ClIcons.add,
+                title: 'Dodaj set',
+                onPressed: () => Navigator.of(context).pop('add'),
+              ),
+              if (canRemove)
+                ClMenuRow(
+                  icon: ClIcons.remove,
+                  title: 'Ukloni poslednji set',
+                  onPressed: () => Navigator.of(context).pop('remove'),
+                ),
+              ClMenuRow(
+                icon: ClIcons.check,
+                title: 'Završi trening',
+                onPressed: () => Navigator.of(context).pop('finish'),
+              ),
+            ],
           ),
-          if (canRemove) ...[
-            const SizedBox(height: ClSpace.s3),
-            ClButton(
-              label: 'Ukloni poslednji set',
-              variant: ClButtonVariant.secondary,
-              icon: ClIcons.remove,
-              expand: true,
-              onPressed: () => Navigator.of(context).pop('remove'),
-            ),
-          ],
-          const SizedBox(height: ClSpace.s3),
-          ClButton(
-            label: 'Zameni vežbu',
-            variant: ClButtonVariant.secondary,
-            icon: ClIcons.swap,
-            expand: true,
-            onPressed: () => Navigator.of(context).pop('swap'),
-          ),
-          const SizedBox(height: ClSpace.s3),
-          ClButton(
-            label: 'Završi trening',
-            variant: ClButtonVariant.secondary,
-            icon: ClIcons.check,
-            expand: true,
-            onPressed: () => Navigator.of(context).pop('finish'),
-          ),
-          const SizedBox(height: ClSpace.s3),
+          gapS,
           ClButton(
             label: 'Prekini trening',
-            variant: ClButtonVariant.danger,
-            expand: true,
+            variant: ClButtonVariant.text,
             onPressed: () => Navigator.of(context).pop('discard'),
           ),
         ],
       ),
     );
     if (!mounted) return;
+    if (action == 'list') return _showExercises();
     if (action == 'add') return _store.addSet(i);
     if (action == 'remove') return _store.removeSet(i, sets.length - 1);
     if (action == 'swap') return _swap();
@@ -320,6 +321,25 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     }
   }
 
+  /// Rest is over (by time or by "Kreni"): the next set, or the next
+  /// exercise when this one is done.
+  void _endRest() {
+    if (!mounted || !_resting) return;
+    final session = _store.active;
+    if (session == null) return;
+    final i = _exercise!;
+    setState(() {
+      _resting = false;
+      if (session.exercises[i].isComplete && i < session.exercises.length - 1) _exercise = i + 1;
+    });
+  }
+
+  /// A held set ended: what was held is the set.
+  void _held(int setIndex, int seconds) {
+    _setReps(setIndex, seconds);
+    _toggle(setIndex);
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = context.store;
@@ -334,194 +354,304 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     }
     final i = (_exercise ??= _firstOpenExercise(session)).clamp(0, session.exercises.length - 1);
     final e = session.exercises[i];
-    final prev = previousSets(store.sessions, e.exerciseId);
-    final current = e.sets.indexWhere((s) => !s.done);
-    final isLast = i == session.exercises.length - 1;
+    final allDone = session.exercises.every((x) => x.isComplete);
+
+    final Widget phase;
+    if (_resting || allDone) {
+      phase = _restPhase(session, i, allDone);
+    } else {
+      phase = _setPhase(session, i, e);
+    }
+    return AnimatedSwitcher(
+      duration: context.motion(const Duration(milliseconds: 280)),
+      switchInCurve: ClMotion.curve,
+      child: KeyedSubtree(key: ValueKey('${_resting || allDone}-$i'), child: phase),
+    );
+  }
+
+  /// The set to do: the exercise big, the numbers, one button.
+  Widget _setPhase(Session session, int i, SessionExercise e) {
+    final store = context.store;
     final cl = context.cl;
     final c = cl.colors;
-    final picture = photoOf(store.resolveExercise(e.exerciseId)?.image);
-    // The cue's author, found by name: the exercise may come from another creator.
+    final exercise = store.resolveExercise(e.exerciseId);
     final author = store.creators.where((x) => x.name == (e.noteBy ?? session.creatorName)).firstOrNull;
-    final next = isLast ? null : session.exercises[i + 1];
+    final current = e.sets.indexWhere((s) => !s.done);
+    final prev = previousSets(store.sessions, e.exerciseId);
+    final isLast = i == session.exercises.length - 1;
 
+    final Widget numbers;
     final Widget action;
-    if (current >= 0) {
-      action = ClButton.block(label: 'Završi set', onPressed: () => _toggle(current));
-    } else if (next != null) {
-      action = ClButton.block(label: 'Sledeća vežba', onPressed: () => _goTo(i + 1));
-    } else {
-      action = ClButton.block(label: 'Završi trening', onPressed: _finish);
-    }
-
-    final restedRir = _restedSet != null && _restedSet! < e.sets.length ? e.sets[_restedSet!].rir : null;
-
-    return AppScreen(
-      topBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: ClSpace.s1),
-        child: Row(
-          children: [
-            ClIconButton(
-              icon: ClIcons.close,
-              semanticLabel: 'Zatvori, trening se nastavlja',
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
-            Expanded(
-              child: _ExerciseProgress(session: session, current: i, onPressed: _showExercises),
-            ),
-            ClIconButton(icon: ClIcons.more, semanticLabel: 'Opcije treninga', onPressed: _menu),
-          ],
+    if (current < 0) {
+      // Opened from the list after it was done.
+      numbers = Padding(
+        padding: const EdgeInsets.symmetric(vertical: ClSpace.s4),
+        child: Text(
+          'Gotovo · ${countLabel(e.sets.length, 'set', 'seta', 'setova')}',
+          style: cl.text.bodyStrong,
         ),
-      ),
-      bottom: Column(
+      );
+      action = isLast
+          ? ClButton.block(label: 'Završi trening', onPressed: _finish)
+          : ClButton.block(label: 'Sledeća vežba', onPressed: () => _goTo(i + 1));
+    } else {
+      final v = _valuesOf(e, current);
+      final steps = store.weightStepsFor(e);
+      numbers = Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_notice != null) ...[ClNotice(_notice!, danger: true), const SizedBox(height: ClSpace.s2)],
-          if (_resting) ...[
-            _RestBar(
-              key: ValueKey(_restRun),
-              duration: Duration(seconds: e.restSeconds),
-              rir: restedRir,
-              onFeel: _setFeel,
-              onSkip: () => setState(() => _resting = false),
+          if (!e.bodyweight) ...[
+            _Stepper(
+              value: v.kg == null ? null : formatNumber(v.kg!),
+              unit: 'kg',
+              empty: 'Upiši kg',
+              onMinus: v.kg == null ? null : () => _setKg(current, v.kg! - steps.step),
+              onPlus: () => _setKg(current, v.kg == null ? steps.start : v.kg! + steps.step),
+              onType: () => _typeValue(current, kg: true),
             ),
             const SizedBox(height: ClSpace.s2),
           ],
-          action,
+          if (e.timed)
+            _Stepper(
+              value: formatSeconds(v.reps),
+              unit: 'drži',
+              onMinus: v.reps > 5 ? () => _setReps(current, v.reps - 5) : null,
+              onPlus: () => _setReps(current, v.reps + 5),
+              onType: () => _typeValue(current, kg: false),
+            )
+          else
+            _Stepper(
+              value: '${v.reps}',
+              unit: 'ponavljanja',
+              onMinus: v.reps > 1 ? () => _setReps(current, v.reps - 1) : null,
+              onPlus: () => _setReps(current, v.reps + 1),
+              onType: () => _typeValue(current, kg: false),
+            ),
         ],
-      ),
-      children: [
-        const SizedBox(height: ClSpace.s2),
-        // The exercise: a small picture (tap for the big one and the whole
-        // cue), the name and what to do.
-        ClPressable(
-          onPressed: () => _showHowTo(e, store.resolveExercise(e.exerciseId), author),
-          semanticLabel: '${e.name}, kako se radi',
-          radius: ClRadius.sm,
-          builder: (context, pressed) => Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(ClRadius.sm - 6),
-                child: SizedBox.square(
-                  dimension: 64,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (picture == null)
-                        ColoredBox(
-                          color: c.popFor(e.exerciseId),
-                          child: Icon(ClIcons.barbell, color: c.onPop),
-                        )
-                      else
-                        ClPhoto(image: picture, placeholderLabel: ''),
-                      // A play mark: the tap shows the clip.
-                      if (store.resolveExercise(e.exerciseId)?.video != null)
-                        Center(
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(color: c.photoScrim, shape: BoxShape.circle),
-                            child: Icon(ClIcons.play, size: 14, color: c.onPhoto),
+      );
+      action = e.timed
+          ? _HoldButton(key: ValueKey('hold-$i-$current'), seconds: v.reps, onDone: (s) => _held(current, s))
+          : ClButton.block(label: 'Završi set', onPressed: () => _toggle(current));
+    }
+
+    final hint = current < 0 ? null : _progressHint(e);
+    final last = current < 0 || prev.isEmpty
+        ? null
+        : setLabel(prev[current.clamp(0, prev.length - 1)], timed: e.timed);
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: c.bg,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // The exercise, moving, edge to edge. Tap for the whole cue.
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _showHowTo(e, exercise, author),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (exercise != null)
+                      ExerciseMedia(exercise: exercise)
+                    else
+                      ColoredBox(color: c.popFor(e.exerciseId)),
+                    const ClPhotoScrim(coverage: 0.55),
+                    // Keeps the top controls readable on bright pictures.
+                    const Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      height: 140,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0x73000000), Color(0x00000000)],
                           ),
                         ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: ClSpace.s3),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(e.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: cl.text.displayM),
-                    const SizedBox(height: 2),
-                    Text(
-                      [
-                        current < 0
-                            ? 'Gotovo · ${countLabel(e.sets.length, 'set', 'seta', 'setova')}'
-                            : e.target,
-                        'odmor ${formatClock(Duration(seconds: e.restSeconds))}',
-                      ].join(' · '),
-                      style: cl.text.body.copyWith(color: c.inkMuted, fontSize: 14),
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: SafeArea(
+                        bottom: false,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: ClSpace.s2),
+                          child: Row(
+                            children: [
+                              ClIconButton.onMedia(
+                                icon: ClIcons.close,
+                                semanticLabel: 'Zatvori, trening se nastavlja',
+                                onPressed: () => Navigator.of(context).maybePop(),
+                              ),
+                              Expanded(
+                                child: _ExerciseProgress(
+                                  session: session,
+                                  current: i,
+                                  onPressed: _showExercises,
+                                ),
+                              ),
+                              ClIconButton.onMedia(
+                                icon: ClIcons.more,
+                                semanticLabel: 'Opcije treninga',
+                                onPressed: _menu,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: ClSpace.s4,
+                      right: ClSpace.s4,
+                      bottom: ClSpace.s6 + ClSpace.s2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            [
+                              'Vežba ${i + 1} od ${session.exercises.length}',
+                              if (e.swappedFrom != null) 'zamena za ${e.swappedFrom}',
+                            ].join(' · '),
+                            style: cl.text.label.copyWith(color: c.onPhoto),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            e.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: cl.text.displayL.copyWith(color: c.onPhoto, fontSize: 36, height: 1.02),
+                          ),
+                          if (e.note.isNotEmpty) ...[
+                            const SizedBox(height: ClSpace.s2),
+                            Row(
+                              children: [
+                                ClAvatar(
+                                  name: author?.name ?? e.noteBy ?? '',
+                                  image: photoOf(author?.photo),
+                                  size: 22,
+                                ),
+                                const SizedBox(width: ClSpace.s2),
+                                Expanded(
+                                  child: Text(
+                                    e.note,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: cl.text.body.copyWith(color: c.onPhoto, fontSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-        if (e.swappedFrom != null) ...[
-          const SizedBox(height: ClSpace.s2),
-          ClNotice('Zamena za ${e.swappedFrom}'),
-        ],
-        if (e.note.isNotEmpty) ...[
-          const SizedBox(height: ClSpace.s3),
-          Row(
-            children: [
-              ClAvatar(name: author?.name ?? e.noteBy ?? '', image: photoOf(author?.photo), size: 24),
-              const SizedBox(width: ClSpace.s2),
-              Expanded(
-                child: Text(
-                  e.note,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: cl.text.body.copyWith(color: c.inkMuted, fontSize: 14),
+            ),
+            // The set: which one, the numbers, the button. Nothing else.
+            Transform.translate(
+              offset: const Offset(0, -ClSpace.s4),
+              child: Container(
+                padding: EdgeInsets.fromLTRB(
+                  ClSpace.s4,
+                  ClSpace.s4,
+                  ClSpace.s4,
+                  // The panel is lifted by s4 over the picture; the gap below is bg.
+                  math.max(MediaQuery.paddingOf(context).bottom - ClSpace.s4, ClSpace.s2),
+                ),
+                decoration: BoxDecoration(
+                  color: c.bg,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(ClRadius.lg)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            current < 0 ? e.target : 'Set ${current + 1} od ${e.sets.length}',
+                            style: cl.text.bodyStrong.copyWith(fontSize: 17),
+                          ),
+                        ),
+                        _SetDots(sets: e.sets, current: current, onReopen: (j) => _toggle(j)),
+                      ],
+                    ),
+                    if (hint != null || last != null) ...[
+                      const SizedBox(height: 2),
+                      Text(hint ?? 'Prošli put $last', style: cl.text.label),
+                    ],
+                    const SizedBox(height: ClSpace.s3),
+                    numbers,
+                    if (_notice != null) ...[
+                      const SizedBox(height: ClSpace.s2),
+                      ClNotice(_notice!, danger: true),
+                    ],
+                    const SizedBox(height: ClSpace.s4),
+                    action,
+                  ],
                 ),
               ),
-            ],
-          ),
-        ],
-        gap,
-        if (current >= 0)
-          _FocusSet(
-            number: current + 1,
-            total: e.sets.length,
-            previous: prev.isEmpty ? null : setLabel(prev[current.clamp(0, prev.length - 1)], timed: e.timed),
-            kg: _valuesOf(e, current).kg,
-            reps: _valuesOf(e, current).reps,
-            bodyweight: e.bodyweight,
-            timed: e.timed,
-            onHeld: () => _toggle(current),
-            weightStart: store.weightStepsFor(e).start,
-            weightStep: store.weightStepsFor(e).step,
-            hint: _progressHint(e),
-            onKg: (v) => _setKg(current, v),
-            onReps: (v) => _setReps(current, v),
-            onTypeKg: () => _typeValue(current, kg: true),
-            onTypeReps: () => _typeValue(current, kg: false),
-          ),
-        const SizedBox(height: ClSpace.s3),
-        for (final (j, s) in e.sets.indexed)
-          if (j != current)
-            _SetLine(
-              number: j + 1,
-              label: s.done
-                  ? setLabel(s, timed: e.timed)
-                  : () {
-                      final v = _valuesOf(e, j);
-                      if (e.timed) return formatSeconds(v.reps);
-                      return v.kg == null || e.bodyweight
-                          ? '${v.reps} pon.'
-                          : '${formatNumber(v.kg!)} kg × ${v.reps}';
-                    }(),
-              done: s.done,
-              isPr: s.isPr,
-              // A done set opens again with a tap, to fix a number.
-              onPressed: s.done ? () => _toggle(j) : null,
             ),
-        if (current < 0 && next != null) ...[
-          gap,
-          Text('Sledeće', style: cl.text.label),
-          const SizedBox(height: ClSpace.s2),
-          ClExerciseRow(
-            image: photoOf(store.resolveExercise(next.exerciseId)?.image),
-            index: i + 2,
-            name: next.name,
-            detail: next.target,
-            onPressed: () => _goTo(i + 1),
-          ),
-        ],
-      ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Rest: the clock, how the set felt, what comes next. Or the end.
+  Widget _restPhase(Session session, int i, bool allDone) {
+    final store = context.store;
+    final e = session.exercises[i];
+    final rested = _restedSet != null && _restedSet! < e.sets.length ? e.sets[_restedSet!] : null;
+    final nextSet = e.sets.indexWhere((s) => !s.done);
+    final nextExercise = !allDone && nextSet < 0 && i + 1 < session.exercises.length
+        ? session.exercises[i + 1]
+        : null;
+    final String? upNext;
+    final String? upNextDetail;
+    final ImageProvider? upNextImage;
+    if (allDone) {
+      upNext = null;
+      upNextDetail = null;
+      upNextImage = null;
+    } else if (nextExercise != null) {
+      upNext = nextExercise.name;
+      upNextDetail = 'Sledeća vežba · ${nextExercise.target}';
+      upNextImage = photoOf(store.resolveExercise(nextExercise.exerciseId)?.image);
+    } else {
+      final v = _valuesOf(e, nextSet);
+      upNext = 'Set ${nextSet + 1} od ${e.sets.length}';
+      upNextDetail = e.timed
+          ? formatSeconds(v.reps)
+          : v.kg == null || e.bodyweight
+          ? '${v.reps} pon.'
+          : '${formatNumber(v.kg!)} kg × ${v.reps}';
+      upNextImage = photoOf(store.resolveExercise(e.exerciseId)?.image);
+    }
+    return _RestScreen(
+      key: ValueKey('rest-$_restRun'),
+      duration: allDone ? null : Duration(seconds: e.restSeconds),
+      done: rested == null ? null : '${e.name} · ${setLabel(rested, timed: e.timed)}',
+      isPr: rested?.isPr ?? false,
+      rir: rested?.rir,
+      onFeel: _setFeel,
+      upNext: upNext,
+      upNextDetail: upNextDetail,
+      upNextImage: upNextImage,
+      onClose: () => Navigator.of(context).maybePop(),
+      onMenu: _menu,
+      onGo: allDone ? _finish : _endRest,
+      onTimeUp: _endRest,
     );
   }
 }
@@ -559,247 +689,6 @@ class _NumberSheetState extends State<_NumberSheet> {
       ClButton(label: 'Sačuvaj', expand: true, onPressed: () => Navigator.of(context).pop(_controller.text)),
     ],
   );
-}
-
-/// One segment per exercise: done, current, still to do. Tap for the list.
-class _ExerciseProgress extends StatelessWidget {
-  const _ExerciseProgress({required this.session, required this.current, required this.onPressed});
-
-  final Session session;
-  final int current;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.clColors;
-    return ClPressable(
-      onPressed: onPressed,
-      semanticLabel: 'Vežba ${current + 1} od ${session.exercises.length}, sve vežbe',
-      radius: ClRadius.sm,
-      builder: (context, pressed) => SizedBox(
-        height: ClSize.target,
-        child: Row(
-          children: [
-            for (final (j, x) in session.exercises.indexed) ...[
-              if (j > 0) const SizedBox(width: 4),
-              Expanded(
-                child: AnimatedContainer(
-                  duration: context.motion(ClMotion.base),
-                  height: 6,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(3),
-                    color: x.isComplete
-                        ? c.ink
-                        : j == current
-                        ? c.inkMuted
-                        : c.border,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The set being done: big numbers with − and + in thumb reach. Tapping a
-/// number lets the user type it instead.
-class _FocusSet extends StatelessWidget {
-  const _FocusSet({
-    required this.number,
-    required this.total,
-    required this.previous,
-    required this.kg,
-    required this.reps,
-    required this.bodyweight,
-    required this.timed,
-    required this.onHeld,
-    required this.weightStart,
-    required this.weightStep,
-    required this.onKg,
-    required this.onReps,
-    required this.onTypeKg,
-    required this.onTypeReps,
-    this.hint,
-  });
-
-  /// The first + on an empty weight (an empty bar is 20 kg), and each step.
-  final double weightStart;
-  final double weightStep;
-
-  /// Today's step forward from last time, e.g. "Danas 22,5 kg."
-  final String? hint;
-
-  /// Held for time: the second number is seconds, with a countdown.
-  final bool timed;
-
-  /// The countdown reached zero: the set is done.
-  final VoidCallback onHeld;
-
-  final int number;
-  final int total;
-  final String? previous;
-  final double? kg;
-  final int reps;
-  final bool bodyweight;
-  final ValueChanged<double> onKg;
-  final ValueChanged<int> onReps;
-  final VoidCallback onTypeKg;
-  final VoidCallback onTypeReps;
-
-  @override
-  Widget build(BuildContext context) {
-    final cl = context.cl;
-    final c = cl.colors;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s3, ClSpace.s4, ClSpace.s4),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(ClRadius.lg),
-        border: Border.all(color: c.ink, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text('Set $number od $total', style: cl.text.bodyStrong)),
-              if (previous != null) Text('Prošli put $previous', style: cl.text.label),
-            ],
-          ),
-          if (hint != null) ...[
-            const SizedBox(height: ClSpace.s2),
-            Row(
-              children: [
-                Icon(ClIcons.streak, size: 18, color: c.ink),
-                const SizedBox(width: ClSpace.s2),
-                Expanded(child: Text(hint!, style: cl.text.bodyStrong.copyWith(fontSize: 14))),
-              ],
-            ),
-          ],
-          if (!bodyweight) ...[
-            const SizedBox(height: ClSpace.s3),
-            _Stepper(
-              value: kg == null ? null : formatNumber(kg!),
-              unit: 'kg',
-              empty: 'Upiši kg',
-              onMinus: kg == null ? null : () => onKg(kg! - weightStep),
-              onPlus: () => onKg(kg == null ? weightStart : kg! + weightStep),
-              onType: onTypeKg,
-            ),
-          ],
-          const SizedBox(height: ClSpace.s3),
-          if (timed) ...[
-            _Stepper(
-              value: formatSeconds(reps),
-              unit: 'drži',
-              onMinus: reps > 5 ? () => onReps(reps - 5) : null,
-              onPlus: () => onReps(reps + 5),
-              onType: onTypeReps,
-            ),
-            const SizedBox(height: ClSpace.s3),
-            _HoldTimer(key: ValueKey('$number-$reps'), seconds: reps, onDone: onHeld),
-          ] else
-            _Stepper(
-              value: '$reps',
-              unit: 'ponavljanja',
-              onMinus: reps > 1 ? () => onReps(reps - 1) : null,
-              onPlus: () => onReps(reps + 1),
-              onType: onTypeReps,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A held set: start, a countdown with a bar, and the set is done at zero.
-class _HoldTimer extends StatefulWidget {
-  const _HoldTimer({super.key, required this.seconds, required this.onDone});
-
-  final int seconds;
-  final VoidCallback onDone;
-
-  @override
-  State<_HoldTimer> createState() => _HoldTimerState();
-}
-
-class _HoldTimerState extends State<_HoldTimer> {
-  Timer? _timer;
-  int _left = 0;
-
-  bool get _running => _timer != null;
-
-  void _start() {
-    HapticFeedback.mediumImpact();
-    setState(() => _left = widget.seconds);
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) return t.cancel();
-      if (_left <= 1) {
-        t.cancel();
-        _timer = null;
-        HapticFeedback.heavyImpact();
-        widget.onDone();
-        return;
-      }
-      if (_left <= 4) HapticFeedback.selectionClick();
-      setState(() => _left--);
-    });
-  }
-
-  void _stop() {
-    _timer?.cancel();
-    setState(() => _timer = null);
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cl = context.cl;
-    final c = cl.colors;
-    if (!_running) {
-      return ClButton(
-        label: 'Pokreni · ${formatSeconds(widget.seconds)}',
-        variant: ClButtonVariant.secondary,
-        icon: ClIcons.timer,
-        expand: true,
-        onPressed: _start,
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                formatClock(Duration(seconds: _left)),
-                style: cl.text.metricL.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
-              ),
-            ),
-            ClButton(label: 'Zaustavi', variant: ClButtonVariant.text, onPressed: _stop),
-          ],
-        ),
-        const SizedBox(height: ClSpace.s2),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: LinearProgressIndicator(
-            value: 1 - _left / widget.seconds,
-            minHeight: 6,
-            color: c.ink,
-            backgroundColor: c.surfaceRaised,
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class _Stepper extends StatelessWidget {
@@ -865,51 +754,155 @@ class _Stepper extends StatelessWidget {
   }
 }
 
-/// A set that is not the current one: thin, done ones with a check.
-class _SetLine extends StatelessWidget {
-  const _SetLine({
-    required this.number,
-    required this.label,
-    required this.done,
-    required this.isPr,
-    this.onPressed,
-  });
+/// One segment per exercise: done, current, still to do. Tap for the list.
+class _ExerciseProgress extends StatelessWidget {
+  const _ExerciseProgress({required this.session, required this.current, required this.onPressed});
 
-  final int number;
-  final String label;
-  final bool done;
-  final bool isPr;
-  final VoidCallback? onPressed;
+  final Session session;
+  final int current;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    const white = Color(0xFFFFFFFF);
+    return ClPressable(
+      onPressed: onPressed,
+      semanticLabel: 'Vežba ${current + 1} od ${session.exercises.length}, sve vežbe',
+      radius: ClRadius.sm,
+      builder: (context, pressed) => SizedBox(
+        height: ClSize.target,
+        child: Row(
+          children: [
+            for (final (j, x) in session.exercises.indexed) ...[
+              if (j > 0) const SizedBox(width: 4),
+              Expanded(
+                child: AnimatedContainer(
+                  duration: context.motion(ClMotion.base),
+                  height: 3,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    color: x.isComplete || j == current ? white : white.withValues(alpha: 0.35),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The sets of this exercise as dots: done (tap to fix), now, to come.
+class _SetDots extends StatelessWidget {
+  const _SetDots({required this.sets, required this.current, required this.onReopen});
+
+  final List<SetLog> sets;
+  final int current;
+  final ValueChanged<int> onReopen;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.clColors;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final (j, s) in sets.indexed)
+          ClPressable(
+            onPressed: s.done ? () => onReopen(j) : null,
+            semanticLabel: s.done ? 'Set ${j + 1} urađen, ispravi' : 'Set ${j + 1}',
+            radius: ClRadius.full,
+            builder: (context, pressed) => Padding(
+              padding: const EdgeInsets.all(4),
+              child: AnimatedContainer(
+                duration: context.motion(ClMotion.fast),
+                width: j == current ? 22 : 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: s.done || j == current ? c.ink : c.border,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// A held set's button: "Pokreni · 30 s", then the countdown in its place.
+/// Stopping early logs what was held.
+class _HoldButton extends StatefulWidget {
+  const _HoldButton({super.key, required this.seconds, required this.onDone});
+
+  final int seconds;
+  final ValueChanged<int> onDone;
+
+  @override
+  State<_HoldButton> createState() => _HoldButtonState();
+}
+
+class _HoldButtonState extends State<_HoldButton> {
+  Timer? _timer;
+  int _left = 0;
+
+  void _start() {
+    HapticFeedback.mediumImpact();
+    setState(() => _left = widget.seconds);
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return t.cancel();
+      if (_left <= 1) {
+        t.cancel();
+        HapticFeedback.heavyImpact();
+        widget.onDone(widget.seconds);
+        return;
+      }
+      if (_left <= 4) HapticFeedback.selectionClick();
+      setState(() => _left--);
+    });
+  }
+
+  void _stop() {
+    _timer?.cancel();
+    widget.onDone((widget.seconds - _left).clamp(1, widget.seconds));
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
+    if (_timer == null) {
+      return ClButton.block(label: 'Pokreni · ${formatSeconds(widget.seconds)}', onPressed: _start);
+    }
     return ClPressable(
-      onPressed: onPressed,
-      semanticLabel: 'Set $number, $label${done ? ', urađen' : ''}',
-      radius: ClRadius.xs,
-      builder: (context, pressed) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: ClSpace.s2, vertical: ClSpace.s2),
-        child: Row(
+      onPressed: _stop,
+      semanticLabel: 'Zaustavi, ostalo ${formatSeconds(_left)}',
+      radius: ClRadius.full,
+      builder: (context, pressed) => Container(
+        height: 64,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(color: c.surfaceRaised, borderRadius: BorderRadius.circular(ClRadius.full)),
+        child: Stack(
           children: [
-            SizedBox(
-              width: 24,
-              child: Text('$number', style: cl.text.data.copyWith(color: done ? c.ink : c.inkMuted)),
+            // The bar fills the button as time runs.
+            FractionallySizedBox(
+              widthFactor: 1 - _left / widget.seconds,
+              child: ColoredBox(color: c.ink, child: const SizedBox.expand()),
             ),
-            Expanded(
-              child: Text(label, style: cl.text.data.copyWith(color: done ? c.ink : c.inkMuted)),
-            ),
-            if (isPr) ...[const ClTag.pr(), const SizedBox(width: ClSpace.s2)],
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: done ? c.ink : null,
-                border: Border.all(color: done ? c.ink : c.border, width: 1.5),
+            Center(
+              child: Text(
+                '${formatClock(Duration(seconds: _left))} · Zaustavi',
+                style: cl.text.bodyStrong.copyWith(
+                  color: _left / widget.seconds < 0.5 ? c.bg : c.ink,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
-              child: done ? Icon(ClIcons.check, size: 13, color: c.bg) : null,
             ),
           ],
         ),
@@ -918,37 +911,63 @@ class _SetLine extends StatelessWidget {
   }
 }
 
-/// Rest between sets, right above the button: the clock, a line that runs
-/// out, +15 s and skip. Also one optional question instead of a RIR column.
-class _RestBar extends StatefulWidget {
-  const _RestBar({super.key, required this.duration, required this.onSkip, required this.onFeel, this.rir});
+/// Rest between sets, the whole screen: the clock in a ring, how the set
+/// felt (asked once), what comes next and "Kreni". Moves on by itself when
+/// the time is up. Without [duration] it is the end of the workout.
+class _RestScreen extends StatefulWidget {
+  const _RestScreen({
+    super.key,
+    required this.duration,
+    required this.done,
+    required this.isPr,
+    required this.rir,
+    required this.onFeel,
+    required this.upNext,
+    required this.upNextDetail,
+    required this.upNextImage,
+    required this.onClose,
+    required this.onMenu,
+    required this.onGo,
+    required this.onTimeUp,
+  });
 
-  final Duration duration;
-  final VoidCallback onSkip;
-  final ValueChanged<int> onFeel;
+  final Duration? duration;
 
-  /// The answer already given for this set, as reps in reserve.
+  /// The set just done, e.g. "Plank · 30 s".
+  final String? done;
+  final bool isPr;
   final int? rir;
+  final ValueChanged<int> onFeel;
+  final String? upNext;
+  final String? upNextDetail;
+  final ImageProvider? upNextImage;
+  final VoidCallback onClose;
+  final VoidCallback onMenu;
+  final VoidCallback onGo;
+  final VoidCallback onTimeUp;
 
   @override
-  State<_RestBar> createState() => _RestBarState();
+  State<_RestScreen> createState() => _RestScreenState();
 }
 
-class _RestBarState extends State<_RestBar> {
-  late DateTime _end = DateTime.now().add(widget.duration);
-  late Duration _total = widget.duration;
+class _RestScreenState extends State<_RestScreen> {
+  late DateTime _end = DateTime.now().add(widget.duration ?? Duration.zero);
+  late Duration _total = widget.duration ?? Duration.zero;
   Timer? _timer;
-  bool _buzzed = false;
+  bool _changingFeel = false;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 250), (_) {
-      if (!mounted) return;
+    if (widget.duration == null) return;
+    _timer = Timer.periodic(const Duration(milliseconds: 200), (t) {
+      if (!mounted) return t.cancel();
       final left = _end.difference(DateTime.now());
-      if (left <= Duration.zero && !_buzzed) {
-        _buzzed = true;
+      if (left <= Duration.zero) {
+        t.cancel();
         HapticFeedback.heavyImpact();
+        widget.onTimeUp();
+        return;
       }
       setState(() {});
     });
@@ -960,111 +979,235 @@ class _RestBarState extends State<_RestBar> {
     super.dispose();
   }
 
-  void _add() => setState(() {
-    _end = _end.add(const Duration(seconds: 15));
-    _total += const Duration(seconds: 15);
-    _buzzed = false;
-  });
+  void _add() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _end = _end.add(const Duration(seconds: 15));
+      _total += const Duration(seconds: 15);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
+    final ink = c.bg;
+    final muted = c.bg.withValues(alpha: 0.6);
+    final end = widget.duration == null;
     final left = _end.difference(DateTime.now());
-    final over = left <= Duration.zero;
-    final shown = over ? Duration.zero : left + const Duration(milliseconds: 999);
+    final shown = left <= Duration.zero ? Duration.zero : left + const Duration(milliseconds: 999);
     final progress = _total.inMilliseconds == 0
         ? 1.0
         : 1 - (left.inMilliseconds / _total.inMilliseconds).clamp(0.0, 1.0);
-    final muted = c.bg.withValues(alpha: 0.7);
-    Widget feel(String label, int rir) {
-      final on = widget.rir == rir;
-      return ClPressable(
-        onPressed: () => widget.onFeel(rir),
-        selected: on,
+
+    const feels = [('Lako', 3), ('Taman', 2), ('Teško', 0)];
+    final answered = feels.where((f) => f.$2 == widget.rir).firstOrNull;
+
+    Widget feelChip(String label, int rir) => Expanded(
+      child: ClPressable(
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          widget.onFeel(rir);
+          setState(() => _changingFeel = false);
+        },
         semanticLabel: label,
         radius: ClRadius.full,
-        builder: (context, pressed) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: ClSpace.s3, vertical: 6),
-          decoration: BoxDecoration(
-            color: on ? c.bg : null,
-            borderRadius: BorderRadius.circular(ClRadius.full),
-            border: Border.all(color: on ? c.bg : muted),
-          ),
+        builder: (context, pressed) => AnimatedContainer(
+          duration: context.motion(ClMotion.fast),
+          height: 48,
           alignment: Alignment.center,
-          child: Text(label, style: cl.text.label.copyWith(color: on ? c.ink : c.bg)),
+          decoration: BoxDecoration(
+            color: pressed ? ink.withValues(alpha: 0.18) : ink.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(ClRadius.full),
+          ),
+          child: Text(label, style: cl.text.bodyStrong.copyWith(color: ink)),
         ),
-      );
-    }
-
-    Widget action(String label, VoidCallback onPressed) => ClPressable(
-      onPressed: onPressed,
-      semanticLabel: label,
-      radius: ClRadius.full,
-      builder: (context, pressed) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: ClSpace.s2, vertical: ClSpace.s3),
-        child: Text(label, style: cl.text.bodyStrong.copyWith(color: pressed ? muted : c.bg)),
       ),
     );
 
-    return Semantics(
-      liveRegion: over,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s3, ClSpace.s3, ClSpace.s3),
-        decoration: BoxDecoration(color: c.ink, borderRadius: BorderRadius.circular(ClRadius.sm)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: c.ink,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: ClSpace.s4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
                   children: [
-                    Text(over ? 'Spreman si' : 'Odmor', style: cl.text.label.copyWith(color: muted)),
-                    Text(
-                      formatClock(shown),
-                      style: cl.text.metric.copyWith(
-                        color: c.bg,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
+                    ClIconButton.onMedia(
+                      icon: ClIcons.close,
+                      semanticLabel: 'Zatvori, trening se nastavlja',
+                      onPressed: widget.onClose,
+                    ),
+                    const Spacer(),
+                    ClIconButton.onMedia(
+                      icon: ClIcons.more,
+                      semanticLabel: 'Opcije treninga',
+                      onPressed: widget.onMenu,
                     ),
                   ],
                 ),
-                // Shrinks rather than overflows on narrow phones or large text.
+                const SizedBox(height: ClSpace.s4),
+                if (widget.done != null)
+                  Row(
+                    children: [
+                      Icon(widget.isPr ? ClIcons.record : ClIcons.check, size: 18, color: ink),
+                      const SizedBox(width: ClSpace.s2),
+                      Expanded(
+                        child: Text(
+                          widget.isPr ? 'Novi rekord · ${widget.done}' : widget.done!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: cl.text.bodyStrong.copyWith(color: ink),
+                        ),
+                      ),
+                    ],
+                  ),
+                // The clock in a ring, or the end.
                 Expanded(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Row(children: [action('+15 s', _add), action('Preskoči', widget.onSkip)]),
-                    ),
+                  child: Center(
+                    child: end
+                        ? Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Sve vežbe\nsu gotove.',
+                                textAlign: TextAlign.center,
+                                style: cl.text.displayL.copyWith(color: ink, fontSize: 44, height: 1.02),
+                              ),
+                            ],
+                          )
+                        : SizedBox.square(
+                            dimension: 240,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                CircularProgressIndicator(
+                                  value: 1 - progress,
+                                  strokeWidth: 6,
+                                  strokeCap: StrokeCap.round,
+                                  color: ink,
+                                  backgroundColor: ink.withValues(alpha: 0.12),
+                                ),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('Odmor', style: cl.text.label.copyWith(color: muted)),
+                                    Text(
+                                      formatClock(shown),
+                                      style: cl.text.metricL.copyWith(
+                                        color: ink,
+                                        fontSize: 64,
+                                        fontFeatures: const [FontFeature.tabularFigures()],
+                                      ),
+                                    ),
+                                    ClPressable(
+                                      onPressed: _add,
+                                      semanticLabel: 'Još 15 sekundi',
+                                      radius: ClRadius.full,
+                                      builder: (context, pressed) => Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: ClSpace.s3,
+                                          vertical: ClSpace.s2,
+                                        ),
+                                        child: Text(
+                                          '+15 s',
+                                          style: cl.text.bodyStrong.copyWith(color: muted),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                   ),
                 ),
+                // Asked once; then it steps aside.
+                if (widget.done != null)
+                  AnimatedSwitcher(
+                    duration: context.motion(ClMotion.fast),
+                    child: answered == null || _changingFeel
+                        ? Column(
+                            key: const ValueKey('ask'),
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text('Kako je bilo?', style: cl.text.label.copyWith(color: muted)),
+                              const SizedBox(height: ClSpace.s2),
+                              Row(
+                                children: [
+                                  for (final (j, f) in feels.indexed) ...[
+                                    if (j > 0) const SizedBox(width: ClSpace.s2),
+                                    feelChip(f.$1, f.$2),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          )
+                        : Align(
+                            key: const ValueKey('told'),
+                            alignment: Alignment.centerLeft,
+                            child: ClPressable(
+                              onPressed: () => setState(() => _changingFeel = true),
+                              semanticLabel: 'Bilo je ${answered.$1.toLowerCase()}, promeni',
+                              radius: ClRadius.sm,
+                              builder: (context, pressed) => Padding(
+                                padding: const EdgeInsets.symmetric(vertical: ClSpace.s2),
+                                child: Text(
+                                  '${answered.$1} · zabeleženo',
+                                  style: cl.text.label.copyWith(color: muted),
+                                ),
+                              ),
+                            ),
+                          ),
+                  ),
+                const SizedBox(height: ClSpace.s4),
+                // What comes next, then one button.
+                if (widget.upNext != null) ...[
+                  Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(ClRadius.sm - 6),
+                        child: SizedBox(
+                          width: 44,
+                          height: 55,
+                          child: widget.upNextImage == null
+                              ? ColoredBox(color: ink.withValues(alpha: 0.1))
+                              : ClPhoto(image: widget.upNextImage, placeholderLabel: ''),
+                        ),
+                      ),
+                      const SizedBox(width: ClSpace.s3),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Sledeće', style: cl.text.label.copyWith(color: muted)),
+                            Text(
+                              widget.upNext!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: cl.text.bodyStrong.copyWith(color: ink, fontSize: 17),
+                            ),
+                            if (widget.upNextDetail != null)
+                              Text(widget.upNextDetail!, style: cl.text.label.copyWith(color: muted)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: ClSpace.s4),
+                ],
+                ClThemeScope(
+                  theme: ClTheme.dark,
+                  child: ClButton.block(label: end ? 'Završi trening' : 'Kreni', onPressed: widget.onGo),
+                ),
+                const SizedBox(height: ClSpace.s2),
               ],
             ),
-            const SizedBox(height: ClSpace.s2),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 4,
-                color: c.bg,
-                backgroundColor: c.bg.withValues(alpha: 0.2),
-              ),
-            ),
-            const SizedBox(height: ClSpace.s3),
-            Text('Kako je bilo?', style: cl.text.label.copyWith(color: muted)),
-            const SizedBox(height: ClSpace.s2),
-            Row(
-              children: [
-                Expanded(child: feel('Lako', 3)),
-                const SizedBox(width: 6),
-                Expanded(child: feel('Taman', 2)),
-                const SizedBox(width: 6),
-                Expanded(child: feel('Teško', 0)),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
