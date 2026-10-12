@@ -33,6 +33,8 @@ String formatSet(num kg, int reps) => '${formatKg(kg)} × $reps';
 
 /// `1h 12m`, `45m`, `0m`
 String formatDuration(Duration d) {
+  // Under a minute is not "0m": something was done.
+  if (d.inMinutes < 1) return '<1m';
   final h = d.inHours;
   final m = d.inMinutes.remainder(60);
   return h > 0 ? '${h}h ${m}m' : '${m}m';

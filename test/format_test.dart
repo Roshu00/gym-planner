@@ -28,6 +28,7 @@ void main() {
   test('formatDuration and formatClock', () {
     expect(formatDuration(const Duration(minutes: 72)), '1h 12m');
     expect(formatDuration(const Duration(minutes: 45)), '45m');
+    expect(formatDuration(const Duration(seconds: 20)), '<1m');
     expect(formatClock(const Duration(seconds: 90)), '1:30');
     expect(formatClock(const Duration(seconds: 5)), '0:05');
     expect(formatClock(const Duration(seconds: -12)), '−0:12');
