@@ -421,6 +421,31 @@ class AppStore extends ChangeNotifier {
 
   bool canAccess(Audience v, String creatorId) => v == Audience.public || isSubscribed(creatorId);
 
+  /// The first workout of a program is a free preview (the server lets
+  /// anyone read it, see the free_first_workout migration).
+  bool isPreviewWorkout(String workoutId) => allPrograms.any((p) => p.workoutIds.firstOrNull == workoutId);
+
+  /// A locked workout the user may still try once, for free: the first one
+  /// of a program, not done yet.
+  bool canTry(Workout w) =>
+      !canAccess(w.visibility, w.creatorId) &&
+      isPreviewWorkout(w.id) &&
+      !sessions.any((s) => s.workoutId == w.id);
+
+  /// A locked program's first workout, free until the user has done it.
+  Workout? freeTrialOf(Program p) {
+    final first = workoutsById[p.workoutIds.firstOrNull];
+    return first != null && !sessions.any((s) => s.workoutId == first.id) ? first : null;
+  }
+
+  /// Exercises are visible with their creator's access, or as part of a
+  /// free first workout.
+  bool canSeeExercise(Exercise e) =>
+      canAccess(e.visibility, e.creatorId) ||
+      allPrograms.any(
+        (p) => workoutsById[p.workoutIds.firstOrNull]?.exercises.any((we) => we.exerciseId == e.id) ?? false,
+      );
+
   List<Program> programsOf(String creatorId) => allPrograms.where((p) => p.creatorId == creatorId).toList();
   List<Workout> workoutsOf(String creatorId) => allWorkouts.where((w) => w.creatorId == creatorId).toList();
   List<Exercise> exercisesOf(String creatorId) =>

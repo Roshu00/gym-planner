@@ -42,10 +42,21 @@ $$;
 
 -- ── Anonymous visitor: the shop window only.
 select pg_temp.act_as('anon');
-select pg_temp.check((select count(*) from public.creators) = 3, 'anon sees creators');
-select pg_temp.check((select count(*) from public.programs) = 5, 'anon sees all program pages, locked ones too');
-select pg_temp.check(not exists (select 1 from public.exercises where audience = 'subscribers'), 'anon does not see subscriber exercises');
-select pg_temp.check(not exists (select 1 from public.workouts where audience = 'subscribers'), 'anon does not see subscriber workouts');
+select pg_temp.check((select count(*) from public.creators) = 6, 'anon sees creators');
+select pg_temp.check((select count(*) from public.programs) = 8, 'anon sees all program pages, locked ones too');
+select pg_temp.check(
+  not exists (
+    select 1 from public.workouts w
+     where w.audience = 'subscribers'
+       and not exists (select 1 from public.programs p where p.workout_ids[1] = w.id)
+  ),
+  'anon does not see subscriber workouts beyond the free first ones');
+select pg_temp.check(
+  exists (
+    select 1 from public.workouts w
+     where w.audience = 'subscribers' and exists (select 1 from public.programs p where p.workout_ids[1] = w.id)
+  ),
+  'anon sees the free first workout of a subscriber program');
 select pg_temp.check(exists (select 1 from public.workouts where id = 'w_m_push'), 'anon sees public workouts');
 select pg_temp.check(pg_temp.fails('select * from public.profiles') = '42501', 'anon cannot read profiles');
 select pg_temp.check(pg_temp.fails($$insert into public.creators (name, handle) values ('X', 'xxx')$$) = '42501', 'anon cannot create creators');
@@ -55,12 +66,14 @@ select pg_temp.act_as('ana');
 insert into public.creators (id, user_id, name, handle) values ('c_ana', '00000000-0000-0000-0000-00000000000a', 'Ana', 'ana.trener');
 insert into public.exercises (id, creator_id, name, muscle, equipment, audience) values
   ('a_pub', 'c_ana', 'Sklek', 'chest', '{bodyweight}', 'public'),
-  ('a_sub', 'c_ana', 'Tajna vežba', 'core', '{band}', 'subscribers');
+  ('a_sub', 'c_ana', 'Tajna vežba', 'core', '{band}', 'subscribers'),
+  ('a_sub2', 'c_ana', 'Druga tajna vežba', 'core', '{band}', 'subscribers');
 insert into public.workouts (id, creator_id, name, exercises, audience) values
-  ('a_w', 'c_ana', 'Jutro', '[{"exerciseId":"a_sub","sets":3}]', 'subscribers');
+  ('a_w', 'c_ana', 'Jutro', '[{"exerciseId":"a_sub","sets":3}]', 'subscribers'),
+  ('a_w2', 'c_ana', 'Veče', '[{"exerciseId":"a_sub2","sets":3}]', 'subscribers');
 insert into public.programs (id, creator_id, name, workout_ids, audience) values
-  ('a_p', 'c_ana', 'Moj program', '{a_w}', 'subscribers');
-select pg_temp.check((select count(*) from public.exercises where creator_id = 'c_ana') = 2, 'owner sees own subscriber content');
+  ('a_p', 'c_ana', 'Moj program', '{a_w,a_w2}', 'subscribers');
+select pg_temp.check((select count(*) from public.exercises where creator_id = 'c_ana') = 3, 'owner sees own subscriber content');
 select pg_temp.check(
   pg_temp.fails($$insert into public.exercises (creator_id, name, muscle) values ('c_marko', 'Tuđa', 'chest')$$) = '42501',
   'cannot write into another creator''s library');
@@ -72,13 +85,16 @@ select pg_temp.check((select name from public.creators where id = 'c_marko') = '
 
 -- ── Boban follows, then subscribes.
 select pg_temp.act_as('boban');
-select pg_temp.check(not exists (select 1 from public.exercises where id = 'a_sub'), 'non-subscriber does not see subscriber exercise');
+select pg_temp.check(not exists (select 1 from public.exercises where id = 'a_sub2'), 'non-subscriber does not see subscriber exercise');
+select pg_temp.check(not exists (select 1 from public.workouts where id = 'a_w2'), 'non-subscriber does not see the rest of the program');
+select pg_temp.check(exists (select 1 from public.workouts where id = 'a_w'), 'non-subscriber sees the free first workout');
+select pg_temp.check(exists (select 1 from public.exercises where id = 'a_sub'), 'non-subscriber sees the free workout''s exercises');
 select pg_temp.check(exists (select 1 from public.exercises where id = 'a_pub'), 'non-subscriber sees public exercise');
 select pg_temp.check(exists (select 1 from public.programs where id = 'a_p'), 'locked program page is visible');
 insert into public.follows (user_id, creator_id) values ('00000000-0000-0000-0000-00000000000b', 'c_ana');
 insert into public.subscriptions (user_id, creator_id) values ('00000000-0000-0000-0000-00000000000b', 'c_ana');
 select pg_temp.check(exists (select 1 from public.exercises where id = 'a_sub'), 'subscriber sees subscriber exercise');
-select pg_temp.check(exists (select 1 from public.workouts where id = 'a_w'), 'subscriber sees subscriber workout');
+select pg_temp.check(exists (select 1 from public.workouts where id = 'a_w2'), 'subscriber sees subscriber workout');
 select pg_temp.check(
   pg_temp.fails($$insert into public.subscriptions (user_id, creator_id) values ('00000000-0000-0000-0000-00000000000a', 'c_marko')$$) = '42501',
   'cannot subscribe someone else');
@@ -136,7 +152,7 @@ select pg_temp.check((select count(*) from public.profiles) = 0, 'profiles are p
 select pg_temp.check((select count(*) from public.subscriptions) = 0, 'subscriptions are private');
 select pg_temp.act_as('boban');
 delete from public.subscriptions where creator_id = 'c_ana';
-select pg_temp.check(not exists (select 1 from public.exercises where id = 'a_sub'), 'cancelling locks subscriber content again');
+select pg_temp.check(not exists (select 1 from public.exercises where id = 'a_sub2'), 'cancelling locks subscriber content again');
 select pg_temp.check((select count(*) from public.sessions) = 2, 'history stays after cancelling');
 
 -- ── Guests (anonymous sign-in) train but cannot publish.

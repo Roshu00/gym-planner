@@ -262,6 +262,25 @@ void main() {
     expect(store.trialProgramOf(store.finishSession()), isNull);
   });
 
+  test('the first workout of a subscribers-only program is free, once', () {
+    final program = store.programsById['p_j_glute']!;
+    final first = store.workoutsById['w_j_glute_a']!;
+    final second = store.workoutsById['w_j_glute_b']!;
+    expect(store.canAccess(program.visibility, program.creatorId), isFalse);
+    expect(store.canTry(first), isTrue);
+    expect(store.canTry(second), isFalse, reason: 'only the first one');
+    expect(store.freeTrialOf(program)?.id, first.id);
+    final exercise = store.exercisesById[first.exercises.first.exerciseId]!;
+    expect(store.canSeeExercise(exercise), isTrue);
+
+    store.startSession(workoutId: first.id);
+    store.updateSet(0, 0, const SetLog(kg: 20, reps: 10));
+    store.toggleSet(0, 0);
+    store.finishSession();
+    expect(store.canTry(first), isFalse, reason: 'tried already');
+    expect(store.freeTrialOf(program), isNull);
+  });
+
   test('first time: weight carries over from the previous set', () {
     store.startProgram('p_m_start');
     store.startSession();

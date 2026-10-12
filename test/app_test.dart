@@ -605,4 +605,16 @@ void main() {
     expect(store.plan!.programId, 'p_ab_fit');
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('a locked program offers its first workout for free', (tester) async {
+    final store = await freshStore();
+    await pump(tester, store, const ProgramDetailScreen(programId: 'p_j_glute'), ClTheme.light);
+    expect(find.text('Probaj prvi trening besplatno'), findsOneWidget);
+    await tester.tap(find.text('Probaj prvi trening besplatno'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(WorkoutDetailScreen), findsOneWidget);
+    expect(find.text('Probaj besplatno'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

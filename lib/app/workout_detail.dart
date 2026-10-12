@@ -29,7 +29,15 @@ class WorkoutDetailScreen extends StatelessWidget {
     final active = store.active;
 
     final Widget action;
-    if (locked) {
+    if (locked && active == null && store.canTry(w)) {
+      action = ClButton.block(
+        label: 'Probaj besplatno',
+        onPressed: () {
+          context.readStore.startSession(workoutId: w.id);
+          pushScreen(context, const WorkoutSessionScreen(), replace: true);
+        },
+      );
+    } else if (locked) {
       action = ClButton(
         label: 'Pretplati se',
         variant: ClButtonVariant.pop,

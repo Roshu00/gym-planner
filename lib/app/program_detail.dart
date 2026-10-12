@@ -54,8 +54,31 @@ class ProgramDetailScreen extends StatelessWidget {
     final missing = fit.total - fit.doable;
     final workouts = p.workoutIds.map((id) => store.workoutsById[id]).nonNulls.toList();
 
+    final trial = locked ? store.freeTrialOf(p) : null;
+
     final Widget action;
-    if (locked) {
+    if (trial != null) {
+      // Try the first workout before paying; subscribing stays one tap away.
+      action = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Same height as the button under it: two answers, one size.
+          ClButton(
+            label: 'Probaj prvi trening besplatno',
+            expand: true,
+            onPressed: () => pushScreen(context, WorkoutDetailScreen(workoutId: trial.id)),
+          ),
+          const SizedBox(height: ClSpace.s2),
+          ClButton(
+            label: 'Pretplati se · ${formatPrice(c?.priceMonthly ?? 0)} mesečno',
+            variant: ClButtonVariant.secondary,
+            expand: true,
+            onPressed: c == null ? null : () => showSubscribeSheet(context, c),
+          ),
+        ],
+      );
+    } else if (locked) {
       action = ClButton(
         label: 'Pretplati se',
         variant: ClButtonVariant.pop,
@@ -154,6 +177,7 @@ class ProgramDetailScreen extends StatelessWidget {
             title: w.name,
             meta: workoutMeta(w),
             tags: [
+              if (trial?.id == w.id) const ClTag('Besplatno'),
               if (store.needsEquipmentSwap(w)) const ClTag('Zamena opreme', variant: ClTagVariant.danger),
             ],
             onPressed: () => pushScreen(context, WorkoutDetailScreen(workoutId: w.id)),

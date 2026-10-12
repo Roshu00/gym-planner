@@ -498,8 +498,18 @@ class _ReminderOffer extends StatelessWidget {
             style: cl.text.body.copyWith(color: cl.colors.inkMuted),
           ),
           gapS,
+          // Two equal halves: the answer is yes or no, not one big button.
           Row(
             children: [
+              Expanded(
+                child: ClButton(
+                  label: 'Ne sada',
+                  variant: ClButtonVariant.secondary,
+                  expand: true,
+                  onPressed: store.dismissReminderOffer,
+                ),
+              ),
+              const SizedBox(width: ClSpace.s2),
               Expanded(
                 child: ClButton(
                   label: 'Podseti me',
@@ -515,12 +525,6 @@ class _ReminderOffer extends StatelessWidget {
                     );
                   },
                 ),
-              ),
-              const SizedBox(width: ClSpace.s2),
-              ClButton(
-                label: 'Ne sada',
-                variant: ClButtonVariant.text,
-                onPressed: store.dismissReminderOffer,
               ),
             ],
           ),

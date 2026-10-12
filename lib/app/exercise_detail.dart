@@ -26,7 +26,7 @@ class ExerciseDetailScreen extends StatelessWidget {
     }
     final cl = context.cl;
     final c = store.creator(e.creatorId);
-    final locked = !store.canAccess(e.visibility, e.creatorId);
+    final locked = !store.canSeeExercise(e);
     final history = [
       for (final s in store.history)
         for (final x in s.exercises.where((x) => x.exerciseId == e.id)) (session: s, exercise: x),
