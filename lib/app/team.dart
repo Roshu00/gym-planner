@@ -52,6 +52,7 @@ class _TeamScreenState extends State<TeamScreen> {
           ],
         ),
         gap,
+        if (store.canPush && !store.pushAsked) ...[_PushOffer(trainer: isMine), gap],
         if (team == null)
           const ClNotice('Tim se učitava.')
         else if (team.posts.isEmpty)
@@ -301,4 +302,68 @@ class _ReplySheetState extends State<_ReplySheet> {
       ClButton(label: 'Pošalji', expand: true, onPressed: () => Navigator.of(context).pop(_text.text)),
     ],
   );
+}
+
+/// Asked once, where it makes sense: in the team, after showing up.
+class _PushOffer extends StatelessWidget {
+  const _PushOffer({required this.trainer});
+
+  final bool trainer;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final cl = context.cl;
+    final c = cl.colors;
+    return Container(
+      padding: const EdgeInsets.all(ClSpace.s4),
+      decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(ClRadius.lg)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            trainer ? 'Da ti javimo kad tim trenira?' : 'Da ti javimo kad ti trener odgovori?',
+            style: cl.text.bodyStrong.copyWith(fontSize: 17),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            trainer
+                ? 'Kad neko iz tima obori rekord ili čeka tvoj odgovor.'
+                : 'I kad ti tim kaže Bravo, ili trener napiše poruku za danas.',
+            style: cl.text.body.copyWith(color: c.inkMuted),
+          ),
+          gapS,
+          Row(
+            children: [
+              Expanded(
+                child: ClButton(
+                  label: 'Ne sada',
+                  variant: ClButtonVariant.secondary,
+                  expand: true,
+                  onPressed: store.dismissPushOffer,
+                ),
+              ),
+              const SizedBox(width: ClSpace.s2),
+              Expanded(
+                child: ClButton(
+                  label: 'Javi mi',
+                  expand: true,
+                  onPressed: () async {
+                    final ok = await store.enablePush();
+                    if (!context.mounted) return;
+                    showUndoToast(
+                      context,
+                      ok
+                          ? 'Javljamo ti.'
+                          : 'Telefon ne dozvoljava obaveštenja. Uključi ih u podešavanjima telefona.',
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

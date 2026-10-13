@@ -31,6 +31,7 @@ class FakeRemote implements Remote {
     'team_cheers': [],
     'team_replies': [],
     'trainer_notes': [],
+    'push_tokens': [],
   };
 
   bool offline = false;

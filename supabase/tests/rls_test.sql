@@ -190,6 +190,27 @@ select pg_temp.check((select text from public.team_replies where post_id = 'tp1'
 delete from public.team_cheers where post_id = 'tp1';
 select pg_temp.check(not exists (select 1 from public.team_cheers), 'a cheer can be taken back');
 
+-- ── Push: own tokens only; team events queue notifications.
+select pg_temp.act_as('boban');
+insert into public.push_tokens (token, platform) values ('boban-phone-token', 'ios');
+select pg_temp.check((select count(*) from public.push_tokens) = 1, 'users keep their own token');
+select pg_temp.check(pg_temp.fails('select * from public.push_queue') = '42501', 'the queue is not readable by users');
+select pg_temp.act_as('ana');
+select pg_temp.check(not exists (select 1 from public.push_tokens), 'tokens are private');
+reset role;
+select pg_temp.check(
+  exists (select 1 from public.push_queue where user_id = '00000000-0000-0000-0000-00000000000b' and data->>'type' = 'reply'),
+  'a reply notifies the author');
+select pg_temp.check(
+  exists (select 1 from public.push_queue where user_id = '00000000-0000-0000-0000-00000000000b' and data->>'type' = 'note'),
+  'today''s message notifies the team');
+select pg_temp.check(
+  exists (select 1 from public.push_queue where user_id = '00000000-0000-0000-0000-00000000000a' and data->>'type' = 'record'),
+  'a record notifies the trainer');
+select pg_temp.check(
+  not exists (select 1 from public.push_queue where user_id = '00000000-0000-0000-0000-00000000000a' and data->>'type' = 'note'),
+  'the trainer is not notified of their own message');
+
 -- ── Guests (anonymous sign-in) train but cannot publish.
 select pg_temp.act_as('guest');
 insert into public.profiles (user_id, name, goal, experience, place, days_per_week)

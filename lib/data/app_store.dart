@@ -12,6 +12,7 @@ import 'auth.dart';
 import 'demo_team.dart';
 import 'rows.dart';
 import 'seed.dart';
+import 'push.dart';
 import 'reminder_scheduler.dart';
 import 'storage.dart';
 import 'sync.dart';
@@ -35,6 +36,7 @@ class AppStore extends ChangeNotifier {
     DateTime Function()? clock,
     math.Random? random,
     this.reminders = const NoReminders(),
+    this.push = const NoPush(),
   }) : _clock = clock ?? DateTime.now,
        _random = random ?? math.Random();
 
@@ -44,6 +46,9 @@ class AppStore extends ChangeNotifier {
 
   /// Puts training-day reminders on the phone.
   final ReminderScheduler reminders;
+
+  /// Notifications from the server: answers, cheers, the day's message.
+  final PushService push;
   final Remote? remote;
   final AuthService? auth;
 
@@ -59,6 +64,7 @@ class AppStore extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _tokenSub?.cancel();
     super.dispose();
   }
 
@@ -136,6 +142,7 @@ class AppStore extends ChangeNotifier {
     loaded = true;
     notifyListeners();
     _syncReminders();
+    if (pushEnabled) unawaited(_registerPush());
   }
 
   // ───────────────────────── Reminders
@@ -324,6 +331,7 @@ class AppStore extends ChangeNotifier {
     'sessions': sessions.map((s) => s.toJson()).toList(),
     'active': active?.toJson(),
     'reminders': reminderSettings.toJson(),
+    'push': {'enabled': pushEnabled, 'asked': pushAsked},
     'team': {
       'posted': postedSessions.toList(),
       'myPosts': [for (final p in _myPosts) p.toJson()],
@@ -357,6 +365,9 @@ class AppStore extends ChangeNotifier {
     plan = j['plan'] == null ? null : UserPlan.fromJson(m(j['plan']));
     sessions = [for (final e in l(j['sessions'])) Session.fromJson(m(e))];
     active = j['active'] == null ? null : Session.fromJson(m(j['active']));
+    final pushJson = j['push'] as Map<String, Object?>?;
+    pushEnabled = pushJson?['enabled'] as bool? ?? false;
+    pushAsked = pushJson?['asked'] as bool? ?? false;
     final t = j['team'] as Map<String, Object?>?;
     if (t != null) {
       postedSessions = {for (final e in l(t['posted'])) e as String};
@@ -392,6 +403,7 @@ class AppStore extends ChangeNotifier {
   Future<void> resetAll() async {
     if (remote != null) {
       for (final table in [
+        'push_tokens',
         'team_cheers',
         'team_posts',
         'sessions',
@@ -413,6 +425,8 @@ class AppStore extends ChangeNotifier {
     _replies = {};
     _notes = [];
     postedSessions = {};
+    pushEnabled = false;
+    pushAsked = false;
     myExercises = [];
     myWorkouts = [];
     myPrograms = [];
@@ -1025,6 +1039,69 @@ class AppStore extends ChangeNotifier {
   /// Planned training days per week; 0 without a plan.
   int get weeklyGoal =>
       plan == null ? 0 : (plan!.trainingDays.isEmpty ? plan!.daysPerWeek : plan!.trainingDays.length);
+
+  // ───────────────────────── Push
+
+  /// The user said yes to notifications about their team.
+  bool pushEnabled = false;
+
+  /// Asked once; "Ne sada" is an answer too.
+  bool pushAsked = false;
+
+  StreamSubscription<String>? _tokenSub;
+
+  /// Push needs the server and a Firebase-configured build.
+  bool get canPush => remote != null && push is! NoPush;
+
+  /// Asks the phone, then sends this phone's token to the server. True when
+  /// notifications are on.
+  Future<bool> enablePush() async {
+    pushAsked = true;
+    final ok = await _registerPush();
+    pushEnabled = ok;
+    _commit();
+    return ok;
+  }
+
+  void dismissPushOffer() {
+    pushAsked = true;
+    _commit();
+  }
+
+  Future<bool> _registerPush() async {
+    if (!canPush) return false;
+    final token = await push.register();
+    if (token == null) return false;
+    _sendToken(token);
+    _tokenSub ??= push.tokenChanges.listen(_sendToken);
+    return true;
+  }
+
+  String? _pushToken;
+
+  /// Before signing out: this phone stops getting the account's notifications.
+  Future<void> forgetPushToken() async {
+    final token = _pushToken, r = remote;
+    if (token == null || r == null) return;
+    try {
+      await r.apply(Mutation.delete('push_tokens', {'user_id': _uid, 'token': token}));
+    } on RemoteError {
+      // Offline: the server drops it when Firebase says it is no longer valid.
+    }
+  }
+
+  void _sendToken(String token) {
+    _pushToken = token;
+    _send(
+      Mutation.upsert('push_tokens', {
+        'token': token,
+        'user_id': _uid,
+        'platform': defaultTargetPlatform == TargetPlatform.android ? 'android' : 'ios',
+        'updated_at': now.toUtc().toIso8601String(),
+      }, onConflict: 'user_id,token'),
+    );
+    unawaited(_flush());
+  }
 
   // ───────────────────────── Team
 

@@ -34,6 +34,7 @@ class Mutation {
     'subscriptions': ['user_id', 'creator_id'],
     'team_cheers': ['post_id', 'user_id'],
     'team_replies': ['post_id'],
+    'push_tokens': ['user_id', 'token'],
   };
 
   /// Identifies the row(s) touched. A newer mutation with the same key

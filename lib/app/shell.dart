@@ -1,12 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/push.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'creator_profile.dart';
 import 'profile.dart';
 import 'creator_mode.dart';
 import 'month_recap.dart';
+import 'team.dart';
 import 'today.dart';
 
 /// Danas, Napredak and Ja; a trainer also has Studio. Plan, trainers and
@@ -47,8 +51,11 @@ class _HomeShellState extends State<HomeShell> {
 
   void _onTab() => setState(() {});
 
+  StreamSubscription<PushTarget>? _pushSub;
+
   @override
   void dispose() {
+    _pushSub?.cancel();
     HomeShell.tab.removeListener(_onTab);
     super.dispose();
   }
@@ -60,6 +67,17 @@ class _HomeShellState extends State<HomeShell> {
     final store = context.readStore;
     HomeShell.tab.value = store.isCoach && store.myCreator == null ? AppTab.studio : AppTab.today;
     HomeShell.tab.addListener(_onTab);
+    // A tapped notification opens what it is about.
+    _pushSub = store.push.opened.listen((t) {
+      if (!mounted) return;
+      final creatorId = t.creatorId ?? context.readStore.plan?.creatorId;
+      if (t.type == 'note' || creatorId == null) {
+        HomeShell.goTo(context, AppTab.today);
+      } else {
+        Navigator.of(context).popUntil((r) => r.isFirst);
+        pushScreen(context, TeamScreen(creatorId: creatorId));
+      }
+    });
     final id = widget.openCreatorId;
     if (id != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

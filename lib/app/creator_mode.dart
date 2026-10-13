@@ -236,7 +236,8 @@ class _TeamCardState extends State<_TeamCard> {
       children: [
         if (today != null) ...[
           ClCreatorMessage(
-            name: store.profile?.says('Danas si napisao', 'Danas si napisala', 'Tvoja poruka za danas') ??
+            name:
+                store.profile?.says('Danas si napisao', 'Danas si napisala', 'Tvoja poruka za danas') ??
                 'Tvoja poruka za danas',
             message: today.text,
             image: photoOf(store.myCreator?.photo),

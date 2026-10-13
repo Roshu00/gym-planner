@@ -363,6 +363,7 @@ class _DataSection extends StatelessWidget {
       danger: guest || pending > 0,
     );
     if (!ok || !context.mounted) return;
+    await store.forgetPushToken();
     await store.clearDeviceCache();
     await store.auth!.signOut();
   }

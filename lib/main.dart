@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
 import 'app/app.dart';
 import 'data/app_store.dart';
+import 'data/push.dart';
 import 'data/reminder_scheduler.dart';
 import 'data/storage.dart';
 import 'data/supabase_backend.dart';
@@ -15,6 +16,10 @@ Future<void> main() async {
   final handle = creatorHandleFromUri(Uri.base);
   // Local notifications on phones; nothing on web.
   final ReminderScheduler reminders = kIsWeb ? const NoReminders() : LocalReminderScheduler();
+  // Pushes need the server; without a Firebase config the app runs without.
+  final PushService push = kIsWeb || !SupabaseConfig.isConfigured
+      ? const NoPush()
+      : await FirebasePush.start();
 
   if (!SupabaseConfig.isConfigured) {
     final store = AppStore(storage: SharedPrefsStore(), reminders: reminders);
@@ -33,6 +38,7 @@ Future<void> main() async {
       storeFor: (user) => AppStore(
         storage: SharedPrefsStore(),
         reminders: reminders,
+        push: push,
         remote: SupabaseRemote(client, user.id),
         auth: auth,
         account: user,

@@ -333,7 +333,11 @@ void main() {
       expect(ex({Equipment.band}).measured, Measure.reps);
       expect(ex({Equipment.barbell, Equipment.bench}).measured, Measure.weight);
       expect(ex({Equipment.dumbbell}).measured, Measure.weight);
-      expect(ex({Equipment.bodyweight}, measure: Measure.time).measured, Measure.time, reason: 'set by the trainer');
+      expect(
+        ex({Equipment.bodyweight}, measure: Measure.time).measured,
+        Measure.time,
+        reason: 'set by the trainer',
+      );
     });
 
     test('a held exercise moves on by five seconds', () {

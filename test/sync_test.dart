@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:chalkline/data/app_store.dart';
+import 'package:chalkline/data/push.dart';
 import 'package:chalkline/data/rows.dart';
 import 'package:chalkline/data/seed.dart';
 import 'package:chalkline/data/seed_sql.dart';
@@ -50,7 +53,14 @@ void main() {
     expect(url, startsWith('https://'));
     expect(url, endsWith('.mov'));
     store.saveExercise(
-      Exercise(id: 'e_v', creatorId: me.id, name: 'Čučanj', muscle: Muscle.quads, equipment: const {}, video: url),
+      Exercise(
+        id: 'e_v',
+        creatorId: me.id,
+        name: 'Čučanj',
+        muscle: Muscle.quads,
+        equipment: const {},
+        video: url,
+      ),
     );
     await settle();
     final row = remote.tables['exercises']!.singleWhere((r) => r['id'] == 'e_v');
@@ -69,7 +79,10 @@ void main() {
       Highlight(
         id: 'h1',
         title: 'O meni',
-        items: [HighlightItem(url: photo), HighlightItem(url: clip, video: true)],
+        items: [
+          HighlightItem(url: photo),
+          HighlightItem(url: clip, video: true),
+        ],
       ),
     );
     await settle();
@@ -107,6 +120,36 @@ void main() {
     store.writeNote('Danas noge.');
     await settle();
     expect(remote.tables['trainer_notes']!.single['creator_id'], me.id);
+  });
+
+  test('push: the phone\'s token goes to the server once allowed, and leaves on sign-out', () async {
+    final push = _FakePush('phone-token-1');
+    final store = AppStore(storage: storage, remote: remote, clock: () => clock, push: push);
+    await store.load();
+    store.completeOnboarding(profile);
+    expect(store.canPush, isTrue);
+    expect(await store.enablePush(), isTrue);
+    await settle();
+    expect(remote.tables['push_tokens']!.single['token'], 'phone-token-1');
+    expect(remote.tables['push_tokens']!.single['user_id'], uid);
+    expect(store.pushAsked && store.pushEnabled, isTrue);
+
+    push.rotate('phone-token-2');
+    await settle();
+    expect(remote.tables['push_tokens']!.map((r) => r['token']), contains('phone-token-2'));
+
+    await store.forgetPushToken();
+    expect(remote.tables['push_tokens']!.map((r) => r['token']), isNot(contains('phone-token-2')));
+  });
+
+  test('push: no permission, nothing sent; asked only once', () async {
+    final store = AppStore(storage: storage, remote: remote, clock: () => clock, push: _FakePush(null));
+    await store.load();
+    store.completeOnboarding(profile);
+    expect(await store.enablePush(), isFalse);
+    await settle();
+    expect(remote.tables['push_tokens'], isEmpty);
+    expect(store.pushAsked, isTrue);
   });
 
   test('without a server the video stays a file on the phone', () async {
@@ -350,4 +393,22 @@ void main() {
   test('supabase/seed.sql matches the demo catalog (run tool/gen_seed.dart)', () {
     expect(File('supabase/seed.sql').readAsStringSync(), buildSeedSql());
   });
+}
+
+class _FakePush implements PushService {
+  _FakePush(this.token);
+
+  final String? token;
+  final _changes = StreamController<String>.broadcast();
+
+  void rotate(String t) => _changes.add(t);
+
+  @override
+  Future<String?> register() async => token;
+
+  @override
+  Stream<String> get tokenChanges => _changes.stream;
+
+  @override
+  Stream<PushTarget> get opened => const Stream.empty();
 }
