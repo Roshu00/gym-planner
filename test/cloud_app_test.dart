@@ -110,7 +110,7 @@ void main() {
 
     // Creator mode asks for a real account first.
     // Idle nav items show only an icon; tap by their label for screen readers.
-    await tester.tap(find.bySemanticsLabel('Profil'));
+    await tester.tap(find.bySemanticsLabel('Ja'));
     await tester.pumpAndSettle();
     expect(find.text('Gost').hitTestable(), findsWidgets);
     // Anyone can become a trainer from the settings; Studio becomes a tab.
@@ -128,7 +128,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(auth.current!.isGuest, isFalse);
     expect(find.text('Tvoj profil trenera.'), findsOneWidget, reason: 'the Studio tab is open now');
-    await tester.tap(find.bySemanticsLabel('Profil'));
+    await tester.tap(find.bySemanticsLabel('Ja'));
     await tester.pumpAndSettle();
     await tester.tap(find.bySemanticsLabel('Podešavanja'));
     await tester.pumpAndSettle();

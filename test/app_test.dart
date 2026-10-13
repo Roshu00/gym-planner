@@ -316,7 +316,7 @@ void main() {
     expect(find.textContaining('${formatNumber(suggested + 2.5)} kg'), findsWidgets, reason: 'rest shows set 2 at it');
     await tester.tap(find.text('Kreni'));
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text(formatNumber(suggested + 2.5)), findsWidgets, reason: 'set 2 starts at the new weight');
+    expect(find.textContaining(formatNumber(suggested + 2.5), findRichText: true), findsWidgets, reason: 'set 2 starts at the new weight');
   });
 
   testWidgets('from onboarding to a finished workout', (tester) async {
@@ -395,7 +395,7 @@ void main() {
     await tester.pumpAndSettle();
     await tapText('Završi trening');
     await tapText('Završi trening');
-    expect(find.text('Prvi trening.'), findsOneWidget, reason: 'the first workout is a milestone');
+    expect(find.textContaining('Prvi trening.', findRichText: true), findsOneWidget, reason: 'the first workout is a milestone');
     expect(find.text('Tvoji početni rezultati'), findsOneWidget);
     await tapText('Gotovo');
     expect(

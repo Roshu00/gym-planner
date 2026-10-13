@@ -48,17 +48,64 @@ class _SummaryScreenState extends State<SummaryScreen> {
               ? 'Vidimo se na sledećem treningu.'
               : 'Sledeće je ${store.nextWorkout!.name}. Isti ritam.');
 
-    return AppScreen(
-      topBar: ClTopBar(
-        label: justFinished ? null : s.workoutName,
-        backLabel: justFinished ? 'Zatvori' : 'Nazad',
+    final number = store.history.where((x) => !x.finishedAt!.isAfter(date)).length;
+    final work = sessionWork(s);
+    final records = [
+      for (final e in s.exercises)
+        if (e.hasPr && topSet(e) != null) (exercise: e, top: topSet(e)!, gain: _gain(store.sessions, s, e)),
+    ];
+    final weeks = weeklyVolume(store.sessions, date, 8);
+    final bestWeek =
+        weeks.length > 1 &&
+        weeks.last.volume > 0 &&
+        weeks.sublist(0, weeks.length - 1).any((w) => w.volume > 0) &&
+        weeks.last.volume >
+            weeks.sublist(0, weeks.length - 1).map((w) => w.volume).reduce((a, b) => a > b ? a : b);
+    final String headline;
+    final String? highlight;
+    if (!justFinished) {
+      headline = '${weekdayName(date)} ${formatDate(date)}';
+      highlight = null;
+    } else if (first) {
+      headline = 'Prvi trening.';
+      highlight = 'Najteži korak je iza tebe.';
+    } else {
+      headline = 'Trening $number.';
+      highlight = bestWeek
+          ? 'Najjača nedelja do sada.'
+          : records.isNotEmpty
+          ? '${countLabel(records.length, 'novi rekord', 'nova rekorda', 'novih rekorda')}.'
+          : store.profile?.says('Pojavio si se.', 'Pojavila si se.', 'Odrađeno.') ?? 'Odrađeno.';
+    }
+    final cl = context.cl;
+    final c = cl.colors;
+
+    Widget stat(String value, String label) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(ClSpace.s3),
+        decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(ClRadius.sm - 2)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value, style: cl.text.metric),
+            ),
+            Text(label, style: cl.text.label),
+          ],
+        ),
       ),
+    );
+
+    return AppScreen(
+      topBar: ClTopBar(backLabel: justFinished ? 'Zatvori' : 'Nazad'),
       bottom: Row(
         children: [
           Expanded(
             child: ClButton(
               label: 'Podeli na story',
-              variant: ClButtonVariant.pop,
+              variant: justFinished ? ClButtonVariant.secondary : ClButtonVariant.primary,
               expand: true,
               onPressed: () => pushScreen(context, StoryComposerScreen(session: s)),
             ),
@@ -72,57 +119,94 @@ class _SummaryScreenState extends State<SummaryScreen> {
         ],
       ),
       children: [
-        // The sticker already names the workout; the title says when.
-        ClScreenTitle(
-          label: justFinished && store.streak > 0
-              ? '${countLabel(store.streak, 'nedelja', 'nedelje', 'nedelja')} zaredom'
-              : null,
-          title: justFinished && first
-              ? 'Prvi trening.'
-              : justFinished
-              ? (store.profile?.says('Pojavio si se.', 'Pojavila si se.', 'Odrađeno.') ?? 'Odrađeno.')
-              : '${weekdayName(date)} ${formatDate(date)}',
-        ),
-        gapS,
-        // The same photo + sticker the story will have; a tap opens it.
-        ClPressable(
-          onPressed: () => pushScreen(context, StoryComposerScreen(session: s)),
-          semanticLabel: 'Podeli na story',
-          radius: ClRadius.lg,
-          builder: (context, pressed) => AnimatedScale(
-            duration: context.motion(ClMotion.fast),
-            scale: pressed ? 0.98 : 1,
-            child: AspectRatio(
-              aspectRatio: 4 / 5,
-              child: LayoutBuilder(
-                builder: (context, box) => ClipRRect(
-                  borderRadius: BorderRadius.circular(ClRadius.lg),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ColoredBox(color: context.clColors.popFor(s.workoutId)),
-                      if (photoOf(store.workoutsById[s.workoutId]?.image) case final cover?)
-                        ClPhoto(image: cover, placeholderLabel: ''),
-                      const ClPhotoScrim(coverage: 0.6),
-                      Positioned(
-                        left: ClSpace.s4,
-                        right: ClSpace.s4,
-                        bottom: ClSpace.s4,
-                        child: StorySticker(
-                          session: s,
-                          first: first,
-                          handle: store.creator(s.creatorId)?.handle,
-                          creatorPhoto: photoOf(store.creator(s.creatorId)?.photo),
-                          scale: box.maxWidth / 360,
-                        ),
-                      ),
-                    ],
+        if (justFinished && store.streak > 0)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: c.signalSoft,
+                borderRadius: BorderRadius.circular(ClRadius.full),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(ClIcons.streak, size: 14, color: c.signalText),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${countLabel(store.streak, 'nedelja', 'nedelje', 'nedelja')} zaredom',
+                    style: cl.text.label.copyWith(color: c.signalText),
                   ),
-                ),
+                ],
               ),
             ),
           ),
+        const SizedBox(height: ClSpace.s3),
+        Semantics(
+          header: true,
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: headline),
+                if (highlight != null) ...[
+                  const TextSpan(text: '\n'),
+                  TextSpan(
+                    text: highlight,
+                    style: TextStyle(color: c.signal),
+                  ),
+                ],
+              ],
+            ),
+            style: cl.text.displayXl.copyWith(fontSize: justFinished ? 44 : 34, height: 1.02),
+          ),
         ),
+        if (!justFinished) ...[const SizedBox(height: 4), Text(s.workoutName, style: cl.text.bodyStrong)],
+        gap,
+        Row(
+          children: [
+            stat(formatDuration(s.duration), 'vreme'),
+            const SizedBox(width: ClSpace.s2),
+            stat(work.value, work.label.toLowerCase()),
+            const SizedBox(width: ClSpace.s2),
+            stat('${s.prCount > 0 ? s.prCount : s.doneSets}', s.prCount > 0 ? 'rekorda' : 'setova'),
+          ],
+        ),
+        if (records.isNotEmpty) ...[
+          gapS,
+          for (final (i, r) in records.indexed) ...[
+            if (i > 0) const SizedBox(height: ClSpace.s2),
+            Container(
+              padding: const EdgeInsets.all(ClSpace.s4),
+              decoration: BoxDecoration(
+                color: i == 0 ? c.signal : c.surface,
+                borderRadius: BorderRadius.circular(ClRadius.sm),
+              ),
+              child: Row(
+                children: [
+                  Icon(ClIcons.record, color: i == 0 ? c.onSignal : c.signal),
+                  const SizedBox(width: ClSpace.s3),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${r.exercise.name} · ${setLabel(r.top, timed: r.exercise.timed)}',
+                          style: cl.text.bodyStrong.copyWith(color: i == 0 ? c.onSignal : c.ink),
+                        ),
+                        Text(
+                          r.gain == null ? 'Novi rekord' : 'Novi rekord · ${r.gain}',
+                          style: cl.text.label.copyWith(
+                            color: i == 0 ? c.onSignal.withValues(alpha: 0.75) : c.inkMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
         const SizedBox(height: ClSpace.s4),
         ClCreatorMessage(
           name: s.creatorName,
@@ -141,6 +225,27 @@ class _SummaryScreenState extends State<SummaryScreen> {
         ],
       ],
     );
+  }
+
+  /// How much more than the best before this session: "+5 kg" or "+2 pon.".
+  static String? _gain(List<Session> all, Session s, SessionExercise e) {
+    final top = topSet(e);
+    if (top == null) return null;
+    SetLog? before;
+    for (final x in all) {
+      final earlier = x.finishedAt != null && x.finishedAt!.isBefore(s.finishedAt ?? s.startedAt);
+      if (x.id == s.id || !earlier) continue;
+      for (final xe in x.exercises.where((xe) => xe.exerciseId == e.exerciseId)) {
+        final t = topSet(xe);
+        if (t != null && (before == null || (t.kg ?? 0) > (before.kg ?? 0))) before = t;
+      }
+    }
+    if (before == null) return null;
+    final dkg = (top.kg ?? 0) - (before.kg ?? 0);
+    if (dkg > 0) return '+${formatNumber(dkg)} kg';
+    final dr = (top.reps ?? 0) - (before.reps ?? 0);
+    if (dr > 0) return e.timed ? '+$dr s' : '+$dr pon.';
+    return null;
   }
 
   static String _detail(SessionExercise e) {
@@ -167,15 +272,15 @@ class _Baseline extends StatelessWidget {
     ];
     return Container(
       padding: const EdgeInsets.all(ClSpace.s4),
-      decoration: BoxDecoration(color: c.ink, borderRadius: BorderRadius.circular(ClRadius.lg)),
+      decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(ClRadius.lg)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Tvoji početni rezultati', style: cl.text.displayM.copyWith(color: c.bg, fontSize: 24)),
+          Text('Tvoji početni rezultati', style: cl.text.displayM.copyWith(fontSize: 24)),
           const SizedBox(height: ClSpace.s1),
           Text(
             'Od danas se meri svaki napredak. Sledeći put ih obaraš.',
-            style: cl.text.body.copyWith(color: c.bg.withValues(alpha: 0.75)),
+            style: cl.text.body.copyWith(color: c.inkMuted),
           ),
           const SizedBox(height: ClSpace.s3),
           for (final (name, best) in rows)
@@ -183,10 +288,8 @@ class _Baseline extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: ClSpace.s1),
               child: Row(
                 children: [
-                  Expanded(
-                    child: Text(name, style: cl.text.body.copyWith(color: c.bg)),
-                  ),
-                  Text(best, style: cl.text.data.copyWith(color: c.bg)),
+                  Expanded(child: Text(name, style: cl.text.body)),
+                  Text(best, style: cl.text.data),
                 ],
               ),
             ),

@@ -326,3 +326,89 @@ Progression? nextProgression({
     ],
   );
 }
+
+// ───────────────────────── Month recap
+
+const monthNames = [
+  'januar',
+  'februar',
+  'mart',
+  'april',
+  'maj',
+  'jun',
+  'jul',
+  'avgust',
+  'septembar',
+  'oktobar',
+  'novembar',
+  'decembar',
+];
+
+typedef MonthRecap = ({
+  DateTime month,
+  int workouts,
+  double volume,
+  int records,
+  int bestStreakDays,
+  ({String name, double from, double to})? biggestGain,
+});
+
+/// What a month of training adds up to: workouts, kilograms lifted, records
+/// and the exercise that grew the most (heaviest set, first vs last time).
+MonthRecap monthRecap(Iterable<Session> sessions, DateTime month) {
+  final inMonth =
+      finished(
+          sessions,
+        ).where((s) => s.finishedAt!.year == month.year && s.finishedAt!.month == month.month).toList()
+        ..sort((a, b) => a.finishedAt!.compareTo(b.finishedAt!));
+  final firstLast = <String, ({String name, double first, double last})>{};
+  for (final s in inMonth) {
+    for (final e in s.exercises) {
+      final top = topSet(e)?.kg;
+      if (top == null || top <= 0) continue;
+      final seen = firstLast[e.exerciseId];
+      firstLast[e.exerciseId] = (name: e.name, first: seen?.first ?? top, last: top);
+    }
+  }
+  final gains = firstLast.values.where((g) => g.last > g.first).toList()
+    ..sort((a, b) => (b.last - b.first).compareTo(a.last - a.first));
+  final days = {for (final s in inMonth) dateOnly(s.finishedAt!)}.toList()..sort();
+  var best = 0, run = 0;
+  for (var i = 0; i < days.length; i++) {
+    run = i > 0 && days[i].difference(days[i - 1]).inDays == 1 ? run + 1 : 1;
+    best = math.max(best, run);
+  }
+  return (
+    month: DateTime(month.year, month.month),
+    workouts: inMonth.length,
+    volume: inMonth.fold(0.0, (v, s) => v + s.volume),
+    records: inMonth.fold(0, (n, s) => n + s.prCount),
+    bestStreakDays: best,
+    biggestGain: gains.isEmpty
+        ? null
+        : (name: gains.first.name, from: gains.first.first, to: gains.first.last),
+  );
+}
+
+/// A kilogram total as something you can picture: "Kao 3 automobila."
+String volumeComparison(double kg) {
+  const things = [
+    (12000.0, 'autobus', 'autobusa', 'autobusa'),
+    (5000.0, 'slon', 'slona', 'slonova'),
+    (1500.0, 'automobil', 'automobila', 'automobila'),
+    (300.0, 'klavir', 'klavira', 'klavira'),
+  ];
+  for (final (weight, one, few, many) in things) {
+    final n = kg / weight;
+    if (n >= 1) {
+      final count = n.floor();
+      final word = count % 10 == 1 && count % 100 != 11
+          ? one
+          : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14)
+          ? few
+          : many;
+      return 'Kao ${count == 1 ? 'jedan' : '$count'} $word.';
+    }
+  }
+  return 'Svaki kilogram se računa.';
+}

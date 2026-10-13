@@ -421,19 +421,16 @@ class ClNavItem {
 
 const clNavItems = [
   ClNavItem(label: 'Danas', icon: ClIcons.today, activeIcon: ClIcons.todayFilled),
-  ClNavItem(label: 'Plan', icon: ClIcons.plan, activeIcon: ClIcons.planFilled),
-  ClNavItem(label: 'Otkrij', icon: ClIcons.discover, activeIcon: ClIcons.discoverFilled),
-  ClNavItem(label: 'Biblioteka', icon: ClIcons.library, activeIcon: ClIcons.libraryFilled),
-  ClNavItem(label: 'Profil', icon: ClIcons.profile, activeIcon: ClIcons.profileFilled),
+  ClNavItem(label: 'Napredak', icon: ClIcons.progress, activeIcon: ClIcons.progressFilled),
+  ClNavItem(label: 'Ja', icon: ClIcons.profile, activeIcon: ClIcons.profileFilled),
 ];
 
-/// For trainers: their Studio takes the Biblioteka slot.
+/// For trainers: their Studio between Napredak and Ja.
 const clCoachNavItems = [
   ClNavItem(label: 'Danas', icon: ClIcons.today, activeIcon: ClIcons.todayFilled),
-  ClNavItem(label: 'Plan', icon: ClIcons.plan, activeIcon: ClIcons.planFilled),
-  ClNavItem(label: 'Otkrij', icon: ClIcons.discover, activeIcon: ClIcons.discoverFilled),
+  ClNavItem(label: 'Napredak', icon: ClIcons.progress, activeIcon: ClIcons.progressFilled),
   ClNavItem(label: 'Studio', icon: ClIcons.creators, activeIcon: ClIcons.creatorsFilled),
-  ClNavItem(label: 'Profil', icon: ClIcons.profile, activeIcon: ClIcons.profileFilled),
+  ClNavItem(label: 'Ja', icon: ClIcons.profile, activeIcon: ClIcons.profileFilled),
 ];
 
 /// A quiet bar on `bg`: icons only, no line and no fill, so the screen's own

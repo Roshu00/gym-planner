@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../domain/rules.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
-import 'shell.dart';
+import 'discover.dart';
 import 'swap_sheet.dart';
 
 /// The follower's copy of a program: order, next workout, exercise swaps.
@@ -25,7 +25,7 @@ class PlanScreen extends StatelessWidget {
             action: ClButton(
               label: 'Otkrij programe',
               expand: true,
-              onPressed: () => HomeShell.goTo(context, AppTab.discover),
+              onPressed: () => pushScreen(context, const DiscoverScreen()),
             ),
           ),
         ],

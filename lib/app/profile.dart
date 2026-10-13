@@ -6,15 +6,16 @@ import '../domain/models.dart';
 import '../ui/chalkline_ui.dart';
 import 'auth_screen.dart';
 import 'common.dart';
+import 'discover.dart';
 import 'creator_profile.dart';
 import 'plan_finder.dart';
 import 'plan_screen.dart';
-import 'progress.dart';
+import 'library.dart';
+import 'plan_tab.dart';
 import 'shell.dart';
 
-/// The user, like a social profile: who they are and their numbers
-/// (progress, records, history). Everything else lives one tap away in
-/// [SettingsScreen], behind the icon in the corner.
+/// Ja: who the user is and the doors to everything around the training:
+/// the plan's week, the trainers they follow, finding new ones, settings.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -23,9 +24,11 @@ class ProfileScreen extends StatelessWidget {
     final store = context.store;
     final profile = store.profile;
     if (profile == null) return const SizedBox.shrink();
+    final plan = store.plan;
+    final following = store.creators.where((c) => store.isFollowing(c.id)).toList();
     return AppScreen(
       children: [
-        const SizedBox(height: ClSpace.s2),
+        const SizedBox(height: ClSpace.s4),
         Row(
           children: [
             ClAvatar.profile(name: profile.name),
@@ -33,18 +36,44 @@ class ProfileScreen extends StatelessWidget {
             Expanded(
               child: ClScreenTitle(
                 title: profile.name,
-                label: store.plan == null ? profile.goal.label : store.plan!.name,
+                label: countLabel(store.history.length, 'trening', 'treninga', 'treninga'),
               ),
-            ),
-            ClIconButton(
-              icon: ClIcons.settings,
-              semanticLabel: 'Podešavanja',
-              onPressed: () => pushScreen(context, const SettingsScreen()),
             ),
           ],
         ),
         gap,
-        const ProgressContent(),
+        ClMenuGroup(
+          children: [
+            ClMenuRow(
+              icon: ClIcons.plan,
+              title: 'Moja nedelja',
+              value: plan?.name ?? 'Nema plana',
+              onPressed: () =>
+                  pushScreen(context, plan == null ? const PlanFinderScreen() : const PlanTabScreen()),
+            ),
+            ClMenuRow(
+              icon: ClIcons.creators,
+              title: 'Moji treneri',
+              value: following.isEmpty ? null : '${following.length}',
+              onPressed: () => pushScreen(context, const LibraryScreen()),
+            ),
+            ClMenuRow(
+              icon: ClIcons.discover,
+              title: 'Otkrij trenere',
+              onPressed: () => pushScreen(context, const DiscoverScreen()),
+            ),
+          ],
+        ),
+        gap,
+        ClMenuGroup(
+          children: [
+            ClMenuRow(
+              icon: ClIcons.settings,
+              title: 'Podešavanja',
+              onPressed: () => pushScreen(context, const SettingsScreen()),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -144,7 +173,7 @@ class SettingsScreen extends StatelessWidget {
               value: store.myCreator == null ? null : '@${store.myCreator!.handle}',
               onPressed: () {
                 store.becomeCoach();
-                HomeShell.goTo(context, AppTab.library);
+                HomeShell.goTo(context, AppTab.studio);
               },
             ),
           ],
@@ -236,7 +265,7 @@ class _SubscriptionsSheet extends StatelessWidget {
             expand: true,
             onPressed: () {
               Navigator.of(context).pop();
-              HomeShell.goTo(context, AppTab.discover);
+              pushScreen(context, const DiscoverScreen());
             },
           ),
         ],

@@ -4,9 +4,9 @@ import '../domain/models.dart';
 import '../domain/rules.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
+import 'discover.dart';
 import 'exercise_detail.dart';
 import 'program_detail.dart';
-import 'shell.dart';
 import 'workout_detail.dart';
 
 /// The "Biblioteka" tab: everything from the creators the user follows.
@@ -15,11 +15,12 @@ class LibraryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AppScreen(
+    topBar: Navigator.of(context).canPop() ? const ClTopBar() : null,
     children: [
       const SizedBox(height: ClSpace.s4),
       const ClScreenTitle(label: 'Od trenera koje pratiš', title: 'Biblioteka', large: true),
       gapS,
-      LibraryContent(onDiscover: () => HomeShell.goTo(context, AppTab.discover)),
+      LibraryContent(onDiscover: () => pushScreen(context, const DiscoverScreen())),
     ],
   );
 }

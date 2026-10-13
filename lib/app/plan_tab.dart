@@ -73,6 +73,7 @@ class _PlanTabScreenState extends State<PlanTabScreen> {
     final canDrag = days.any((d) => !d.isBefore(today) && store.plannedOn(d) != null);
 
     return AppScreen(
+      topBar: Navigator.of(context).canPop() ? const ClTopBar() : null,
       children: [
         const SizedBox(height: ClSpace.s4),
         Row(

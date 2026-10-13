@@ -357,4 +357,35 @@ void main() {
       expect(formatSeconds(90), '1:30');
     });
   });
+
+  group('month recap', () {
+    test('adds up the month: workouts, kilograms, the biggest gain, the best run of days', () {
+      final sessions = [
+        session(DateTime(2026, 9, 30, 18), sets: const [SetLog(kg: 100, reps: 5, done: true)]),
+        session(DateTime(2026, 10, 1, 18), sets: const [SetLog(kg: 60, reps: 8, done: true)]),
+        session(DateTime(2026, 10, 2, 18), sets: const [SetLog(kg: 62.5, reps: 8, done: true)]),
+        session(DateTime(2026, 10, 3, 18), sets: const [SetLog(kg: 65, reps: 8, done: true)]),
+        session(DateTime(2026, 10, 10, 18), sets: const [SetLog(kg: 67.5, reps: 8, done: true)]),
+      ];
+      final r = monthRecap(sessions, DateTime(2026, 10, 12));
+      expect(r.workouts, 4, reason: 'September is not counted');
+      expect(r.volume, (60 + 62.5 + 65 + 67.5) * 8);
+      expect(r.biggestGain?.from, 60);
+      expect(r.biggestGain?.to, 67.5);
+      expect(r.bestStreakDays, 3);
+    });
+
+    test('a month without training is empty', () {
+      final r = monthRecap(const [], DateTime(2026, 10));
+      expect(r.workouts, 0);
+      expect(r.biggestGain, isNull);
+    });
+
+    test('kilograms as something to picture', () {
+      expect(volumeComparison(38000), 'Kao 3 autobusa.');
+      expect(volumeComparison(3200), 'Kao 2 automobila.');
+      expect(volumeComparison(5000), 'Kao jedan slon.');
+      expect(volumeComparison(100), 'Svaki kilogram se računa.');
+    });
+  });
 }

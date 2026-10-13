@@ -397,37 +397,37 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     } else {
       final v = _valuesOf(e, current);
       final steps = store.weightStepsFor(e);
-      numbers = Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (!e.bodyweight) ...[
-            _Stepper(
-              value: v.kg == null ? null : formatNumber(v.kg!),
-              unit: 'kg',
-              empty: 'Upiši kg',
-              onMinus: v.kg == null ? null : () => _setKg(current, v.kg! - steps.step),
-              onPlus: () => _setKg(current, v.kg == null ? steps.start : v.kg! + steps.step),
-              onType: () => _typeValue(current, kg: true),
-            ),
-            const SizedBox(height: ClSpace.s2),
-          ],
-          if (e.timed)
-            _Stepper(
+      // Two cards side by side: what to lift and how many times.
+      final weight = _FieldCard(
+        label: 'Kilaža',
+        value: v.kg == null ? null : formatNumber(v.kg!),
+        unit: 'kg',
+        spoken: 'kg',
+        empty: 'Upiši kg',
+        onMinus: v.kg == null ? null : () => _setKg(current, v.kg! - steps.step),
+        onPlus: () => _setKg(current, v.kg == null ? steps.start : v.kg! + steps.step),
+        onType: () => _typeValue(current, kg: true),
+      );
+      final count = e.timed
+          ? _FieldCard(
+              label: 'Drži',
+              spoken: 'sekundi',
               value: formatSeconds(v.reps),
-              unit: 'drži',
               onMinus: v.reps > 5 ? () => _setReps(current, v.reps - 5) : null,
               onPlus: () => _setReps(current, v.reps + 5),
               onType: () => _typeValue(current, kg: false),
             )
-          else
-            _Stepper(
+          : _FieldCard(
+              label: 'Ponavljanja',
               value: '${v.reps}',
-              unit: 'ponavljanja',
               onMinus: v.reps > 1 ? () => _setReps(current, v.reps - 1) : null,
               onPlus: () => _setReps(current, v.reps + 1),
               onType: () => _typeValue(current, kg: false),
-            ),
+            );
+      numbers = Row(
+        children: [
+          if (!e.bodyweight) ...[Expanded(child: weight), const SizedBox(width: ClSpace.s2)],
+          Expanded(child: count),
         ],
       );
       action = e.timed
@@ -691,18 +691,26 @@ class _NumberSheetState extends State<_NumberSheet> {
   );
 }
 
-class _Stepper extends StatelessWidget {
-  const _Stepper({
+/// One number of the set as a card: its name, the number big (a tap types
+/// it), and − and + under it.
+class _FieldCard extends StatelessWidget {
+  const _FieldCard({
+    required this.label,
     required this.value,
-    required this.unit,
     required this.onPlus,
     required this.onType,
     this.onMinus,
+    this.unit,
     this.empty,
+    this.spoken,
   });
 
+  /// The unit as a screen reader says it after "Više" / "Manje".
+  final String? spoken;
+
+  final String label;
   final String? value;
-  final String unit;
+  final String? unit;
   final String? empty;
   final VoidCallback? onMinus;
   final VoidCallback onPlus;
@@ -712,44 +720,64 @@ class _Stepper extends StatelessWidget {
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
-    Widget round(IconData icon, String label, VoidCallback? onPressed) => ClPressable(
-      onPressed: onPressed,
-      semanticLabel: '$label $unit',
-      radius: ClRadius.full,
-      builder: (context, pressed) => AnimatedScale(
-        duration: context.motion(ClMotion.fast),
-        scale: pressed ? 0.9 : 1,
-        child: Container(
-          width: ClSize.targetWorkout,
-          height: ClSize.targetWorkout,
-          decoration: BoxDecoration(color: c.surfaceRaised, shape: BoxShape.circle),
-          child: Icon(icon, color: onPressed == null ? c.inkMuted : c.ink),
+    Widget step(IconData icon, String what, VoidCallback? onPressed) => Expanded(
+      child: ClPressable(
+        onPressed: onPressed,
+        semanticLabel: '$what ${spoken ?? label.toLowerCase()}',
+        radius: ClRadius.full,
+        builder: (context, pressed) => Container(
+          height: 44,
+          decoration: BoxDecoration(
+            color: pressed ? c.border : c.surfaceRaised,
+            borderRadius: BorderRadius.circular(ClRadius.full),
+          ),
+          child: Icon(icon, size: 20, color: onPressed == null ? c.inkMuted : c.ink),
         ),
       ),
     );
-    return Row(
-      children: [
-        round(ClIcons.remove, 'Manje', onMinus),
-        Expanded(
-          child: ClPressable(
+    return Container(
+      padding: const EdgeInsets.all(ClSpace.s3 + 2),
+      decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(ClRadius.sm + 2)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: cl.text.label),
+          ClPressable(
             onPressed: onType,
-            semanticLabel: value == null ? (empty ?? unit) : '$value $unit, upiši',
-            radius: ClRadius.sm,
-            builder: (context, pressed) => Column(
-              children: [
-                Text(
-                  value ?? (empty ?? '—'),
-                  style: value == null
-                      ? cl.text.bodyStrong.copyWith(fontSize: 18)
-                      : cl.text.metricL.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
-                ),
-                Text(unit, style: cl.text.label),
-              ],
+            semanticLabel: value == null ? '$label, upiši' : '$label $value ${unit ?? ''}, upiši',
+            radius: ClRadius.xs,
+            builder: (context, pressed) => SizedBox(
+              height: 56,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: value == null
+                    ? Text(empty ?? '—', style: cl.text.displayM.copyWith(color: c.signal, fontSize: 28))
+                    : FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(text: value),
+                              if (unit != null)
+                                TextSpan(text: ' $unit', style: cl.text.unit.copyWith(fontSize: 16)),
+                            ],
+                          ),
+                          style: cl.text.metricL.copyWith(fontSize: 44),
+                        ),
+                      ),
+              ),
             ),
           ),
-        ),
-        round(ClIcons.add, 'Više', onPlus),
-      ],
+          const SizedBox(height: ClSpace.s2),
+          Row(
+            children: [
+              step(ClIcons.remove, 'Manje', onMinus),
+              const SizedBox(width: 6),
+              step(ClIcons.add, 'Više', onPlus),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -991,8 +1019,8 @@ class _RestScreenState extends State<_RestScreen> {
   Widget build(BuildContext context) {
     final cl = context.cl;
     final c = cl.colors;
-    final ink = c.bg;
-    final muted = c.bg.withValues(alpha: 0.6);
+    final ink = c.ink;
+    final muted = c.inkMuted;
     final end = widget.duration == null;
     final left = _end.difference(DateTime.now());
     final shown = left <= Duration.zero ? Duration.zero : left + const Duration(milliseconds: 999);
@@ -1017,7 +1045,7 @@ class _RestScreenState extends State<_RestScreen> {
           height: 48,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: pressed ? ink.withValues(alpha: 0.18) : ink.withValues(alpha: 0.1),
+            color: pressed ? c.surfaceRaised : c.surface,
             borderRadius: BorderRadius.circular(ClRadius.full),
           ),
           child: Text(label, style: cl.text.bodyStrong.copyWith(color: ink)),
@@ -1028,7 +1056,7 @@ class _RestScreenState extends State<_RestScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: c.ink,
+        backgroundColor: c.bg,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: ClSpace.s4),
@@ -1089,8 +1117,8 @@ class _RestScreenState extends State<_RestScreen> {
                                   value: 1 - progress,
                                   strokeWidth: 6,
                                   strokeCap: StrokeCap.round,
-                                  color: ink,
-                                  backgroundColor: ink.withValues(alpha: 0.12),
+                                  color: c.signal,
+                                  backgroundColor: c.border,
                                 ),
                                 Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1175,7 +1203,7 @@ class _RestScreenState extends State<_RestScreen> {
                           width: 44,
                           height: 55,
                           child: widget.upNextImage == null
-                              ? ColoredBox(color: ink.withValues(alpha: 0.1))
+                              ? ColoredBox(color: c.surface)
                               : ClPhoto(image: widget.upNextImage, placeholderLabel: ''),
                         ),
                       ),

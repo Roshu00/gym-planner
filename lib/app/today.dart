@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../domain/models.dart';
 import '../domain/rules.dart';
 import '../ui/chalkline_ui.dart';
 import 'change_day.dart';
 import 'common.dart';
+import 'discover.dart';
 import 'creator_profile.dart';
+import 'plan_tab.dart';
 import 'plan_finder.dart';
 import 'program_detail.dart';
-import 'shell.dart';
 import 'summary_screen.dart';
 import 'trial_offer.dart';
 import 'workout_session.dart';
@@ -49,6 +49,11 @@ class TodayScreen extends StatelessWidget {
     final exercises = todayPlan?.exercises ?? next.exercises;
     final day = dateOnly(today);
     final name = store.profile?.name.split(' ').first ?? '';
+    final planWeek = (dateOnly(today).difference(dateOnly(plan.startedAt)).inDays ~/ 7 + 1).clamp(
+      1,
+      plan.weeks,
+    );
+    final weekLabel = '${weekdayName(today)} · nedelja $planWeek od ${plan.weeks}';
 
     void start() {
       store.startToday();
@@ -68,31 +73,29 @@ class TodayScreen extends StatelessWidget {
       final upcomingName = upcoming == null ? null : store.workoutsById[upcoming.value]?.name;
       void openSummary() => pushScreen(context, SummaryScreen(sessionId: doneToday.id), theme: ClTheme.light);
       return AppScreen(
-        safeTop: false,
         padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s12),
-        header: _TodayHero(
-          greeting: '${weekdayName(today)} · Bravo, $name',
-          title: doneToday.workoutName,
-          meta: store.isFirstSession(doneToday.id)
-              ? 'Prvi trening je iza tebe · ${formatDuration(doneToday.duration)}'
-              : 'Odrađeno danas · ${formatDuration(doneToday.duration)}',
-          color: cl.colors.popFor(doneToday.workoutId),
-          image: photoOf(doneWorkout?.image),
-          creator: doneBy,
-          action: 'Pogledaj rezime',
-          done: true,
-          onStart: openSummary,
-          onExercises: openSummary,
-        ),
         children: [
+          _TodayHero(
+            greeting: weekLabel,
+            hello: 'Bravo, $name',
+            note: store.finishedInFull(doneToday) ? doneToday.finishMessage : null,
+            title: doneToday.workoutName,
+            meta: store.isFirstSession(doneToday.id)
+                ? 'Prvi trening je iza tebe · ${formatDuration(doneToday.duration)}'
+                : formatDuration(doneToday.duration),
+            color: cl.colors.popFor(doneToday.workoutId),
+            image: photoOf(doneWorkout?.image),
+            creator: doneBy,
+            action: 'Pogledaj rezime',
+            done: true,
+            onStart: openSummary,
+            onExercises: openSummary,
+          ),
+          gap,
           _WeekDots(today: day),
           if (upcoming != null && upcomingName != null) ...[
             const SizedBox(height: ClSpace.s2),
             Text('Sledeće: $upcomingName, ${dayInSentence(upcoming.key, day)}', style: cl.text.bodyStrong),
-          ],
-          if (doneToday.finishMessage.isNotEmpty && doneBy != null && store.finishedInFull(doneToday)) ...[
-            gap,
-            _CreatorQuote(creator: doneBy, text: doneToday.finishMessage),
           ],
           // A workout tried from another program: offer to switch to it.
           if (store.trialProgramOf(doneToday) != null) ...[gap, TrialOffer(session: doneToday)],
@@ -116,46 +119,45 @@ class TodayScreen extends StatelessWidget {
         : first
         ? 'Tvoj prvi trening'
         : todayPlan == null
-        ? 'Danas je odmor, ali možeš da treniraš'
+        ? 'Danas je odmor'
         : changed?.note;
 
     return AppScreen(
-      safeTop: false,
       padding: const EdgeInsets.fromLTRB(ClSpace.s4, ClSpace.s4, ClSpace.s4, ClSpace.s12),
-      header: _TodayHero(
-        greeting: '${weekdayName(today)} · Zdravo, $name',
-        title: active?.workoutName ?? workout.name,
-        meta: [?status, '~${workout.estimatedMinutes} min'].join(' · '),
-        color: cl.colors.popFor(workout.id),
-        image: photoOf(workout.image),
-        creator: creator,
-        action: active != null
-            ? 'Nastavi'
-            : first
-            ? 'Počni prvi trening'
-            : 'Počni',
-        onStart: start,
-        onExercises: () => _showExercises(context, workout.name, exercises),
-        onChangeDay: active == null
-            ? () async {
-                final result = await changeDay(context, day);
-                if (result == null || !context.mounted) return;
-                final before = result.before;
-                showUndoToast(
-                  context,
-                  result.message,
-                  onUndo: before == null ? null : () => store.restoreDays(before),
-                );
-              }
-            : null,
-        onBackToPlan: active == null && changed != null ? () => store.setDayPlan(day, null) : null,
-      ),
       children: [
+        _TodayHero(
+          greeting: weekLabel,
+          hello: 'Zdravo, $name',
+          note: workout.intro,
+          title: active?.workoutName ?? workout.name,
+          meta: [?status, '~${workout.estimatedMinutes} min'].join(' · '),
+          color: cl.colors.popFor(workout.id),
+          image: photoOf(workout.image),
+          creator: creator,
+          action: active != null
+              ? 'Nastavi'
+              : first
+              ? 'Počni prvi trening'
+              : 'Počni',
+          restDay: active == null && todayPlan == null,
+          onStart: start,
+          onExercises: () => _showExercises(context, workout.name, exercises),
+          onChangeDay: active == null
+              ? () async {
+                  final result = await changeDay(context, day);
+                  if (result == null || !context.mounted) return;
+                  final before = result.before;
+                  showUndoToast(
+                    context,
+                    result.message,
+                    onUndo: before == null ? null : () => store.restoreDays(before),
+                  );
+                }
+              : null,
+          onBackToPlan: active == null && changed != null ? () => store.setDayPlan(day, null) : null,
+        ),
+        gap,
         if (first) ...[const _FirstWorkoutSteps(), gap] else _WeekDots(today: day),
-        if (workout.intro.isNotEmpty && creator != null) ...[
-          gap,
-          _CreatorQuote(creator: creator, text: workout.intro),
-        ],
       ],
     );
   }
@@ -191,12 +193,14 @@ class TodayScreen extends StatelessWidget {
       last == null ? target : '$target · Prošli put ${setLabel(last, timed: timed)}';
 }
 
-/// The trainer and today's workout over most of the screen: a small greeting
-/// at the top, the workout name and one button at the bottom. Tapping the
-/// photo lists the exercises; "⋯" changes the day.
+/// Today, top to bottom: a greeting with the streak, the trainer's word for
+/// today as a chat bubble, and the workout as one photo card with a round
+/// orange start button. Tapping the photo lists the exercises; "⋯" changes
+/// the day.
 class _TodayHero extends StatelessWidget {
   const _TodayHero({
     required this.greeting,
+    required this.hello,
     required this.title,
     required this.meta,
     required this.color,
@@ -205,15 +209,27 @@ class _TodayHero extends StatelessWidget {
     required this.action,
     required this.onStart,
     required this.onExercises,
+    this.note,
     this.onChangeDay,
     this.onBackToPlan,
     this.done = false,
+    this.restDay = false,
   });
+
+  /// Nothing planned today: the card offers the next workout anyway.
+  final bool restDay;
 
   /// Today's workout is finished: a check next to the title.
   final bool done;
 
+  /// Small line above the greeting: the day and the plan's week.
   final String greeting;
+
+  /// "Zdravo, Ana".
+  final String hello;
+
+  /// What the trainer says about today, if anything.
+  final String? note;
   final String title;
   final String meta;
   final Color color;
@@ -227,167 +243,213 @@ class _TodayHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final store = context.store;
     final cl = context.cl;
     final c = cl.colors;
     final onPhoto = image == null ? c.onPop : c.onPhoto;
-    final height = (MediaQuery.sizeOf(context).height * 0.62).clamp(420.0, 620.0);
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: image == null ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
-      child: SizedBox(
-        height: height,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(ClRadius.lg)),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ColoredBox(color: color),
-              if (image != null) ...[
-                ClPhoto(image: image, placeholderLabel: ''),
-                const ClPhotoScrim(coverage: 0.65),
-                // Keeps the greeting and the status bar readable on bright photos.
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: SizedBox(
-                    height: 160,
-                    width: double.infinity,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [c.photoScrim, c.photoScrim.withValues(alpha: 0)],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              // The photo itself opens the exercise list.
-              Positioned.fill(
-                child: ClPressable(
-                  onPressed: onExercises,
-                  semanticLabel: 'Vežbe za $title',
-                  builder: (context, pressed) => const SizedBox.expand(),
-                ),
+    final cardHeight = (MediaQuery.sizeOf(context).height * 0.4).clamp(300.0, 420.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: ClSpace.s2),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(greeting, style: cl.text.label),
+                  const SizedBox(height: 2),
+                  Semantics(header: true, child: Text(hello, style: cl.text.displayM.copyWith(fontSize: 30))),
+                ],
               ),
-              Positioned(
-                top: 0,
-                left: ClSpace.s4,
-                right: ClSpace.s2,
-                child: SafeArea(
-                  bottom: false,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          greeting,
-                          style: cl.text.bodyStrong.copyWith(fontSize: 14, color: onPhoto),
-                        ),
-                      ),
-                      if (onChangeDay != null)
-                        ClIconButton.onMedia(
-                          icon: ClIcons.more,
-                          semanticLabel: 'Promeni dan',
-                          onPressed: onChangeDay,
-                        ),
-                    ],
-                  ),
+            ),
+            if (store.streak > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: c.surface,
+                  borderRadius: BorderRadius.circular(ClRadius.full),
                 ),
-              ),
-              Positioned(
-                left: ClSpace.s4,
-                right: ClSpace.s4,
-                bottom: ClSpace.s4,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (creator != null)
-                      Row(
-                        children: [
-                          ClAvatar(name: creator!.name, image: photoOf(creator!.photo)),
-                          const SizedBox(width: ClSpace.s2),
-                          Text(
-                            creator!.name,
-                            style: cl.text.bodyStrong.copyWith(fontSize: 14, color: onPhoto),
-                          ),
-                        ],
-                      ),
-                    const SizedBox(height: ClSpace.s2),
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: cl.text.displayXl.copyWith(color: onPhoto, fontSize: 48, height: 46 / 48),
-                      ),
+                    Icon(ClIcons.streak, size: 16, color: c.signal),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${store.streak} ned.',
+                      semanticsLabel: '${store.streak} nedelja zaredom',
+                      style: cl.text.bodyStrong,
                     ),
-                    const SizedBox(height: ClSpace.s1),
-                    Row(
-                      children: [
-                        if (done) ...[
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(color: onPhoto, shape: BoxShape.circle),
-                            child: Icon(ClIcons.check, size: 12, color: image == null ? c.bg : c.ink),
-                          ),
-                          const SizedBox(width: ClSpace.s2),
-                        ],
-                        Flexible(
-                          child: Text(meta, style: cl.text.body.copyWith(color: onPhoto)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: ClSpace.s4),
-                    _HeroButton(label: action, onPressed: onStart, dark: image == null),
-                    if (onBackToPlan != null)
-                      Center(
-                        child: TextButton(
-                          onPressed: onBackToPlan,
-                          child: Text('Vrati na plan', style: cl.text.bodyStrong.copyWith(color: onPhoto)),
-                        ),
-                      ),
                   ],
                 ),
               ),
-            ],
+          ],
+        ),
+        if (note != null && note!.isNotEmpty && creator != null) ...[
+          const SizedBox(height: ClSpace.s4),
+          _TrainerNote(creator: creator!, text: note!),
+        ],
+        const SizedBox(height: ClSpace.s4),
+        SizedBox(
+          height: cardHeight,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(ClRadius.lg),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(color: color),
+                if (image != null) ...[
+                  ClPhoto(image: image, placeholderLabel: '', alignment: const Alignment(0, -0.6)),
+                  const ClPhotoScrim(coverage: 0.6),
+                ],
+                // The photo itself opens the exercise list.
+                Positioned.fill(
+                  child: ClPressable(
+                    onPressed: onExercises,
+                    semanticLabel: 'Vežbe za $title',
+                    builder: (context, pressed) => const SizedBox.expand(),
+                  ),
+                ),
+                if (onChangeDay != null)
+                  Positioned(
+                    top: ClSpace.s2,
+                    right: ClSpace.s2,
+                    child: ClIconButton.onMedia(
+                      icon: ClIcons.more,
+                      semanticLabel: 'Promeni dan',
+                      onPressed: onChangeDay,
+                    ),
+                  ),
+                Positioned(
+                  left: ClSpace.s4,
+                  right: ClSpace.s4,
+                  bottom: ClSpace.s4,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              done
+                                  ? 'Odrađeno danas'
+                                  : restDay
+                                  ? 'Ako želiš da treniraš'
+                                  : 'Tvoj trening danas',
+                              style: cl.text.label.copyWith(color: onPhoto.withValues(alpha: 0.85)),
+                            ),
+                            Text(
+                              title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: cl.text.displayL.copyWith(color: onPhoto, fontSize: 34, height: 1.02),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              meta,
+                              style: cl.text.body.copyWith(
+                                color: onPhoto.withValues(alpha: 0.9),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: ClSpace.s3),
+                      _StartButton(label: action, done: done, onPressed: onStart),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
+        if (onBackToPlan != null)
+          Center(
+            child: ClButton(label: 'Vrati na plan', variant: ClButtonVariant.text, onPressed: onBackToPlan),
+          ),
+      ],
     );
   }
 }
 
-/// A full-width pill on the photo: light over a photo, ink over a pop color.
-class _HeroButton extends StatelessWidget {
-  const _HeroButton({required this.label, required this.onPressed, required this.dark});
+/// The round orange button on the card: play, or a check when done.
+class _StartButton extends StatelessWidget {
+  const _StartButton({required this.label, required this.done, required this.onPressed});
 
   final String label;
+  final bool done;
   final VoidCallback onPressed;
-  final bool dark;
 
   @override
   Widget build(BuildContext context) {
-    final cl = context.cl;
-    final c = cl.colors;
+    final c = context.clColors;
     return ClPressable(
       onPressed: onPressed,
       semanticLabel: label,
       radius: ClRadius.full,
       builder: (context, pressed) => AnimatedScale(
         duration: context.motion(ClMotion.fast),
-        scale: pressed ? 0.97 : 1,
+        scale: pressed ? 0.92 : 1,
         child: Container(
-          height: ClSize.targetWorkout,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: dark ? c.ink : c.signal,
-            borderRadius: BorderRadius.circular(ClRadius.full),
-          ),
-          child: Text(label, style: cl.text.button.copyWith(color: dark ? c.bg : c.onSignal)),
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(color: done ? c.onPhoto : c.signal, shape: BoxShape.circle),
+          child: Icon(done ? ClIcons.arrowRight : ClIcons.play, color: c.onSignal, size: 26),
         ),
+      ),
+    );
+  }
+}
+
+/// The trainer's word for today, as a message: their face with a ring, the
+/// text in a bubble. Opens their profile.
+class _TrainerNote extends StatelessWidget {
+  const _TrainerNote({required this.creator, required this.text});
+
+  final Creator creator;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.cl;
+    final c = cl.colors;
+    return ClPressable(
+      onPressed: () => pushScreen(context, CreatorProfileScreen(creatorId: creator.id)),
+      semanticLabel: '${creator.name}: $text',
+      radius: ClRadius.sm,
+      builder: (context, pressed) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClAvatar(name: creator.name, image: photoOf(creator.photo), size: 48, ring: true),
+          const SizedBox(width: ClSpace.s3),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+              decoration: BoxDecoration(
+                color: pressed ? c.surfaceRaised : c.surface,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(4),
+                  topRight: Radius.circular(ClRadius.sm),
+                  bottomLeft: Radius.circular(ClRadius.sm),
+                  bottomRight: Radius.circular(ClRadius.sm),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(creator.name.split(' ').first, style: cl.text.label),
+                  const SizedBox(height: 2),
+                  Text(text, style: cl.text.body.copyWith(fontWeight: FontWeight.w600, height: 1.4)),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -415,9 +477,12 @@ class _WeekDots extends StatelessWidget {
       if (store.streak > 0) '${countLabel(store.streak, 'nedelja', 'nedelje', 'nedelja')} zaredom',
     ].join(' · ');
 
-    return Semantics(
-      label: summary,
-      child: ExcludeSemantics(
+    // The whole week opens with a tap.
+    return ClPressable(
+      onPressed: store.plan == null ? null : () => pushScreen(context, const PlanTabScreen()),
+      semanticLabel: '$summary, otvori nedelju',
+      radius: ClRadius.sm,
+      builder: (context, pressed) => ExcludeSemantics(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -438,14 +503,14 @@ class _WeekDots extends StatelessWidget {
                             height: 30,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: done ? c.ink : null,
+                              color: done ? c.signal : null,
                               border: Border.all(
-                                color: done || isToday || planned ? c.ink : c.border,
+                                color: done ? c.signal : (isToday || planned ? c.ink : c.border),
                                 width: isToday ? 2.5 : (planned ? 1.5 : 1.5),
                               ),
                             ),
                             child: done
-                                ? Icon(ClIcons.check, size: 15, color: c.bg)
+                                ? Icon(ClIcons.check, size: 15, color: c.onSignal)
                                 : planned && !isToday
                                 ? Center(
                                     child: Container(
@@ -567,8 +632,11 @@ class _FirstWorkoutSteps extends StatelessWidget {
                   width: 28,
                   height: 28,
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(color: c.ink, shape: BoxShape.circle),
-                  child: Text('${i + 1}', style: cl.text.bodyStrong.copyWith(color: c.bg, fontSize: 14)),
+                  decoration: BoxDecoration(color: c.signal, shape: BoxShape.circle),
+                  child: Text(
+                    '${i + 1}',
+                    style: cl.text.bodyStrong.copyWith(color: c.onSignal, fontSize: 14),
+                  ),
                 ),
                 const SizedBox(width: ClSpace.s3),
                 Expanded(
@@ -584,34 +652,6 @@ class _FirstWorkoutSteps extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// One sentence from the trainer, in their voice, with their face.
-class _CreatorQuote extends StatelessWidget {
-  const _CreatorQuote({required this.creator, required this.text});
-
-  final Creator creator;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final cl = context.cl;
-    return ClPressable(
-      onPressed: () => pushScreen(context, CreatorProfileScreen(creatorId: creator.id)),
-      semanticLabel: '${creator.name}: $text',
-      radius: ClRadius.sm,
-      builder: (context, pressed) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClAvatar(name: creator.name, image: photoOf(creator.photo), size: 40),
-          const SizedBox(width: ClSpace.s3),
-          Expanded(
-            child: Text('„$text”', style: cl.text.bodyStrong.copyWith(fontSize: 17, height: 24 / 17)),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -770,7 +810,7 @@ class _ProgramCarousel extends StatelessWidget {
           trailing: ClButton(
             label: 'Sve',
             variant: ClButtonVariant.text,
-            onPressed: () => HomeShell.goTo(context, AppTab.discover),
+            onPressed: () => pushScreen(context, const DiscoverScreen()),
           ),
         ),
         _Bleed(

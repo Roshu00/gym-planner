@@ -113,6 +113,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           });
 
     return AppScreen(
+      topBar: Navigator.of(context).canPop() ? const ClTopBar() : null,
       children: [
         const SizedBox(height: ClSpace.s4),
         const ClScreenTitle(label: 'Treneri i programi', title: 'Otkrij', large: true),

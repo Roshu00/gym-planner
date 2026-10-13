@@ -4,15 +4,14 @@ import 'package:flutter/services.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'creator_profile.dart';
-import 'discover.dart';
-import 'plan_tab.dart';
 import 'profile.dart';
 import 'creator_mode.dart';
-import 'library.dart';
+import 'month_recap.dart';
 import 'today.dart';
 
-/// The fourth tab is Biblioteka, or Studio for a trainer.
-enum AppTab { today, plan, discover, library, profile }
+/// Danas, Napredak and Ja; a trainer also has Studio. Plan, trainers and
+/// discovery open from Danas and Ja.
+enum AppTab { today, progress, studio, profile }
 
 /// Bottom-nav shell. All tabs use the light theme.
 class HomeShell extends StatefulWidget {
@@ -34,12 +33,16 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  int get _index => HomeShell.tab.value.index;
+  List<AppTab> get _tabs => context.readStore.isCoach
+      ? const [AppTab.today, AppTab.progress, AppTab.studio, AppTab.profile]
+      : const [AppTab.today, AppTab.progress, AppTab.profile];
+
+  int get _index => _tabs.indexOf(HomeShell.tab.value).clamp(0, _tabs.length - 1);
 
   void _select(int i) {
     if (i == _index) return;
     HapticFeedback.selectionClick();
-    HomeShell.tab.value = AppTab.values[i];
+    HomeShell.tab.value = _tabs[i];
   }
 
   void _onTab() => setState(() {});
@@ -55,7 +58,7 @@ class _HomeShellState extends State<HomeShell> {
     super.initState();
     // A new trainer without a profile starts in Studio, everyone else on Today.
     final store = context.readStore;
-    HomeShell.tab.value = store.isCoach && store.myCreator == null ? AppTab.library : AppTab.today;
+    HomeShell.tab.value = store.isCoach && store.myCreator == null ? AppTab.studio : AppTab.today;
     HomeShell.tab.addListener(_onTab);
     final id = widget.openCreatorId;
     if (id != null) {
@@ -70,9 +73,8 @@ class _HomeShellState extends State<HomeShell> {
     final coach = context.store.isCoach;
     final tabs = [
       const TodayScreen(),
-      const PlanTabScreen(),
-      const DiscoverScreen(),
-      if (coach) const CreatorModeScreen() else const LibraryScreen(),
+      const ProgressScreen(),
+      if (coach) const CreatorModeScreen(),
       const ProfileScreen(),
     ];
     return ClThemeScope(

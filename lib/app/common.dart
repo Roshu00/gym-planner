@@ -352,12 +352,14 @@ void showUndoToast(BuildContext context, String message, {VoidCallback? onUndo})
       behavior: SnackBarBehavior.floating,
       // Clear of the navigation bar on the tabs.
       margin: const EdgeInsets.fromLTRB(ClSpace.s4, 0, ClSpace.s4, ClSpace.s12 + ClSpace.s8),
-      backgroundColor: c.ink,
+      backgroundColor: c.surfaceRaised,
       elevation: 0,
       duration: const Duration(seconds: 5),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ClRadius.sm)),
-      content: Text(message, style: cl.text.body.copyWith(color: c.bg, fontSize: 14)),
-      action: onUndo == null ? null : SnackBarAction(label: 'Poništi', textColor: c.bg, onPressed: onUndo),
+      content: Text(message, style: cl.text.body.copyWith(fontSize: 14)),
+      action: onUndo == null
+          ? null
+          : SnackBarAction(label: 'Poništi', textColor: c.signal, onPressed: onUndo),
     ),
   );
 }
