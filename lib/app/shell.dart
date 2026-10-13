@@ -78,7 +78,7 @@ class _HomeShellState extends State<HomeShell> {
     return ClThemeScope(
       theme: ClTheme.light,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.dark,
+        value: SystemUiOverlayStyle.light,
         child: Scaffold(
           body: Column(
             children: [

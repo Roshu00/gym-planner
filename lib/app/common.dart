@@ -128,10 +128,9 @@ class _AppScreenState extends State<AppScreen> {
               );
             },
           );
-    // Dark status bar text on the light screens; a photo header switches it
-    // to light while it sits under the status bar.
+    // Light status bar text on the dark screens.
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark,
+      value: SystemUiOverlayStyle.light,
       child: Scaffold(
         body: SafeArea(
           top: w.safeTop,
@@ -215,7 +214,7 @@ class _AppScreenState extends State<AppScreen> {
                             );
                             return covered
                                 ? AnnotatedRegion<SystemUiOverlayStyle>(
-                                    value: SystemUiOverlayStyle.dark,
+                                    value: SystemUiOverlayStyle.light,
                                     child: Stack(children: [bar]),
                                   )
                                 : Stack(children: [bar]);

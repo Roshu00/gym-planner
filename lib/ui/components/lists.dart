@@ -500,7 +500,7 @@ class _NavItem extends StatelessWidget {
               child: TweenAnimationBuilder<Color?>(
                 duration: duration,
                 curve: ClMotion.tabCurve,
-                tween: ColorTween(end: selected || pressed ? c.ink : c.inkMuted),
+                tween: ColorTween(end: selected ? c.signal : (pressed ? c.ink : c.inkMuted)),
                 builder: (context, color, _) =>
                     Icon(selected ? item.activeIcon : item.icon, size: ClSize.icon, color: color),
               ),
@@ -514,7 +514,7 @@ class _NavItem extends StatelessWidget {
             child: Container(
               width: 5,
               height: 5,
-              decoration: BoxDecoration(color: c.ink, shape: BoxShape.circle),
+              decoration: BoxDecoration(color: c.signal, shape: BoxShape.circle),
             ),
           ),
         ],

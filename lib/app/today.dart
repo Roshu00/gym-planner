@@ -383,10 +383,10 @@ class _HeroButton extends StatelessWidget {
           height: ClSize.targetWorkout,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: dark ? c.ink : c.bg,
+            color: dark ? c.ink : c.signal,
             borderRadius: BorderRadius.circular(ClRadius.full),
           ),
-          child: Text(label, style: cl.text.button.copyWith(color: dark ? c.bg : c.ink)),
+          child: Text(label, style: cl.text.button.copyWith(color: dark ? c.bg : c.onSignal)),
         ),
       ),
     );

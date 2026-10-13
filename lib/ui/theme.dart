@@ -26,7 +26,7 @@ class ClTheme extends ThemeExtension<ClTheme> {
     return ThemeData(
       useMaterial3: true,
       brightness: c.brightness,
-      fontFamily: 'Bricolage',
+      fontFamily: 'Manrope',
       scaffoldBackgroundColor: c.bg,
       canvasColor: c.bg,
       dividerColor: c.border,

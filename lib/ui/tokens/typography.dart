@@ -2,12 +2,12 @@ import 'package:flutter/painting.dart';
 
 import 'colors.dart';
 
-const _display = 'BricolageDisplay';
-const _text = 'Bricolage';
+const _display = 'Manrope';
+const _text = 'Manrope';
 const _fallback = ['Helvetica Neue', 'Arial', 'sans-serif'];
 
-/// Bricolage Grotesque in two optical sizes: the display cut (opsz 96) for
-/// titles and big numbers, the text cut (opsz 14) for everything else.
+/// Manrope, one variable font: 800 tight for titles and big numbers, 400–700
+/// for everything else.
 /// All text is sentence case; no style expects uppercase input.
 TextStyle _style({
   required String family,
@@ -25,6 +25,8 @@ TextStyle _style({
     height: lineHeight / size,
     leadingDistribution: TextLeadingDistribution.even,
     fontWeight: FontWeight.values[(weight ~/ 100) - 1],
+    // The variable font needs the axis set; the weight alone picks no cut.
+    fontVariations: [FontVariation.weight(weight.toDouble())],
     fontFeatures: numbers ? const [FontFeature.tabularFigures()] : null,
     letterSpacing: size * tracking,
     color: color,
@@ -49,7 +51,7 @@ class ClTypography {
       filter = _style(family: _text, size: 13, lineHeight: 16, weight: 700, color: c.ink);
 
   static TextStyle _disp(double size, double line, Color color) =>
-      _style(family: _display, size: size, lineHeight: line, weight: 800, tracking: -0.035, color: color);
+      _style(family: _display, size: size, lineHeight: line, weight: 800, tracking: -0.03, color: color);
 
   static TextStyle _num(double size, double line, Color color) => _style(
     family: _display,

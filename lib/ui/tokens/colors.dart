@@ -2,13 +2,13 @@ import 'dart:ui';
 
 /// The only file in the codebase allowed to contain hex color values.
 ///
-/// Color Pop: a warm off-white base, black ink, and three bright pop colors
-/// (lime, lilac, peach) used as big rounded blocks. Text on a pop color is
-/// always [ClColors.onPop], in both themes.
-const _lime = Color(0xFFD4F54A);
-const _lilac = Color(0xFFC9B6FF);
-const _peach = Color(0xFFFFC6A3);
-const _onPop = Color(0xFF111111);
+/// "Mekana noć": a soft near-black ground, raised graphite surfaces, white
+/// ink and one orange accent. Blocks without a photo use the pop colors
+/// (orange, apricot, mist) with [ClColors.onPop] text.
+const _orange = Color(0xFFFF5B1F);
+const _apricot = Color(0xFFFFB089);
+const _mist = Color(0xFFD9D9DE);
+const _onPop = Color(0xFF0E0E10);
 
 class ClColors {
   const ClColors({
@@ -53,7 +53,7 @@ class ClColors {
   final Color ink;
   final Color inkMuted;
 
-  /// Lime. Done, current, records, the accent of a number.
+  /// Orange. Done, current, records, the accent of a number.
   final Color signal;
   final Color onSignal;
 
@@ -75,61 +75,63 @@ class ClColors {
   /// Soft warm shadow under white cards (see `ClElevation`).
   final Color shadow;
 
-  Color get lime => _lime;
-  Color get lilac => _lilac;
-  Color get peach => _peach;
+  Color get lime => _orange;
+  Color get lilac => _mist;
+  Color get peach => _apricot;
 
   /// Text and icons on any pop color.
   Color get onPop => _onPop;
 
   /// The pop colors in rotation order, e.g. one per workout of a program.
-  List<Color> get pops => const [_lime, _lilac, _peach];
+  List<Color> get pops => const [_orange, _apricot, _mist];
 
   /// A stable pop color for a key, so the same workout always has the same color.
   Color popFor(String key) => pops[key.codeUnits.fold(0, (a, b) => a + b) % pops.length];
 
+  /// The app has one look; both names give the same dark palette, so screens
+  /// that ask for "light" (a summary, a sheet) stay in it.
   static const light = ClColors(
-    brightness: Brightness.light,
-    bg: Color(0xFFFAF8F4),
-    surface: Color(0xFFFFFFFF),
-    surfaceRaised: Color(0xFFEFECE5),
-    border: Color(0xFFE6E2D8),
-    rule: Color(0xFF111111),
-    borderStrong: Color(0xFF111111),
-    ink: Color(0xFF111111),
-    inkMuted: Color(0xFF5A5750),
-    signal: _lime,
+    brightness: Brightness.dark,
+    bg: Color(0xFF0E0E10),
+    surface: Color(0xFF19191C),
+    surfaceRaised: Color(0xFF242428),
+    border: Color(0xFF2A2A2F),
+    rule: Color(0xFF3A3A40),
+    borderStrong: Color(0xFFF4F4F5),
+    ink: Color(0xFFF4F4F5),
+    inkMuted: Color(0xFFA1A1AA),
+    signal: _orange,
     onSignal: _onPop,
-    signalText: Color(0xFF3F6B00),
-    signalSoft: Color(0xFFF0FBC4),
-    danger: Color(0xFFD92D20),
-    focus: Color(0xFF111111),
-    photoEmpty: Color(0xFF1F1E1B),
-    photoScrim: Color(0x8C000000),
+    signalText: Color(0xFFFF8A5C),
+    signalSoft: Color(0xFF2E1B12),
+    danger: Color(0xFFFF6B5E),
+    focus: _orange,
+    photoEmpty: Color(0xFF19191C),
+    photoScrim: Color(0x99000000),
     onPhoto: Color(0xFFFFFFFF),
-    shadow: Color(0x1F3B3426),
+    shadow: Color(0x66000000),
   );
 
   static const dark = ClColors(
     brightness: Brightness.dark,
-    bg: Color(0xFF111111),
-    surface: Color(0xFF1C1C1B),
-    surfaceRaised: Color(0xFF2A2927),
-    border: Color(0xFF2E2D2A),
-    rule: Color(0xFFFAF8F4),
-    borderStrong: Color(0xFFFAF8F4),
-    ink: Color(0xFFFAF8F4),
-    inkMuted: Color(0xFFA9A59C),
-    signal: _lime,
+    bg: Color(0xFF0E0E10),
+    surface: Color(0xFF19191C),
+    surfaceRaised: Color(0xFF242428),
+    border: Color(0xFF2A2A2F),
+    rule: Color(0xFF3A3A40),
+    borderStrong: Color(0xFFF4F4F5),
+    ink: Color(0xFFF4F4F5),
+    inkMuted: Color(0xFFA1A1AA),
+    signal: _orange,
     onSignal: _onPop,
-    signalText: _lime,
-    signalSoft: Color(0xFF2C3310),
+    signalText: Color(0xFFFF8A5C),
+    signalSoft: Color(0xFF2E1B12),
     danger: Color(0xFFFF6B5E),
-    focus: _lime,
-    photoEmpty: Color(0xFF2A2927),
-    photoScrim: Color(0x8C000000),
+    focus: _orange,
+    photoEmpty: Color(0xFF19191C),
+    photoScrim: Color(0x99000000),
     onPhoto: Color(0xFFFFFFFF),
-    shadow: Color(0x73000000),
+    shadow: Color(0x66000000),
   );
 
   /// Name/value pairs, for the gallery swatches.
@@ -141,7 +143,7 @@ class ClColors {
     'rule': rule,
     'ink': ink,
     'ink-muted': inkMuted,
-    'signal (lime)': signal,
+    'signal (orange)': signal,
     'lilac': lilac,
     'peach': peach,
     'on-pop': onPop,

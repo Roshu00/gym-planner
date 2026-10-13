@@ -136,7 +136,7 @@ class ClAvatar extends StatelessWidget {
           decoration: ring
               ? BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: cl.colors.onPop, width: 2),
+                  border: Border.all(color: cl.colors.signal, width: 2),
                 )
               : null,
           child: ClipOval(

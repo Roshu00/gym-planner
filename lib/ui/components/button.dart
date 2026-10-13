@@ -5,13 +5,13 @@ import '../tokens/spacing.dart';
 import 'pressable.dart';
 
 enum ClButtonVariant {
-  /// Black pill. One per screen.
+  /// Orange pill. One per screen.
   primary,
 
-  /// Lime pill: the one action that should pop ("Pretplati se").
+  /// Same as [primary]; kept for the places that ask for the action to pop.
   pop,
 
-  /// 1.5px ink outline, transparent.
+  /// Soft graphite fill, for the second action next to the main one.
   secondary,
 
   /// Plain ink label without a fill, for a secondary link next to a button.
@@ -83,9 +83,10 @@ class ClButton extends StatelessWidget {
     final isBlock = variant == ClButtonVariant.block;
     final (Color fill, Color fg, Color? outline) = switch (variant) {
       _ when !enabled => (c.border, c.inkMuted, null),
-      ClButtonVariant.primary || ClButtonVariant.block => (c.ink, c.bg, null),
-      ClButtonVariant.pop => (c.signal, c.onSignal, c.onPop),
+      // Orange is the one accent: the main action of a screen.
+      ClButtonVariant.primary || ClButtonVariant.block || ClButtonVariant.pop => (c.signal, c.onSignal, null),
       ClButtonVariant.danger => (Colors.transparent, c.danger, c.danger),
+      ClButtonVariant.secondary => (c.surfaceRaised, c.ink, null),
       _ => (Colors.transparent, c.ink, c.borderStrong),
     };
 

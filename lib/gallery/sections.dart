@@ -109,7 +109,7 @@ class TypographyPage extends StatelessWidget {
     return GalleryPage(
       title: 'Tipografija',
       rules: const [
-        'Bricolage Grotesque u dve optičke veličine: display za naslove i velike brojeve, text za sve ostalo.',
+        'Manrope, jedan variable font: 800 za naslove i velike brojeve, 400–700 za sve ostalo.',
         'Sve je obična rečenica, bez velikih slova. Brojevi su tabularni. Naslovi su 1–3 reči.',
       ],
       children: [
