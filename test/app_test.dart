@@ -397,7 +397,11 @@ void main() {
     await tapText('Završi trening');
     expect(find.textContaining('Prvi trening.', findRichText: true), findsOneWidget, reason: 'the first workout is a milestone');
     expect(find.text('Tvoji početni rezultati'), findsOneWidget);
-    await tapText('Gotovo');
+    // Shown to the team: the workout is in the feed, then back to Today.
+    await tapText('Pokaži timu');
+    expect(find.text('Ana · ti'), findsOneWidget, reason: 'the post is in the team feed');
+    await tester.tap(find.bySemanticsLabel('Nazad').first);
+    await tester.pumpAndSettle();
     expect(
       find.textContaining('Prvi trening je iza tebe'),
       findsOneWidget,
@@ -596,7 +600,10 @@ void main() {
     await tapVisible(tester, 'Nova');
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(HighlightEditor), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'O meni');
+    await tester.enterText(
+      find.descendant(of: find.byType(HighlightEditor), matching: find.byType(TextField)),
+      'O meni',
+    );
     await tester.pump();
     final save = tester.widget<ClButton>(find.widgetWithText(ClButton, 'Sačuvaj'));
     expect(save.onPressed, isNull, reason: 'no picture yet');

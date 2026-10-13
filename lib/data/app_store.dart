@@ -7,7 +7,9 @@ import 'package:flutter/foundation.dart';
 import '../domain/models.dart';
 import '../domain/reminders.dart';
 import '../domain/rules.dart';
+import '../domain/team.dart';
 import 'auth.dart';
+import 'demo_team.dart';
 import 'rows.dart';
 import 'seed.dart';
 import 'reminder_scheduler.dart';
@@ -227,6 +229,10 @@ class AppStore extends ChangeNotifier {
       if (_syncErrorRetryable) syncError = null;
       notifyListeners();
       _persist();
+      // The team moves all day: fresh with every refresh.
+      for (final c in {?plan?.creatorId, ?myCreator?.id}) {
+        unawaited(loadTeam(c, force: true));
+      }
     } on ParallelWaitError<(Catalog?, UserData?), (AsyncError?, AsyncError?)> catch (e) {
       _reportSync(e.errors.$1?.error ?? e.errors.$2?.error);
     } on RemoteError catch (e) {
@@ -318,6 +324,14 @@ class AppStore extends ChangeNotifier {
     'sessions': sessions.map((s) => s.toJson()).toList(),
     'active': active?.toJson(),
     'reminders': reminderSettings.toJson(),
+    'team': {
+      'posted': postedSessions.toList(),
+      'myPosts': [for (final p in _myPosts) p.toJson()],
+      'cheered': _cheered.toList(),
+      'replies': _replies,
+      'notes': [for (final n in _notes) n.toJson()],
+      'cache': {for (final e in _teams.entries) e.key: e.value.toJson()},
+    },
     if (remote != null) ...{
       'outbox': _outbox.toJson(),
       'catalog': {
@@ -343,6 +357,22 @@ class AppStore extends ChangeNotifier {
     plan = j['plan'] == null ? null : UserPlan.fromJson(m(j['plan']));
     sessions = [for (final e in l(j['sessions'])) Session.fromJson(m(e))];
     active = j['active'] == null ? null : Session.fromJson(m(j['active']));
+    final t = j['team'] as Map<String, Object?>?;
+    if (t != null) {
+      postedSessions = {for (final e in l(t['posted'])) e as String};
+      _myPosts = [for (final e in l(t['myPosts'])) TeamPost.fromJson(m(e))];
+      _cheered = {for (final e in l(t['cheered'])) e as String};
+      _replies = {
+        for (final e in (m(t['replies'] ?? const <String, Object?>{})).entries) e.key: e.value as String,
+      };
+      _notes = [for (final e in l(t['notes'])) TrainerNote.fromJson(m(e))];
+      _teams
+        ..clear()
+        ..addAll({
+          for (final e in (m(t['cache'] ?? const <String, Object?>{})).entries)
+            e.key: Team.fromJson(m(e.value)),
+        });
+    }
     if (remote != null) {
       _outbox
         ..clear()
@@ -361,13 +391,28 @@ class AppStore extends ChangeNotifier {
   /// (Deleting the account itself needs the service role; see README.)
   Future<void> resetAll() async {
     if (remote != null) {
-      for (final table in ['sessions', 'plans', 'follows', 'subscriptions', 'profiles']) {
+      for (final table in [
+        'team_cheers',
+        'team_posts',
+        'sessions',
+        'plans',
+        'follows',
+        'subscriptions',
+        'profiles',
+      ]) {
         _send(Mutation.delete(table, {'user_id': _uid}));
       }
       if (myCreator != null) _send(Mutation.delete('creators', {'id': myCreator!.id}));
     }
     profile = null;
     myCreator = null;
+    _teams.clear();
+    _teamsLoaded.clear();
+    _myPosts = [];
+    _cheered = {};
+    _replies = {};
+    _notes = [];
+    postedSessions = {};
     myExercises = [];
     myWorkouts = [];
     myPrograms = [];
@@ -980,6 +1025,193 @@ class AppStore extends ChangeNotifier {
   /// Planned training days per week; 0 without a plan.
   int get weeklyGoal =>
       plan == null ? 0 : (plan!.trainingDays.isEmpty ? plan!.daysPerWeek : plan!.trainingDays.length);
+
+  // ───────────────────────── Team
+
+  /// Teams from the server (cloud mode), by creator id.
+  final Map<String, Team> _teams = {};
+  final Set<String> _teamsLoaded = {};
+
+  // Local mode: what the user added on top of the demo team.
+  List<TeamPost> _myPosts = [];
+  Set<String> _cheered = {};
+  Map<String, String> _replies = {};
+  List<TrainerNote> _notes = [];
+
+  /// Sessions already shown to the team.
+  Set<String> postedSessions = {};
+
+  /// The team the user trains with: their plan's creator.
+  String? get teamCreatorId => plan?.creatorId;
+
+  /// A team as far as it is known: the server's in cloud mode; locally a
+  /// demo team with the user's own posts, cheers, replies and notes on it.
+  Team? team(String creatorId) {
+    if (remote != null) return _teams[creatorId];
+    final c = creator(creatorId);
+    if (c == null) return null;
+    final base = demoTeam(c, [
+      for (final w in allWorkouts)
+        if (w.creatorId == creatorId) w,
+    ], now);
+    final mine = _myPosts.where((p) => p.creatorId == creatorId).toList();
+    final posts = [
+      for (final p in [...mine, ...base.posts])
+        p.copyWith(
+          cheers: p.cheers + (_cheered.contains(p.id) ? 1 : 0),
+          cheeredByMe: _cheered.contains(p.id),
+          reply: _replies[p.id],
+        ),
+    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final today = dateOnly(now);
+    return base.copyWith(
+      posts: posts,
+      activeToday: base.activeToday + (mine.any((p) => dateOnly(p.createdAt) == today) ? 1 : 0),
+      notes: [
+        for (final n in _notes)
+          if (n.creatorId == creatorId) n,
+      ]..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+    );
+  }
+
+  /// Fetches a team from the server once per app run (again with [force]).
+  Future<void> loadTeam(String creatorId, {bool force = false}) async {
+    final r = remote;
+    if (r == null || (!force && _teamsLoaded.contains(creatorId))) return;
+    _teamsLoaded.add(creatorId);
+    try {
+      _teams[creatorId] = await r.fetchTeam(creatorId);
+      notifyListeners();
+      _persist();
+    } on RemoteError {
+      // The cached team stays; the next open tries again.
+      _teamsLoaded.remove(creatorId);
+    }
+  }
+
+  /// The creator's word for today, if they wrote one.
+  TrainerNote? todayNote(String creatorId) {
+    final today = dateOnly(now);
+    return team(creatorId)?.notes.where((n) => dateOnly(n.createdAt) == today).firstOrNull;
+  }
+
+  void _updateTeam(String creatorId, Team Function(Team) f) {
+    final t = _teams[creatorId];
+    if (t != null) _teams[creatorId] = f(t);
+  }
+
+  /// "Pokaži timu": a finished workout with its records goes to the team
+  /// of the creator whose workout it was.
+  TeamPost showToTeam(Session s) {
+    String label(SessionExercise e) {
+      final top = topSet(e)!;
+      final kg = top.kg ?? 0;
+      final n = kg == kg.roundToDouble() ? kg.round().toString() : kg.toString().replaceAll('.', ',');
+      return kg > 0
+          ? '${e.name} $n kg'
+          : (e.timed ? '${e.name} ${top.reps} s' : '${e.name} ${top.reps} pon.');
+    }
+
+    final name = profile?.name.trim() ?? '';
+    final parts = name.split(RegExp(r'\s+'));
+    final post = TeamPost(
+      id: _id('tp'),
+      creatorId: s.creatorId,
+      userId: remote?.userId ?? 'me',
+      authorName: parts.length > 1 ? '${parts.first} ${parts.last[0]}.' : (name.isEmpty ? 'Ja' : name),
+      workoutName: s.workoutName,
+      createdAt: now,
+      records: [
+        for (final e in s.exercises)
+          if (e.hasPr && topSet(e) != null) label(e),
+      ],
+      streakWeeks: streak,
+    );
+    postedSessions = {...postedSessions, s.id};
+    if (remote == null) {
+      _myPosts = [post, ..._myPosts];
+    } else {
+      _updateTeam(
+        s.creatorId,
+        (t) => t.copyWith(
+          posts: [post, ...t.posts],
+          activeToday: t.posts.any((p) => p.userId == post.userId && dateOnly(p.createdAt) == dateOnly(now))
+              ? t.activeToday
+              : t.activeToday + 1,
+        ),
+      );
+      _send(Mutation.upsert('team_posts', teamPostRow(post)));
+    }
+    _commit();
+    return post;
+  }
+
+  /// "Bravo" on a post, or taking it back.
+  void toggleCheer(TeamPost p) {
+    final on = !p.cheeredByMe;
+    if (remote == null) {
+      _cheered = on ? {..._cheered, p.id} : ({..._cheered}..remove(p.id));
+    } else {
+      _updateTeam(
+        p.creatorId,
+        (t) => t.copyWith(
+          posts: [
+            for (final x in t.posts)
+              x.id == p.id
+                  ? x.copyWith(cheeredByMe: on, cheers: (x.cheers + (on ? 1 : -1)).clamp(0, 1 << 30))
+                  : x,
+          ],
+        ),
+      );
+      _send(
+        on
+            ? Mutation.upsert('team_cheers', {'post_id': p.id, 'user_id': _uid}, ignoreDuplicates: true)
+            : Mutation.delete('team_cheers', {'post_id': p.id, 'user_id': _uid}),
+      );
+    }
+    _commit();
+  }
+
+  /// The creator answers a post in their own team.
+  void replyToPost(TeamPost p, String text) {
+    final me = myCreator;
+    final clean = text.trim();
+    if (me == null || p.creatorId != me.id || clean.isEmpty) return;
+    if (remote == null) {
+      _replies = {..._replies, p.id: clean};
+    } else {
+      _updateTeam(
+        p.creatorId,
+        (t) => t.copyWith(posts: [for (final x in t.posts) x.id == p.id ? x.copyWith(reply: clean) : x]),
+      );
+      _send(
+        Mutation.upsert('team_replies', {
+          'post_id': p.id,
+          'creator_id': me.id,
+          'text': clean,
+        }, onConflict: 'post_id'),
+      );
+    }
+    _commit();
+  }
+
+  /// The creator's word for today, shown to the team on Danas.
+  TrainerNote? writeNote(String text) {
+    final me = myCreator;
+    final clean = text.trim();
+    if (me == null || clean.isEmpty) return null;
+    final note = TrainerNote(id: _id('n'), creatorId: me.id, text: clean, createdAt: now);
+    if (remote == null) {
+      _notes = [note, ..._notes];
+    } else {
+      _teams[me.id] = (_teams[me.id] ?? Team(creatorId: me.id)).copyWith(
+        notes: [note, ...?_teams[me.id]?.notes],
+      );
+      _send(Mutation.upsert('trainer_notes', trainerNoteRow(note)));
+    }
+    _commit();
+    return note;
+  }
 
   // ───────────────────────── Creator mode
 

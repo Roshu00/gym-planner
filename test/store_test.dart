@@ -299,6 +299,39 @@ void main() {
     expect(done.bodyweightReps, 10);
   });
 
+  test('the team: show a workout, cheer, the trainer replies and writes the day\'s word', () {
+    store.startProgram('p_j_home');
+    final demo = store.team('c_jelena')!;
+    expect(demo.members, greaterThan(0));
+    expect(demo.posts, isNotEmpty, reason: 'a demo team locally');
+
+    store.startSession();
+    store.updateSet(0, 0, const SetLog(kg: 20, reps: 10));
+    store.toggleSet(0, 0);
+    final s = store.finishSession();
+    final post = store.showToTeam(s);
+    expect(store.postedSessions, contains(s.id));
+    final team = store.team('c_jelena')!;
+    expect(team.posts.first.id, post.id, reason: 'newest first');
+    expect(team.posts.first.authorName, 'Ana');
+
+    final other = team.posts.firstWhere((p) => p.id != post.id);
+    store.toggleCheer(other);
+    final cheered = store.team('c_jelena')!.posts.firstWhere((p) => p.id == other.id);
+    expect(cheered.cheeredByMe, isTrue);
+    expect(cheered.cheers, other.cheers + 1);
+    store.toggleCheer(cheered);
+    expect(store.team('c_jelena')!.posts.firstWhere((p) => p.id == other.id).cheeredByMe, isFalse);
+
+    // Only the team's own creator replies and writes notes.
+    store.replyToPost(other, 'Bravo');
+    expect(store.team('c_jelena')!.posts.firstWhere((p) => p.id == other.id).reply, other.reply);
+    final me = store.saveMyCreator(name: 'Ana Trener', handle: 'ana.trener');
+    store.writeNote('Danas noge.');
+    expect(store.todayNote(me.id)?.text, 'Danas noge.');
+    expect(store.todayNote('c_jelena'), isNull);
+  });
+
   test('first time: weight carries over from the previous set', () {
     store.startProgram('p_m_start');
     store.startSession();

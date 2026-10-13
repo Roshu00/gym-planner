@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
+import '../domain/team.dart';
 import 'auth.dart';
 import 'rows.dart';
 import 'sync.dart';
@@ -124,6 +125,42 @@ class SupabaseRemote implements Remote {
     } else {
       await table.upsert(m.data, onConflict: m.onConflict, ignoreDuplicates: m.ignoreDuplicates);
     }
+  });
+
+  @override
+  Future<Team> fetchTeam(String creatorId) => _guard(() async {
+    final posts = await _client
+        .from('team_posts')
+        .select()
+        .eq('creator_id', creatorId)
+        .order('created_at', ascending: false)
+        .limit(50);
+    final ids = [for (final p in posts) p['id'] as String];
+    final results = await Future.wait<Object?>([
+      ids.isEmpty
+          ? Future.value(<Row>[])
+          : _client.from('team_cheers').select('post_id, user_id').inFilter('post_id', ids),
+      ids.isEmpty ? Future.value(<Row>[]) : _client.from('team_replies').select().inFilter('post_id', ids),
+      _client
+          .from('trainer_notes')
+          .select()
+          .eq('creator_id', creatorId)
+          .order('created_at', ascending: false)
+          .limit(7),
+      _client.rpc('team_size', params: {'p_creator': creatorId}),
+      _client.rpc('team_active_today', params: {'p_creator': creatorId}),
+    ]);
+    List<Row> rows(Object? o) => [for (final r in o as List) (r as Map).cast()];
+    return teamFromRows(
+      creatorId: creatorId,
+      userId: userId,
+      posts: rows(posts),
+      cheers: rows(results[0]),
+      replies: rows(results[1]),
+      notes: rows(results[2]),
+      members: (results[3] as num?)?.toInt() ?? 0,
+      activeToday: (results[4] as num?)?.toInt() ?? 0,
+    );
   });
 
   @override

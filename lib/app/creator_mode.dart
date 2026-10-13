@@ -7,6 +7,7 @@ import 'common.dart';
 import 'creator_editors.dart';
 import 'creator_profile.dart';
 import 'highlights.dart';
+import 'team.dart';
 
 /// Studio: where a trainer builds their system once (exercises, workouts,
 /// programs, what is public and what is for subscribers). A tab for
@@ -139,6 +140,9 @@ class _CreatorModeScreenState extends State<CreatorModeScreen> {
         const SizedBox(height: ClSpace.s2),
         const ClNotice('Pratilac koji otvori link ide pravo na tvoj profil.'),
         gap,
+        const ClSectionHeader(label: 'Tvoj tim'),
+        _TeamCard(creatorId: me.id),
+        gap,
         const ClSectionHeader(label: 'Priče na profilu'),
         HighlightsRow(creator: me, editable: true),
         if (me.highlights.isEmpty) ...[
@@ -180,6 +184,101 @@ class _CreatorModeScreenState extends State<CreatorModeScreen> {
           expand: true,
           onPressed: () => pushScreen(context, editor, theme: ClTheme.light),
         ),
+      ],
+    );
+  }
+}
+
+/// The trainer's side of the team: today's word (shown to everyone on
+/// Danas) and the way into the feed to answer posts.
+class _TeamCard extends StatefulWidget {
+  const _TeamCard({required this.creatorId});
+
+  final String creatorId;
+
+  @override
+  State<_TeamCard> createState() => _TeamCardState();
+}
+
+class _TeamCardState extends State<_TeamCard> {
+  final _text = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    context.readStore.loadTeam(widget.creatorId);
+  }
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  void _publish() {
+    final note = context.readStore.writeNote(_text.text);
+    if (note == null) return;
+    _text.clear();
+    FocusScope.of(context).unfocus();
+    showUndoToast(context, 'Poruka je na ekranu Danas kod tvog tima.');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final cl = context.cl;
+    final team = store.team(widget.creatorId);
+    final today = store.todayNote(widget.creatorId);
+    final waiting =
+        team?.posts.where((p) => p.reply == null && p.userId != (store.remote?.userId ?? 'me')).length ?? 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (today != null) ...[
+          ClCreatorMessage(
+            name: store.profile?.says('Danas si napisao', 'Danas si napisala', 'Tvoja poruka za danas') ??
+                'Tvoja poruka za danas',
+            message: today.text,
+            image: photoOf(store.myCreator?.photo),
+          ),
+          gapS,
+        ],
+        ClTextField(
+          label: today == null ? 'Poruka za danas' : 'Nova poruka',
+          hint: 'npr. Danas noge. Polako na čučnju, kvalitet pre kilaže.',
+          controller: _text,
+          maxLines: 3,
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: ClSpace.s2),
+        Row(
+          children: [
+            Expanded(
+              child: ClButton(
+                label: 'Otvori tim${waiting > 0 ? ' · $waiting' : ''}',
+                variant: ClButtonVariant.secondary,
+                expand: true,
+                onPressed: () => pushScreen(context, TeamScreen(creatorId: widget.creatorId)),
+              ),
+            ),
+            const SizedBox(width: ClSpace.s2),
+            Expanded(
+              child: ClButton(
+                label: 'Objavi',
+                expand: true,
+                onPressed: _text.text.trim().isEmpty ? null : _publish,
+              ),
+            ),
+          ],
+        ),
+        if (team != null) ...[
+          const SizedBox(height: ClSpace.s2),
+          Text(
+            '${formatCompact(team.members)} u timu · ${team.activeToday} danas trenira'
+            '${waiting > 0 ? ' · $waiting čeka tvoj odgovor' : ''}',
+            style: cl.text.label,
+          ),
+        ],
       ],
     );
   }

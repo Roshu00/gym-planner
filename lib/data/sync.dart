@@ -1,4 +1,5 @@
 import '../domain/models.dart';
+import '../domain/team.dart';
 import 'rows.dart';
 
 /// One change to send to the backend. Upserts and deletes are idempotent,
@@ -31,6 +32,8 @@ class Mutation {
     'plans': ['user_id'],
     'follows': ['user_id', 'creator_id'],
     'subscriptions': ['user_id', 'creator_id'],
+    'team_cheers': ['post_id', 'user_id'],
+    'team_replies': ['post_id'],
   };
 
   /// Identifies the row(s) touched. A newer mutation with the same key
@@ -138,6 +141,9 @@ abstract interface class Remote {
   Future<UserData> fetchUser();
   Future<void> apply(Mutation m);
   Future<bool> isHandleAvailable(String handle);
+
+  /// A creator's team: posts with cheers and replies, notes and counts.
+  Future<Team> fetchTeam(String creatorId);
 
   /// Stores a creator's file (a video of an exercise, a highlight photo) under the user's own
   /// folder and returns the public link to it.

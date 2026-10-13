@@ -155,6 +155,41 @@ delete from public.subscriptions where creator_id = 'c_ana';
 select pg_temp.check(not exists (select 1 from public.exercises where id = 'a_sub2'), 'cancelling locks subscriber content again');
 select pg_temp.check((select count(*) from public.sessions) = 2, 'history stays after cancelling');
 
+-- ── The team: Boban still follows Ana after cancelling.
+select pg_temp.act_as('boban');
+insert into public.team_posts (id, creator_id, author_name, workout_name, records, streak_weeks)
+  values ('tp1', 'c_ana', 'Boban B.', 'Jutro', '["Sklek 20 pon."]', 2);
+select pg_temp.check(
+  pg_temp.fails($$insert into public.team_posts (creator_id, author_name, workout_name) values ('c_marko', 'Boban B.', 'X')$$) = '42501',
+  'cannot post to a team you are not in');
+select pg_temp.check(
+  pg_temp.fails($$insert into public.team_posts (creator_id, user_id, author_name, workout_name) values ('c_ana', '00000000-0000-0000-0000-00000000000a', 'Ana', 'X')$$) = '42501',
+  'cannot post as someone else');
+insert into public.team_cheers (post_id) values ('tp1');
+select pg_temp.check((select count(*) from public.team_cheers where post_id = 'tp1') = 1, 'members cheer');
+select pg_temp.check(
+  pg_temp.fails($$insert into public.team_replies (post_id, creator_id, text) values ('tp1', 'c_ana', 'Bravo')$$) = '42501',
+  'members cannot reply as the trainer');
+select pg_temp.check(
+  pg_temp.fails($$insert into public.trainer_notes (creator_id, text) values ('c_ana', 'Danas noge')$$) = '42501',
+  'members cannot write the trainer''s notes');
+select pg_temp.check(public.team_size('c_ana') = 1, 'team size counts members');
+select pg_temp.check(public.team_active_today('c_ana') = 1, 'who trained today');
+
+select pg_temp.act_as('ana');
+select pg_temp.check(exists (select 1 from public.team_posts where id = 'tp1'), 'the trainer sees the team');
+insert into public.team_replies (post_id, creator_id, text) values ('tp1', 'c_ana', 'Svaka čast!');
+insert into public.trainer_notes (creator_id, text) values ('c_ana', 'Danas noge. Polako na čučnju.');
+
+select pg_temp.act_as('guest');
+select pg_temp.check(not exists (select 1 from public.team_posts), 'outsiders do not see the team');
+select pg_temp.check(exists (select 1 from public.trainer_notes where creator_id = 'c_ana'), 'notes are public');
+
+select pg_temp.act_as('boban');
+select pg_temp.check((select text from public.team_replies where post_id = 'tp1') = 'Svaka čast!', 'members see the reply');
+delete from public.team_cheers where post_id = 'tp1';
+select pg_temp.check(not exists (select 1 from public.team_cheers), 'a cheer can be taken back');
+
 -- ── Guests (anonymous sign-in) train but cannot publish.
 select pg_temp.act_as('guest');
 insert into public.profiles (user_id, name, goal, experience, place, days_per_week)

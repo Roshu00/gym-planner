@@ -5,6 +5,7 @@ import '../domain/rules.dart';
 import '../ui/chalkline_ui.dart';
 import 'common.dart';
 import 'story_share.dart';
+import 'team.dart';
 import 'trial_offer.dart';
 
 /// Proof of the workout: praise for showing up, volume, records, the
@@ -113,7 +114,16 @@ class _SummaryScreenState extends State<SummaryScreen> {
           if (justFinished) ...[
             const SizedBox(width: ClSpace.s2),
             Expanded(
-              child: ClButton(label: 'Gotovo', expand: true, onPressed: () => Navigator.of(context).pop()),
+              child: store.postedSessions.contains(s.id)
+                  ? ClButton(label: 'Gotovo', expand: true, onPressed: () => Navigator.of(context).pop())
+                  : ClButton(
+                      label: 'Pokaži timu',
+                      expand: true,
+                      onPressed: () {
+                        store.showToTeam(s);
+                        pushScreen(context, TeamScreen(creatorId: s.creatorId), replace: true);
+                      },
+                    ),
             ),
           ],
         ],

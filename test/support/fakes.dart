@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:chalkline/data/auth.dart';
+import 'package:chalkline/domain/team.dart';
 import 'package:chalkline/data/rows.dart';
 import 'package:chalkline/data/seed.dart';
 import 'package:chalkline/data/sync.dart';
@@ -26,6 +27,10 @@ class FakeRemote implements Remote {
     'subscriptions': [],
     'plans': [],
     'sessions': [],
+    'team_posts': [],
+    'team_cheers': [],
+    'team_replies': [],
+    'trainer_notes': [],
   };
 
   bool offline = false;
@@ -105,6 +110,10 @@ class FakeRemote implements Remote {
                       ? 'user_id'
                       : m.table == 'follows' || m.table == 'subscriptions'
                       ? 'user_id,creator_id'
+                      : m.table == 'team_cheers'
+                      ? 'post_id,user_id'
+                      : m.table == 'team_replies'
+                      ? 'post_id'
                       : 'id'))
               .split(',');
       final i = rows.indexWhere((r) => keys.every((k) => r[k] == m.data[k]));
@@ -116,6 +125,26 @@ class FakeRemote implements Remote {
       }
     }
     applied.add(m);
+  }
+
+  @override
+  Future<Team> fetchTeam(String creatorId) async {
+    _check();
+    final posts = tables['team_posts']!.where((r) => r['creator_id'] == creatorId).map(_roundTrip).toList();
+    final members = {
+      for (final r in [...tables['follows']!, ...tables['subscriptions']!])
+        if (r['creator_id'] == creatorId) r['user_id'],
+    }.length;
+    return teamFromRows(
+      creatorId: creatorId,
+      userId: userId,
+      posts: posts,
+      cheers: tables['team_cheers']!.map(_roundTrip).toList(),
+      replies: tables['team_replies']!.map(_roundTrip).toList(),
+      notes: tables['trainer_notes']!.where((r) => r['creator_id'] == creatorId).map(_roundTrip).toList(),
+      members: members,
+      activeToday: posts.map((p) => p['user_id']).toSet().length,
+    );
   }
 
   @override

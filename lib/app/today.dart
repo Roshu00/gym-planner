@@ -11,6 +11,7 @@ import 'plan_tab.dart';
 import 'plan_finder.dart';
 import 'program_detail.dart';
 import 'summary_screen.dart';
+import 'team.dart';
 import 'trial_offer.dart';
 import 'workout_session.dart';
 
@@ -78,7 +79,9 @@ class TodayScreen extends StatelessWidget {
           _TodayHero(
             greeting: weekLabel,
             hello: 'Bravo, $name',
-            note: store.finishedInFull(doneToday) ? doneToday.finishMessage : null,
+            note:
+                store.todayNote(doneToday.creatorId)?.text ??
+                (store.finishedInFull(doneToday) ? doneToday.finishMessage : null),
             title: doneToday.workoutName,
             meta: store.isFirstSession(doneToday.id)
                 ? 'Prvi trening je iza tebe · ${formatDuration(doneToday.duration)}'
@@ -93,6 +96,8 @@ class TodayScreen extends StatelessWidget {
           ),
           gap,
           _WeekDots(today: day),
+          gapS,
+          _TeamRow(creatorId: plan.creatorId),
           if (upcoming != null && upcomingName != null) ...[
             const SizedBox(height: ClSpace.s2),
             Text('Sledeće: $upcomingName, ${dayInSentence(upcoming.key, day)}', style: cl.text.bodyStrong),
@@ -128,7 +133,7 @@ class TodayScreen extends StatelessWidget {
         _TodayHero(
           greeting: weekLabel,
           hello: 'Zdravo, $name',
-          note: workout.intro,
+          note: (creator == null ? null : store.todayNote(creator.id)?.text) ?? workout.intro,
           title: active?.workoutName ?? workout.name,
           meta: [?status, '~${workout.estimatedMinutes} min'].join(' · '),
           color: cl.colors.popFor(workout.id),
@@ -158,6 +163,8 @@ class TodayScreen extends StatelessWidget {
         ),
         gap,
         if (first) ...[const _FirstWorkoutSteps(), gap] else _WeekDots(today: day),
+        gapS,
+        _TeamRow(creatorId: plan.creatorId),
       ],
     );
   }
@@ -962,6 +969,94 @@ class _CreatorCarousel extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// The team in one line: who trained today and the latest record, opening
+/// the feed.
+class _TeamRow extends StatefulWidget {
+  const _TeamRow({required this.creatorId});
+
+  final String creatorId;
+
+  @override
+  State<_TeamRow> createState() => _TeamRowState();
+}
+
+class _TeamRowState extends State<_TeamRow> {
+  @override
+  void initState() {
+    super.initState();
+    context.readStore.loadTeam(widget.creatorId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.store;
+    final cl = context.cl;
+    final c = cl.colors;
+    final team = store.team(widget.creatorId);
+    if (team == null) return const SizedBox.shrink();
+    final today = dateOnly(store.now);
+    final faces = [
+      for (final p in team.posts)
+        if (dateOnly(p.createdAt) == today) p.authorName,
+    ].toSet().take(3).toList();
+    final record = team.posts.where((p) => p.records.isNotEmpty).firstOrNull;
+    final title = team.activeToday > 0
+        ? '${team.activeToday} iz tima je danas treniralo'
+        : '${formatCompact(team.members)} u timu';
+    final line = record != null
+        ? '${record.authorName.split(' ').first}: ${record.records.first}'
+        : 'Pogledaj šta tim radi';
+    return ClPressable(
+      onPressed: () => pushScreen(context, TeamScreen(creatorId: widget.creatorId)),
+      semanticLabel: '$title. $line',
+      radius: ClRadius.sm,
+      builder: (context, pressed) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: ClSpace.s4, vertical: ClSpace.s3),
+        decoration: BoxDecoration(
+          color: pressed ? c.surfaceRaised : c.surface,
+          borderRadius: BorderRadius.circular(ClRadius.sm),
+        ),
+        child: Row(
+          children: [
+            if (faces.isNotEmpty) ...[
+              SizedBox(
+                width: 32 + (faces.length - 1) * 22.0,
+                height: 32,
+                child: Stack(
+                  children: [
+                    for (final (i, f) in faces.indexed)
+                      Positioned(
+                        left: i * 22.0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: c.surface, width: 2),
+                          ),
+                          child: ClAvatar(name: f, size: 28, color: c.popFor(f)),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: ClSpace.s3),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: cl.text.bodyStrong),
+                  Text(line, maxLines: 1, overflow: TextOverflow.ellipsis, style: cl.text.label),
+                ],
+              ),
+            ),
+            Icon(ClIcons.chevron, size: 18, color: c.inkMuted),
+          ],
+        ),
+      ),
     );
   }
 }

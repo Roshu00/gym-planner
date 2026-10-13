@@ -3,6 +3,7 @@
 library;
 
 import '../domain/models.dart';
+import '../domain/team.dart';
 
 typedef Row = Map<String, Object?>;
 
@@ -203,3 +204,73 @@ Session sessionFromRow(Row r) => Session(
   finishMessage: r['finish_message'] as String? ?? '',
   exercises: [for (final e in _list(r['exercises'])) SessionExercise.fromJson((e as Map).cast())],
 );
+
+// ───────────────────────── Team
+
+Row teamPostRow(TeamPost p) => {
+  'id': p.id,
+  'creator_id': p.creatorId,
+  'user_id': p.userId,
+  'author_name': p.authorName,
+  'workout_name': p.workoutName,
+  'records': p.records,
+  'streak_weeks': p.streakWeeks,
+  'created_at': p.createdAt.toUtc().toIso8601String(),
+};
+
+TeamPost teamPostFromRow(Row r, {int cheers = 0, bool cheeredByMe = false, String? reply}) => TeamPost(
+  id: r['id'] as String,
+  creatorId: r['creator_id'] as String,
+  userId: r['user_id'] as String? ?? '',
+  authorName: r['author_name'] as String? ?? '',
+  workoutName: r['workout_name'] as String? ?? '',
+  createdAt: DateTime.parse(r['created_at'] as String).toLocal(),
+  records: [for (final x in _list(r['records'])) x as String],
+  streakWeeks: (r['streak_weeks'] as num?)?.toInt() ?? 0,
+  cheers: cheers,
+  cheeredByMe: cheeredByMe,
+  reply: reply,
+);
+
+Row trainerNoteRow(TrainerNote n) => {
+  'id': n.id,
+  'creator_id': n.creatorId,
+  'text': n.text,
+  'created_at': n.createdAt.toUtc().toIso8601String(),
+};
+
+TrainerNote trainerNoteFromRow(Row r) => TrainerNote(
+  id: r['id'] as String,
+  creatorId: r['creator_id'] as String,
+  text: r['text'] as String? ?? '',
+  createdAt: DateTime.parse(r['created_at'] as String).toLocal(),
+);
+
+/// A team from its rows: posts newest first with their cheers and replies.
+Team teamFromRows({
+  required String creatorId,
+  required String userId,
+  required List<Row> posts,
+  required List<Row> cheers,
+  required List<Row> replies,
+  required List<Row> notes,
+  required int members,
+  required int activeToday,
+}) {
+  final replyOf = {for (final r in replies) r['post_id'] as String: r['text'] as String};
+  return Team(
+    creatorId: creatorId,
+    members: members,
+    activeToday: activeToday,
+    posts: [
+      for (final p in posts)
+        teamPostFromRow(
+          p,
+          cheers: cheers.where((c) => c['post_id'] == p['id']).length,
+          cheeredByMe: cheers.any((c) => c['post_id'] == p['id'] && c['user_id'] == userId),
+          reply: replyOf[p['id']],
+        ),
+    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+    notes: [for (final n in notes) trainerNoteFromRow(n)]..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+  );
+}

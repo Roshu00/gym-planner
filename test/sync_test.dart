@@ -79,6 +79,36 @@ void main() {
     expect(saved.items.map((i) => i.video), [false, true]);
   });
 
+  test('the team goes through the server: posts, cheers, replies and notes', () async {
+    final store = await open();
+    store.completeOnboarding(profile);
+    store.startProgram('p_j_home');
+    store.startSession();
+    store.updateSet(0, 0, const SetLog(kg: 20, reps: 10));
+    store.toggleSet(0, 0);
+    final s = store.finishSession();
+    final post = store.showToTeam(s);
+    await settle();
+    final row = remote.tables['team_posts']!.single;
+    expect(row['id'], post.id);
+    expect(row['creator_id'], 'c_jelena');
+    expect(row['user_id'], uid);
+
+    await store.loadTeam('c_jelena', force: true);
+    final mine = store.team('c_jelena')!.posts.single;
+    store.toggleCheer(mine);
+    await settle();
+    expect(remote.tables['team_cheers']!.single['post_id'], post.id);
+    store.toggleCheer(store.team('c_jelena')!.posts.single);
+    await settle();
+    expect(remote.tables['team_cheers'], isEmpty, reason: 'taken back');
+
+    final me = store.saveMyCreator(name: 'Boban', handle: 'boban.fit');
+    store.writeNote('Danas noge.');
+    await settle();
+    expect(remote.tables['trainer_notes']!.single['creator_id'], me.id);
+  });
+
   test('without a server the video stays a file on the phone', () async {
     final local = AppStore(storage: MemoryStore(), clock: () => clock);
     await local.load();
